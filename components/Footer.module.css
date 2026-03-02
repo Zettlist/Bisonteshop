@@ -1,0 +1,51 @@
+.footer {
+    background-color: #050505;
+    color: var(--foreground);
+    padding: 1.75rem 2rem 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: auto;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.column h3 {
+    color: var(--primary);
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.column ul {
+    list-style: none;
+    padding: 0;
+}
+
+.column li {
+    margin-bottom: 0.4rem;
+}
+
+.column a {
+    color: #888;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.column a:hover {
+    color: var(--foreground);
+}
+
+.copyright {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    color: #666;
+    font-size: 0.8rem;
+}

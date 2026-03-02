@@ -1,0 +1,100 @@
+/* Ocupa todo el espacio izquierdo */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 460px;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2.5rem;
+    gap: 2rem;
+    pointer-events: none;
+}
+
+/* ─── Logo ─── */
+.logoArea {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logoBadge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    text-align: center;
+}
+
+
+/* ─── Tips ─── */
+.tipsArea {
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+    pointer-events: all;
+}
+
+.tipsLabel {
+    font-size: 0.68rem;
+    letter-spacing: 4px;
+    color: rgba(255, 255, 255, 0.65);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+}
+
+.tipsBox {
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.1rem 1.75rem;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.72) 0%, rgba(0, 0, 0, 0.0) 100%);
+    border-radius: 16px;
+}
+
+.tipText {
+    font-size: 0.95rem;
+    color: #fff;
+    line-height: 1.65;
+    text-align: center;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+/* ─── Dots ─── */
+.dots {
+    display: flex;
+    gap: 0.4rem;
+    justify-content: center;
+    margin-top: 0.75rem;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    padding: 0;
+}
+
+.dotActive {
+    background: var(--primary);
+    width: 18px;
+    border-radius: 3px;
+    box-shadow: 0 0 8px var(--primary-glow);
+}
+
+/* Ocultar en móvil */
+@media (max-width: 768px) {
+    .overlay {
+        display: none;
+    }
+}

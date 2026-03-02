@@ -1,0 +1,305 @@
+/* ─── Layout ─── */
+.wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: stretch;
+    position: relative;
+}
+
+/* ─── Mural ─── */
+.muralContainer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+.muralOverlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right,
+            rgba(0, 0, 0, 0.55) 0%,
+            rgba(0, 0, 0, 0.65) 55%,
+            rgba(0, 0, 0, 0.88) 100%);
+}
+
+/* ─── Panel ─── */
+.panel {
+    position: relative;
+    z-index: 10;
+    margin-left: auto;
+    width: 100%;
+    max-width: 440px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3rem 2.5rem;
+    background: rgba(8, 8, 8, 0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+[data-theme='light'] .panel {
+    background: rgba(255, 255, 255, 0.82);
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* ─── Header ─── */
+.header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.logoBack {
+    display: inline-block;
+    margin-bottom: 1.25rem;
+    transition: opacity 0.2s;
+}
+
+.logoBack:hover {
+    opacity: 0.8;
+}
+
+.logoText {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    color: var(--primary);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-decoration: none;
+}
+
+.title {
+    font-family: var(--font-display);
+    font-size: 2.6rem;
+    font-weight: 400;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--foreground);
+    margin-bottom: 0.4rem;
+}
+
+.subtitle {
+    font-size: 0.9rem;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+}
+
+/* ─── Form ─── */
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-family: var(--font-sans);
+    transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+    outline: none;
+}
+
+[data-theme='light'] .input {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme='light'] .input::placeholder {
+    color: rgba(0, 0, 0, 0.25);
+}
+
+.input:focus {
+    border-color: var(--primary);
+    background: rgba(230, 57, 70, 0.05);
+    box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.15);
+}
+
+/* ─── Password ─── */
+.passwordWrapper {
+    position: relative;
+}
+
+.passwordWrapper .input {
+    padding-right: 3rem;
+}
+
+.eyeBtn {
+    position: absolute;
+    right: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 0.25rem;
+    transition: color var(--transition);
+}
+
+.eyeBtn:hover {
+    color: var(--foreground);
+}
+
+/* ─── Forgot ─── */
+.forgotRow {
+    text-align: right;
+    margin-top: -0.5rem;
+}
+
+.forgot {
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color var(--transition);
+}
+
+.forgot:hover {
+    color: var(--primary);
+}
+
+/* ─── Submit button ─── */
+.submitBtn {
+    margin-top: 0.5rem;
+    padding: 0.95rem 1.5rem;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    box-shadow: 0 6px 24px var(--primary-glow);
+    transition: background var(--transition), box-shadow var(--transition);
+}
+
+.submitBtn:hover:not(:disabled) {
+    background: var(--primary-dark);
+    box-shadow: 0 10px 32px var(--primary-glow);
+}
+
+.submitBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* ─── Spinner ─── */
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ─── Divider ─── */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.75rem 0 1.25rem;
+}
+
+.divider span {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.divider p {
+    font-size: 0.8rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+/* ─── Register button ─── */
+.registerBtn {
+    display: block;
+    text-align: center;
+    padding: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all var(--transition);
+}
+
+.registerBtn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(230, 57, 70, 0.06);
+}
+
+/* ─── Back link ─── */
+.back {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.back a {
+    color: var(--muted);
+    text-decoration: none;
+    transition: color var(--transition);
+}
+
+.back a:hover {
+    color: var(--primary);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+    .panel {
+        margin: 0;
+        max-width: 100%;
+        padding: 2.5rem 1.5rem;
+    }
+
+    .muralOverlay {
+        background: rgba(0, 0, 0, 0.7);
+    }
+}

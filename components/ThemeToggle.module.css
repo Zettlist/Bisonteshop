@@ -1,0 +1,28 @@
+.toggle {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition), transform 0.2s;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.toggle:hover {
+    border-color: var(--primary);
+    background: rgba(230, 57, 70, 0.08);
+    transform: scale(1.1) rotate(15deg);
+}
+
+.icon {
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
