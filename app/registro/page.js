@@ -62,7 +62,7 @@ export default function RegistroPage() {
             {/* Mural de fondo */}
             <div className={styles.muralContainer}>
                 <Image
-                    src="/login-mural.png"
+                    src="/login-mural.webp"
                     alt="Mural Bisonte Manga"
                     fill
                     style={{ objectFit: 'cover', objectPosition: 'center' }}

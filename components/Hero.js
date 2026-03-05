@@ -16,7 +16,7 @@ export default function Hero() {
                 transition={{ duration: 1.5, ease: 'easeOut' }}
             >
                 <Image
-                    src="/graffiti-bg.png"
+                    src="/graffiti-bg.webp"
                     alt="Graffiti"
                     fill
                     style={{ objectFit: 'cover', objectPosition: 'center' }}

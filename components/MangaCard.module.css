@@ -47,6 +47,31 @@
     background: linear-gradient(135deg, var(--surface), var(--background));
 }
 
+/* Skeleton shimmer mientras carga la imagen del producto */
+@keyframes shimmer {
+    0% {
+        background-position: -400px 0;
+    }
+
+    100% {
+        background-position: 400px 0;
+    }
+}
+
+.imageSkeleton {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+            var(--surface) 25%,
+            rgba(255, 255, 255, 0.06) 50%,
+            var(--surface) 75%);
+    background-size: 800px 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: inherit;
+    z-index: 1;
+}
+
+
 .outOfStock .image {
     filter: grayscale(100%);
     opacity: 0.7;

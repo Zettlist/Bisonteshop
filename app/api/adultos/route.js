@@ -4,8 +4,8 @@ import { NextResponse } from 'next/server';
 const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
 export async function GET() {
-    try {
-        const [rows] = await pool.query(`
+  try {
+    const [rows] = await pool.query(`
       SELECT 
         p.id,
         p.name as title,
@@ -35,14 +35,17 @@ export async function GET() {
       ORDER BY p.id DESC
     `, [EMPRESA_ID]);
 
-        const products = rows.map(p => ({
-            ...p,
-            tags: p.tags ? p.tags.split(',') : []
-        }));
+    const products = rows.map(p => ({
+      ...p,
+      tags: p.tags ? p.tags.split(',') : []
+    }));
 
-        return NextResponse.json({ success: true, products });
-    } catch (error) {
-        console.error('Error fetching adult products:', error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
+    return NextResponse.json(
+      { success: true, products },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+    );
+  } catch (error) {
+    console.error('Error fetching adult products:', error);
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }

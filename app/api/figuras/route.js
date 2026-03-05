@@ -42,7 +42,10 @@ export async function GET() {
     }));
 
     // Retorna 'mangas' array name to reuse same frontend code easily, standardizing the payload
-    return NextResponse.json({ success: true, mangas, empresa_id: EMPRESA_ID });
+    return NextResponse.json(
+      { success: true, mangas, empresa_id: EMPRESA_ID },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
+    );
   } catch (error) {
     console.error('Error fetching figuras:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

@@ -2,12 +2,15 @@ import styles from './MangaCard.module.css';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useCart } from '@/context/CartContext';
 import { ShoppingCart } from 'lucide-react';
+import { useState } from 'react';
 
 export default function MangaCard({ manga, onClick }) {
     const { formatPrice } = useCurrency();
     const { addToCart } = useCart();
     const imageUrl = manga.image_url || null;
     const isOutOfStock = manga.stock <= 0;
+    const [imgLoaded, setImgLoaded] = useState(false);
+    const [imgError, setImgError] = useState(false);
 
     return (
         <div
@@ -16,13 +19,21 @@ export default function MangaCard({ manga, onClick }) {
         >
             {/* Image Container */}
             <div className={styles.imageWrapper}>
-                {imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={imageUrl}
-                        alt={manga.title || 'Portada'}
-                        className={styles.image}
-                    />
+                {imageUrl && !imgError ? (
+                    <>
+                        {!imgLoaded && <div className={styles.imageSkeleton} aria-hidden="true" />}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={imageUrl}
+                            alt={manga.title || 'Portada'}
+                            className={styles.image}
+                            loading="lazy"
+                            decoding="async"
+                            onLoad={() => setImgLoaded(true)}
+                            onError={() => setImgError(true)}
+                            style={imgLoaded ? {} : { opacity: 0, position: 'absolute' }}
+                        />
+                    </>
                 ) : (
                     <div className={styles.imagePlaceholder}>📚</div>
                 )}

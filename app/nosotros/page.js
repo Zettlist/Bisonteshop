@@ -70,7 +70,7 @@ export default function NosotrosPage() {
                     transition={{ duration: 12, ease: 'linear', repeat: Infinity, repeatType: 'reverse' }}
                 >
                     <img
-                        src="/bisonte-mural.png"
+                        src="/bisonte-mural.webp"
                         alt="Mural Bisonte Manga"
                         className={styles.muralImage}
                     />
