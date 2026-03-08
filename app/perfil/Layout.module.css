@@ -1,0 +1,22 @@
+.perfilContainer {
+    display: flex;
+    max-width: var(--max-width);
+    margin: 0 auto;
+    width: 100%;
+}
+
+.perfilContent {
+    flex: 1;
+    padding: 2rem;
+    min-height: calc(100vh - 80px);
+}
+
+@media (max-width: 768px) {
+    .perfilContainer {
+        flex-direction: column;
+    }
+
+    .perfilContent {
+        padding: 1rem;
+    }
+}
