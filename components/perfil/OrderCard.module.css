@@ -1,0 +1,205 @@
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
+}
+
+.orderId {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.date {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.statusBadge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Status colors map */
+.status_produccion {
+    background: rgba(234, 179, 8, 0.15);
+    color: #eab308;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.status_transito {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status_listo {
+    background: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.status_entregado {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.body {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.imageContainer {
+    width: 80px;
+    height: 110px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.itemName {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--foreground);
+}
+
+.itemDesc {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.priceContainer {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.priceLabel {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+.priceValue {
+    font-size: 1.2rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+}
+
+.paymentBreakdown {
+    background: var(--surface-2);
+    padding: 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.paymentRow {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+    color: var(--muted);
+}
+
+.paymentRow.total {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+    color: var(--foreground);
+    font-weight: 600;
+}
+
+.paymentRow.debt {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.btnPrimary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.btnPrimary:hover {
+    background: var(--primary-dark);
+}
+
+.btnSecondary {
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    padding: 0.6rem 1.2rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.btnSecondary:hover {
+    background: var(--surface-2);
+    border-color: var(--muted);
+}
+
+@media (max-width: 600px) {
+    .body {
+        flex-direction: column;
+    }
+
+    .imageContainer {
+        width: 100%;
+        height: 180px;
+    }
+}

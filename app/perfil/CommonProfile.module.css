@@ -1,0 +1,60 @@
+.container {
+    max-width: 900px;
+}
+
+.header {
+    margin-bottom: 2rem;
+}
+
+.title {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--primary);
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.cardTitle {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.emptyState {
+    text-align: center;
+    padding: 3rem;
+    color: var(--muted);
+}
+
+.amount {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    color: var(--foreground);
+    margin-bottom: 0.5rem;
+}
+
+.amount.positive {
+    color: #22c55e;
+}
+
+.amountLabel {
+    color: var(--muted);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
