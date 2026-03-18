@@ -121,10 +121,13 @@ export default function AdultosPage() {
 
                         {/* Brand Logo */}
                         <div className={styles.disclaimerLogoWrapper}>
-                            <img
+                            <Image
                                 src="/logo-hentai.webp"
                                 alt="Bisonte Hentai"
+                                width={120}
+                                height={120}
                                 className={styles.disclaimerLogo}
+                                priority
                             />
                         </div>
 
@@ -193,10 +196,13 @@ export default function AdultosPage() {
                     />
                     <div className={styles.muralBannerOverlay} />
                     <div className={styles.muralBannerContent}>
-                        <img
+                        <Image
                             src="/logo-hentai.webp"
                             alt="Bisonte Hentai"
+                            width={100}
+                            height={100}
                             className={styles.muralBannerLogo}
+                            priority
                         />
                         <div className={styles.muralBannerText}>
                             <h1 className={styles.muralBannerTitle}>Bisonte Hentai</h1>
