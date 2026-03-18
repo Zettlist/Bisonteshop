@@ -158,7 +158,7 @@ export default function MangasPage() {
         });
 
         return result;
-    }, [mangas, searchTerm, selectedCategory, selectedPublisher, selectedLanguage, selectedTags, sortBy]);
+    }, [mangas, searchTerm, selectedCategory, selectedPublisher, selectedLanguage, selectedTags, sortBy, selectedStock]);
 
     const resetAllFilters = () => {
         setSelectedCategory('');
