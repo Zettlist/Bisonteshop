@@ -1,29 +1,39 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
-import { useCart } from '@/context/CartContext';
+import { useCartStore } from '@/store/cartStore';
 import { useCurrency } from '@/context/CurrencyContext';
+import { useRouter } from 'next/navigation';
 import styles from './CartSidebar.module.css';
 
 export default function CartSidebar() {
-    const {
-        cartItems,
-        isCartOpen,
-        setIsCartOpen,
-        removeFromCart,
-        updateQuantity,
-        totalItemsCount,
-        isMounted
-    } = useCart();
+    const router = useRouter();
+    const [isMounted, setIsMounted] = useState(false);
+    
+    const isCartOpen = useCartStore((state) => state.isCartOpen);
+    const setIsCartOpen = useCartStore((state) => state.setIsCartOpen);
+    const cartItems = useCartStore((state) => state.items);
+    const updateQuantity = useCartStore((state) => state.updateQuantity);
+    const removeFromCart = useCartStore((state) => state.removeItem);
+    const getTotals = useCartStore((state) => state.getTotals);
 
     const { formatPrice } = useCurrency();
 
-    // Prevent hydration mismatch
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     if (!isMounted) return null;
 
-    const subtotal = cartItems.reduce((acc, item) => acc + (parseFloat(item.price) * item.quantity), 0);
+    const totals = getTotals();
+    const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+
+    const handleCheckout = () => {
+        setIsCartOpen(false);
+        router.push('/checkout');
+    };
 
     return (
         <AnimatePresence>
@@ -69,7 +79,7 @@ export default function CartSidebar() {
                                 </div>
                             ) : (
                                 cartItems.map((item) => (
-                                    <div key={item.id} className={styles.cartItem}>
+                                    <div key={`${item.id}-${item.type}`} className={styles.cartItem}>
                                         <div className={styles.itemImageWrapper}>
                                             {item.image_url ? (
                                                 <img src={item.image_url} alt={item.title} className={styles.itemImage} />
@@ -79,21 +89,35 @@ export default function CartSidebar() {
                                         </div>
 
                                         <div className={styles.itemInfo}>
+                                            <div style={{ display: 'flex', gap: '8px', marginBottom: '4px' }}>
+                                              {item.type === 'preventa' ? (
+                                                  <span className={styles.preventaBadge}>Preventa ({item.anticipo_percent}% Anticipo)</span>
+                                              ) : (
+                                                  <span className={styles.stockBadge}>Stock</span>
+                                              )}
+                                            </div>
                                             <h4 className={styles.itemTitle}>{item.title}</h4>
-                                            <span className={styles.itemPrice}>{formatPrice(item.price)}</span>
+                                            
+                                            {item.type === 'preventa' ? (
+                                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span className={styles.itemPriceLabel}>Anticipo Hoy: <span className={styles.itemPrice}>{formatPrice(item.price * (item.anticipo_percent/100))}</span></span>
+                                              </div>
+                                            ) : (
+                                              <span className={styles.itemPrice}>{formatPrice(item.price)}</span>
+                                            )}
 
                                             <div className={styles.controlsRow}>
                                                 <div className={styles.quantityControls}>
                                                     <button
                                                         className={styles.qtyBtn}
-                                                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                                        onClick={() => updateQuantity(item.id, item.type, item.quantity - 1)}
                                                     >
                                                         <Minus size={14} />
                                                     </button>
                                                     <span className={styles.qtyValue}>{item.quantity}</span>
                                                     <button
                                                         className={styles.qtyBtn}
-                                                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                                        onClick={() => updateQuantity(item.id, item.type, item.quantity + 1)}
                                                     >
                                                         <Plus size={14} />
                                                     </button>
@@ -101,7 +125,7 @@ export default function CartSidebar() {
 
                                                 <button
                                                     className={styles.removeBtn}
-                                                    onClick={() => removeFromCart(item.id)}
+                                                    onClick={() => removeFromCart(item.id, item.type)}
                                                     title="Eliminar"
                                                 >
                                                     <Trash2 size={16} />
@@ -118,20 +142,30 @@ export default function CartSidebar() {
                             <div className={styles.footer}>
                                 <div className={styles.totals}>
                                     <div className={styles.totalRow}>
-                                        <span>Subtotal</span>
-                                        <span>{formatPrice(subtotal)}</span>
+                                        <span>Subtotal de productos</span>
+                                        <span>{formatPrice(totals.subtotalStock)}</span>
+                                    </div>
+                                    <div className={styles.totalRow}>
+                                        <span>Subtotal de anticipos</span>
+                                        <span>{formatPrice(totals.subtotalAnticipos)}</span>
                                     </div>
                                     <div className={styles.totalRow}>
                                         <span>Envío</span>
-                                        <span>Calculado en el checkout</span>
+                                        <span>Calculado en checkout</span>
                                     </div>
                                     <div className={`${styles.totalRow} ${styles.grandTotal}`}>
-                                        <span>Total estimado</span>
-                                        <span>{formatPrice(subtotal)}</span>
+                                        <span>Total a pagar hoy</span>
+                                        <span style={{ color: 'var(--primary)' }}>{formatPrice(totals.totalToPayNow)}</span>
                                     </div>
+                                    {totals.totalLater > 0 && (
+                                      <div className={styles.totalRow} style={{ marginTop: '0.5rem', color: '#f59e0b', fontWeight: 'bold' }}>
+                                          <span>Saldo pendiente al recibir</span>
+                                          <span>{formatPrice(totals.totalLater)}</span>
+                                      </div>
+                                    )}
                                 </div>
 
-                                <button className={styles.checkoutBtn}>
+                                <button className={styles.checkoutBtn} onClick={handleCheckout}>
                                     Proceder al Pago
                                 </button>
                             </div>

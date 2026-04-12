@@ -6,8 +6,11 @@ import styles from './Navbar.module.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThemeToggle from './ThemeToggle';
 import CurrencySelector from './CurrencySelector';
-import { useCart } from '@/context/CartContext';
+import LoginModal from './LoginModal';
+import { useCartStore } from '@/store/cartStore';
 import { usePathname } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
+import { useEffect } from 'react';
 
 const brandVariants = {
     initial: { opacity: 0, y: 12, filter: 'blur(4px)' },
@@ -16,11 +19,29 @@ const brandVariants = {
 };
 
 export default function Navbar() {
-    const { setIsCartOpen, totalItemsCount, isMounted } = useCart();
+    const setIsCartOpen = useCartStore((state) => state.setIsCartOpen);
+    const cartItems = useCartStore((state) => state.items);
+    const totalItemsCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+    const isLoginOpen = useCartStore((state) => state.isLoginOpen);
+    const setIsLoginOpen = useCartStore((state) => state.setIsLoginOpen);
+    const [isMounted, setIsMounted] = require('react').useState(false);
+    require('react').useEffect(() => { setIsMounted(true); }, []);
+    const { isAuthenticated, user, setUser, _hydrated } = useAuthStore();
     const pathname = usePathname();
+
+    // Hydrate auth store from cookie on mount (persists session across reloads)
+    useEffect(() => {
+        if (!isAuthenticated) {
+            fetch('/api/me')
+                .then(r => r.json())
+                .then(({ user }) => { if (user) setUser(user); })
+                .catch(() => {});
+        }
+    }, []);
     const isAdultos = pathname?.startsWith('/adultos');
 
     return (
+        <>
         <nav className={styles.navbar}>
             <Link href="/" className={styles.logo} style={{ position: 'relative', overflow: 'hidden', display: 'inline-block' }}>
                 <AnimatePresence mode="wait" initial={false}>
@@ -65,9 +86,27 @@ export default function Navbar() {
 
             <div className={styles.actions}>
                 <CurrencySelector />
-                <Link href="/login" className={styles.iconBtn} aria-label="Iniciar sesión">
-                    <User size={20} />
-                </Link>
+                {_hydrated && isAuthenticated && user ? (
+                    <Link href="/perfil" className={styles.iconBtn} aria-label="Mi Perfil" title={`Hola, ${user.nombre}`}>
+                        {user.avatar ? (
+                            <img
+                                src={user.avatar}
+                                alt="Avatar"
+                                style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--primary)' }}
+                            />
+                        ) : (
+                            <User size={20} color="var(--primary)" />
+                        )}
+                    </Link>
+                ) : _hydrated ? (
+                    <button className={styles.iconBtn} aria-label="Iniciar sesión" onClick={() => setIsLoginOpen(true)}>
+                        <User size={20} />
+                    </button>
+                ) : (
+                    <button className={styles.iconBtn} aria-label="Iniciar sesión">
+                        <User size={20} />
+                    </button>
+                )}
                 <ThemeToggle />
                 <button
                     className={styles.iconBtn}
@@ -95,6 +134,9 @@ export default function Navbar() {
                 </button>
             </div>
         </nav>
+
+        <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+        </>
     );
 }
 

@@ -183,6 +183,18 @@
     color: var(--primary);
 }
 
+/* ─── Errors ─── */
+.errorMsg {
+    background: rgba(230, 57, 70, 0.1);
+    border: 1px solid rgba(230, 57, 70, 0.3);
+    color: var(--primary);
+    padding: 0.85rem;
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
 /* ─── Submit button ─── */
 .submitBtn {
     margin-top: 0.5rem;

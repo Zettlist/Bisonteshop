@@ -1,12 +1,12 @@
 import styles from './MangaCard.module.css';
 import { useCurrency } from '@/context/CurrencyContext';
-import { useCart } from '@/context/CartContext';
+import { useCartStore } from '@/store/cartStore';
 import { ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 
 export default function MangaCard({ manga, onClick }) {
     const { formatPrice } = useCurrency();
-    const { addToCart } = useCart();
+    const addItem = useCartStore(state => state.addItem);
     const imageUrl = manga.image_url || null;
     const isOutOfStock = manga.stock <= 0;
     const [imgLoaded, setImgLoaded] = useState(false);
@@ -44,7 +44,7 @@ export default function MangaCard({ manga, onClick }) {
                         className={styles.quickAddBtn}
                         onClick={(e) => {
                             e.stopPropagation();
-                            addToCart(manga);
+                            addItem(manga);
                         }}
                         aria-label="Agregar al carrito rápidamente"
                         title="Agregar rápido"
@@ -56,7 +56,7 @@ export default function MangaCard({ manga, onClick }) {
 
                 {/* Badges */}
                 <div className={styles.badgeRow}>
-                    {manga.publisher && (
+                    {manga.publisher && manga.publisher.toLowerCase() !== 'undefined' && (
                         <span className={styles.publisherBadge} title={manga.publisher}>
                             {manga.publisher}
                         </span>

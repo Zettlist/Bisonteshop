@@ -1,0 +1,64 @@
+.backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1100;
+}
+
+.panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 100%;
+    max-width: 440px;
+    z-index: 1101;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3rem 2.5rem;
+    background: rgba(8, 8, 8, 0.95);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+    overflow-y: auto;
+}
+
+[data-theme='light'] .panel {
+    background: rgba(255, 255, 255, 0.97);
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.closeBtn {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    transition: color var(--transition), background var(--transition);
+}
+
+.closeBtn:hover {
+    color: var(--foreground);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='light'] .closeBtn:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 480px) {
+    .panel {
+        max-width: 100%;
+        padding: 2.5rem 1.5rem;
+    }
+}

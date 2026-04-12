@@ -1,0 +1,394 @@
+/* ── Sections container ─────────────────────────────── */
+.sections {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* ── Accordion section ──────────────────────────────── */
+.section {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color 0.2s;
+}
+
+.section:hover {
+    border-color: rgba(230, 57, 70, 0.2);
+}
+
+.sectionHeader {
+    width: 100%;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.5rem;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    color: var(--foreground);
+    transition: background 0.15s;
+}
+
+.sectionHeader:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme='light'] .sectionHeader:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.sectionLeft {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.sectionIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(230, 57, 70, 0.1);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sectionTitle {
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.chevron {
+    color: var(--muted);
+    transition: transform 0.22s ease, color 0.22s;
+    flex-shrink: 0;
+}
+
+.chevronOpen {
+    transform: rotate(180deg);
+    color: var(--primary);
+}
+
+.sectionBody {
+    padding: 0 1.5rem 1.75rem;
+}
+
+/* ── Hint text ──────────────────────────────────────── */
+.hint {
+    font-size: 0.84rem;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+}
+
+/* ── Avatar category tabs ───────────────────────────── */
+.categoryTabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.categoryTab {
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: all 0.18s;
+}
+
+.categoryTab:hover {
+    border-color: rgba(230, 57, 70, 0.3);
+    color: var(--foreground);
+}
+
+.categoryTabActive {
+    background: rgba(230, 57, 70, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+/* ── Avatar grid ────────────────────────────────────── */
+.avatarGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.avatarBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    background: transparent;
+    border: 2.5px solid transparent;
+    border-radius: 14px;
+    padding: 0.5rem 0.4rem;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: var(--font-sans);
+}
+
+.avatarBtn:hover {
+    border-color: rgba(230, 57, 70, 0.35);
+    background: rgba(230, 57, 70, 0.05);
+    transform: translateY(-2px);
+}
+
+.avatarBtnSelected {
+    border-color: var(--primary) !important;
+    background: rgba(230, 57, 70, 0.1) !important;
+    box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.18);
+}
+
+.avatarImg {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.avatarLabel {
+    font-size: 0.63rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-align: center;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Form grid ──────────────────────────────────────── */
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.1rem;
+    margin-bottom: 1.25rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.fullWidth {
+    grid-column: 1 / -1;
+}
+
+.label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.input {
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-family: var(--font-sans);
+    width: 100%;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+[data-theme='light'] .input {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.12);
+}
+
+.input:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+select.input {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+}
+
+/* ── Primary button ─────────────────────────────────── */
+.btnPrimary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+    letter-spacing: 0.5px;
+}
+
+.btnPrimary:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px var(--primary-glow);
+}
+
+.btnPrimary:disabled {
+    cursor: not-allowed;
+    opacity: 0.85;
+}
+
+.btnSuccess {
+    background: #16a34a !important;
+}
+
+.btnInner {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner {
+    animation: spin 0.8s linear infinite;
+}
+
+/* ── Payment empty state ────────────────────────────── */
+.emptyPayment {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2.5rem 1rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+.emptyPayment p {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin: 0;
+}
+
+.emptyPayment span {
+    font-size: 0.84rem;
+    max-width: 360px;
+    line-height: 1.5;
+}
+
+/* ── Toggle list ────────────────────────────────────── */
+.toggleList {
+    display: flex;
+    flex-direction: column;
+}
+
+.toggleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+    gap: 2rem;
+}
+
+.toggleRow:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.toggleLabel {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin: 0 0 0.2rem;
+}
+
+.toggleDesc {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.toggle {
+    flex-shrink: 0;
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    padding: 0;
+    position: relative;
+    transition: background 0.22s, border-color 0.22s;
+}
+
+[data-theme='light'] .toggle {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.toggleOn {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+}
+
+.toggleThumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.22s;
+    display: block;
+}
+
+.toggleOn .toggleThumb {
+    transform: translateX(20px);
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+@media (max-width: 640px) {
+    .formGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .categoryTabs {
+        gap: 0.35rem;
+    }
+
+    .categoryTab {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.7rem;
+    }
+
+    .avatarImg {
+        width: 48px;
+        height: 48px;
+    }
+}

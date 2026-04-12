@@ -1,0 +1,615 @@
+.checkoutContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 3rem;
+  color: var(--foreground);
+}
+
+.checkoutContainerSuccess {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  color: var(--foreground);
+  display: flex;
+  justify-content: center;
+}
+
+/* ── Guardar tarjeta ── */
+.saveCardLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--foreground);
+  line-height: 1.4;
+}
+
+.saveCardCheck {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.saveCardSafe {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.mainColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.summaryColumn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+
+.stepHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.stepHeader h1 {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 800;
+}
+
+.progressIndicator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.progressStep {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.progressStep.active {
+  color: var(--primary);
+}
+
+.progressDivider {
+  color: var(--border);
+}
+
+.cartList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cartItem {
+  display: flex;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  align-items: center;
+  transition: border-color 0.2s;
+}
+
+.cartItem:hover {
+  border-color: rgba(255,255,255,0.15);
+}
+
+.itemImageWrapper {
+  flex-shrink: 0;
+  width: 80px;
+  height: 110px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.itemImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.itemDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.itemTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemUnitPrice {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* ── Cantidad controls ── */
+.qtyControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.qtyBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--foreground);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.qtyBtn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.qtyValue {
+  font-size: 0.95rem;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* ── Precio y eliminar (columna derecha) ── */
+.itemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.itemPriceBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.itemPriceLabel {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.itemPrice {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.itemPriceFull {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.removeBtn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.removeBtn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Badges */
+.badgeStock {
+  display: inline-block;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: fit-content;
+}
+
+.badgePreventa {
+  display: inline-block;
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: fit-content;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formGroup.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.input {
+  padding: 0.75rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  font-size: 1rem;
+  font-family: var(--font-sans);
+  width: 100%;
+  transition: all 0.2s;
+}
+
+select.input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.5rem;
+}
+
+select.input option {
+  background: var(--surface);
+  color: var(--foreground);
+}
+
+.input:focus, .input:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.2);
+}
+
+.btnPrimary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  margin-top: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btnPrimary:hover {
+  background: var(--primary-dark);
+}
+
+.btnSecondary {
+  background: transparent;
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: fit-content;
+}
+
+.btnSecondary:hover {
+  background: var(--surface-2);
+}
+
+.summaryTitle {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.summaryRow.totalNow {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--foreground);
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.summaryRow.totalLater {
+  color: #f59e0b;
+  font-weight: 700;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: var(--radius);
+}
+
+.checkoutActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.creditSection {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.creditHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.creditBalance {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.paymentContainer {
+  background: var(--surface-2);
+  padding: 2rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* ── Success screen ── */
+.successContainer {
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  max-width: 680px;
+  width: 100%;
+}
+
+.successHeader {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.checkmarkWrapper {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2.5px solid #10b981;
+  background: rgba(16,185,129,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkmarkSvg {
+  width: 36px;
+  height: 36px;
+}
+
+.successTitle {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--foreground);
+  margin-bottom: 0.3rem;
+}
+
+.successSubtitle {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* ── Progress card ── */
+.progressCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.75rem;
+}
+
+.progressCardTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1.75rem;
+}
+
+.progressTrack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.progressStepWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.progressStep {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.progressBubble {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  border: 2px solid;
+  transition: all 0.3s;
+}
+
+.progressDone .progressBubble {
+  background: rgba(16,185,129,0.12);
+  border-color: #10b981;
+}
+
+.progressActive .progressBubble {
+  background: rgba(230,57,70,0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(230,57,70,0.12);
+  animation: activePulse 2s infinite;
+}
+
+.progressPending .progressBubble {
+  background: rgba(255,255,255,0.03);
+  border-color: var(--border);
+  opacity: 0.45;
+}
+
+@keyframes activePulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(230,57,70,0.12); }
+  50%       { box-shadow: 0 0 0 8px rgba(230,57,70,0.05); }
+}
+
+.progressInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.progressLabel {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.progressPending .progressLabel {
+  color: var(--muted);
+}
+
+.progressDesc {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.progressLine {
+  width: 2px;
+  height: 28px;
+  background: var(--border);
+  margin-left: 20px;
+}
+
+.progressLineDone {
+  background: #10b981;
+}
+
+/* ── Botones ── */
+.successActions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btnSecondary {
+  flex: 1;
+  padding: 0.85rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.2s;
+}
+
+.btnSecondary:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+@media (max-width: 900px) {
+  .checkoutContainer {
+    grid-template-columns: 1fr;
+    padding: 2rem 1rem;
+  }
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

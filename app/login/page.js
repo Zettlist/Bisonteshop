@@ -5,6 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 import styles from './login.module.css';
 import TipsOverlay from '@/components/TipsOverlay';
 
@@ -13,12 +15,39 @@ export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState(null);
+    const router = useRouter();
+    const setUser = useAuthStore(state => state.setUser);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-        // Aquí irá la lógica de autenticación
-        setTimeout(() => setLoading(false), 1500);
+        setErrorMsg(null);
+        
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                // Guarda datos visuales en memoria (Zustand)
+                setUser(data.user);
+                // Redirigir al inicio o pre-ruta (ej. carrito)
+                router.push('/');
+                router.refresh(); // Forzar refetch estado global server
+            } else {
+                setErrorMsg(data.error || 'Autenticación fallida');
+                setLoading(false);
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            setErrorMsg('Error de conexión. Intente más tarde.');
+            setLoading(false);
+        }
     };
 
     return (
@@ -103,6 +132,16 @@ export default function LoginPage() {
                             ¿Olvidaste tu contraseña?
                         </Link>
                     </div>
+
+                    {errorMsg && (
+                        <motion.div 
+                            className={styles.errorMsg}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                        >
+                            {errorMsg}
+                        </motion.div>
+                    )}
 
                     <motion.button
                         type="submit"

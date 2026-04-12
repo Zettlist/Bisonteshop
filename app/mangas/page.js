@@ -2,10 +2,20 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import MangaCard from '@/components/MangaCard';
 import MangaModal from '@/components/MangaModal';
-import { Search, Loader2, Filter, PackageX, X } from 'lucide-react';
+import { Search, Filter, PackageX, X } from 'lucide-react';
 import styles from './mangas.module.css';
+
+const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (i) => ({
+        opacity: 1,
+        y: 0,
+        transition: { delay: i * 0.04, duration: 0.3, ease: 'easeOut' }
+    }),
+};
 
 export default function MangasPage() {
     const [mangas, setMangas] = useState([]);
@@ -61,7 +71,7 @@ export default function MangasPage() {
         const map = new Map();
         mangas.forEach(m => {
             const v = normalize(m.publisher);
-            if (v && !map.has(v.toLowerCase())) map.set(v.toLowerCase(), v);
+            if (v && v.toLowerCase() !== 'undefined' && !map.has(v.toLowerCase())) map.set(v.toLowerCase(), v);
         });
         return [...map.values()].sort();
     }, [mangas]);
@@ -359,13 +369,20 @@ export default function MangasPage() {
                                     Mostrando <span style={{ color: 'var(--foreground)' }}>{processedMangas.length}</span> de <span style={{ color: 'var(--foreground)' }}>{mangas.length}</span> artículos
                                 </p>
                                 <div className={styles.grid}>
-                                    {processedMangas.map((manga) => (
-                                        <div key={manga.id} className={styles.gridItem}>
+                                    {processedMangas.map((manga, i) => (
+                                        <motion.div
+                                            key={manga.id}
+                                            className={styles.gridItem}
+                                            custom={i}
+                                            variants={cardVariants}
+                                            initial="hidden"
+                                            animate="visible"
+                                        >
                                             <MangaCard
                                                 manga={manga}
                                                 onClick={(m) => setSelectedManga(m)}
                                             />
-                                        </div>
+                                        </motion.div>
                                     ))}
                                 </div>
                             </>
@@ -374,12 +391,14 @@ export default function MangasPage() {
                 </div>
             </div>
 
-            {selectedManga && (
-                <MangaModal
-                    manga={selectedManga}
-                    onClose={() => setSelectedManga(null)}
-                />
-            )}
+            <AnimatePresence>
+                {selectedManga && (
+                    <MangaModal
+                        manga={selectedManga}
+                        onClose={() => setSelectedManga(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }

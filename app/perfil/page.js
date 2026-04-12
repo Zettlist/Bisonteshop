@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function PerfilPage() {
+export default function PerfilRoot() {
     redirect('/perfil/mi-cuenta');
 }
