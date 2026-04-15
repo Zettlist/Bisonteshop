@@ -71,6 +71,7 @@ function CheckoutFlow() {
     const [discountError, setDiscountError] = useState(null);
     const [discountSuccess, setDiscountSuccess] = useState(null);
     const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
+    const [step2Error, setStep2Error] = useState(null);
     const [useCreditBalance, setUseCreditBalance] = useState(false);
     const [clientSecret, setClientSecret] = useState(null);
     const [savedAddress, setSavedAddress] = useState(null);
@@ -113,6 +114,28 @@ function CheckoutFlow() {
 
     const handleNextStep = async () => {
         if (step === 2) {
+            // Validar campos requeridos
+            const required = [
+                { key: 'nombre_recibe', label: 'Nombre de quien recibe' },
+                { key: 'telefono', label: 'Teléfono de contacto' },
+                { key: 'calle', label: 'Calle' },
+                { key: 'numero_exterior', label: 'Número Exterior' },
+                { key: 'colonia', label: 'Colonia' },
+                { key: 'cp', label: 'Código Postal' },
+                { key: 'municipio', label: 'Ciudad / Municipio' },
+                { key: 'estado', label: 'Estado' },
+            ];
+            const missing = required.find(f => !shippingForm[f.key]?.trim());
+            if (missing) {
+                setStep2Error(`El campo "${missing.label}" es obligatorio.`);
+                return;
+            }
+            if (shippingForm.telefono.replace(/\D/g, '').length < 10) {
+                setStep2Error('El teléfono debe tener al menos 10 dígitos.');
+                return;
+            }
+            setStep2Error(null);
+
             setShippingCost(150);
             // Crear PaymentIntent al avanzar al paso de pago
             setIsProcessing(true);
@@ -132,11 +155,11 @@ function CheckoutFlow() {
                 if (data.success) {
                     setClientSecret(data.clientSecret);
                 } else {
-                    setPaymentError(data.error || 'Error al preparar el pago');
+                    setStep2Error(data.error || 'Error al preparar el pago. Intenta nuevamente.');
                     return;
                 }
             } catch (e) {
-                setPaymentError('Error de conexión al preparar el pago');
+                setStep2Error('Error de conexión. Verifica tu internet e intenta de nuevo.');
                 return;
             } finally {
                 setIsProcessing(false);
@@ -153,6 +176,7 @@ function CheckoutFlow() {
 
     const handleInputChange = (e) => {
         setShippingForm({ ...shippingForm, [e.target.name]: e.target.value });
+        if (step2Error) setStep2Error(null);
     };
 
     const applySavedAddress = () => {
@@ -542,12 +566,31 @@ function CheckoutFlow() {
                                 </div>
                             </div>
 
+                            {step2Error && (
+                                <div style={{
+                                    color: '#ef4444',
+                                    fontSize: '0.88rem',
+                                    background: 'rgba(239,68,68,0.08)',
+                                    border: '1px solid rgba(239,68,68,0.3)',
+                                    borderRadius: '8px',
+                                    padding: '0.75rem 1rem',
+                                    marginTop: '0.5rem',
+                                }}>
+                                    ✗ {step2Error}
+                                </div>
+                            )}
+
                             <div className={styles.checkoutActions}>
-                                <button className={styles.btnSecondary} onClick={handlePrevStep}>
+                                <button className={styles.btnSecondary} onClick={handlePrevStep} disabled={isProcessing}>
                                     <ArrowLeft size={18} style={{ display: 'inline', marginRight: '8px' }}/> Volver al carrito
                                 </button>
-                                <button className={styles.btnPrimary} style={{ width: 'fit-content', margin: 0 }} onClick={handleNextStep}>
-                                    Continuar a Pago
+                                <button
+                                    className={styles.btnPrimary}
+                                    style={{ width: 'fit-content', margin: 0 }}
+                                    onClick={handleNextStep}
+                                    disabled={isProcessing}
+                                >
+                                    {isProcessing ? 'Preparando pago...' : 'Continuar a Pago'}
                                 </button>
                             </div>
                         </motion.div>
