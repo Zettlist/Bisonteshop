@@ -8,7 +8,7 @@ import { useCartStore } from '@/store/cartStore';
 import LoginModal from '@/components/LoginModal';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useAuthStore } from '@/store/authStore';
-import { CheckCircle, ShieldCheck, Truck, CreditCard, ShoppingBag, ArrowLeft, Plus, Minus, Trash2 } from 'lucide-react';
+import { CheckCircle, ShieldCheck, Truck, CreditCard, ShoppingBag, ArrowLeft, Plus, Minus, Trash2, Tag, X, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import styles from './checkout.module.css';
 
@@ -30,6 +30,8 @@ function CheckoutFlow() {
     const getTotals = useCartStore(state => state.getTotals);
     const setShippingCost = useCartStore(state => state.setShippingCost);
     const applyCredit = useCartStore(state => state.applyCredit);
+    const addCoupon = useCartStore(state => state.addCoupon);
+    const removeCoupon = useCartStore(state => state.removeCoupon);
     const setDiscount = useCartStore(state => state.setDiscount);
     const removeDiscount = useCartStore(state => state.removeDiscount);
     const appliedDiscount = useCartStore(state => state.appliedDiscount);
@@ -62,11 +64,17 @@ function CheckoutFlow() {
     const [paymentError, setPaymentError] = useState(null);
     const [orderNumber, setOrderNumber] = useState(null);
     const [saveCard, setSaveCard] = useState(false);
+    const [savedCards, setSavedCards] = useState([]);
+    const [selectedCard, setSelectedCard] = useState(null); // id del PM guardado
 
     const [discountInput, setDiscountInput] = useState('');
     const [discountError, setDiscountError] = useState(null);
+    const [discountSuccess, setDiscountSuccess] = useState(null);
     const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
+    const [useCreditBalance, setUseCreditBalance] = useState(false);
     const [clientSecret, setClientSecret] = useState(null);
+    const [savedAddress, setSavedAddress] = useState(null);
+    const [showAddressBanner, setShowAddressBanner] = useState(false);
 
     const stripe = useStripe();
     const elements = useElements();
@@ -81,6 +89,21 @@ function CheckoutFlow() {
         }
         if (isAuthenticated) {
             setIsLoginOpen(false);
+            // Cargar tarjetas guardadas
+            fetch('/api/payment-methods')
+                .then(r => r.json())
+                .then(({ paymentMethods }) => { if (paymentMethods?.length) setSavedCards(paymentMethods); })
+                .catch(() => {});
+            // Cargar dirección guardada
+            fetch('/api/addresses')
+                .then(r => r.json())
+                .then(({ address }) => {
+                    if (address) {
+                        setSavedAddress(address);
+                        setShowAddressBanner(true);
+                    }
+                })
+                .catch(() => {});
         }
     }, [isMounted, isAuthenticated, setIsLoginOpen]);
 
@@ -102,6 +125,7 @@ function CheckoutFlow() {
                         userId: user?.id,
                         discountCode: appliedDiscount?.code || null,
                         appliedCredit: totals.appliedCredit || 0,
+                        saveCard,
                     })
                 });
                 const data = await res.json();
@@ -131,32 +155,68 @@ function CheckoutFlow() {
         setShippingForm({ ...shippingForm, [e.target.name]: e.target.value });
     };
 
+    const applySavedAddress = () => {
+        if (!savedAddress) return;
+        const [numExt, ...numIntParts] = (savedAddress.numero || '').split(' Int. ');
+        setShippingForm(prev => ({
+            ...prev,
+            nombre_recibe: savedAddress.nombre_recibe || '',
+            calle: savedAddress.calle || '',
+            numero_exterior: numExt || '',
+            numero_interior: numIntParts.join(' Int. ') || '',
+            colonia: savedAddress.colonia || '',
+            cp: savedAddress.cp || '',
+            municipio: savedAddress.municipio || '',
+            estado: savedAddress.estado || '',
+        }));
+        setShowAddressBanner(false);
+    };
+
     const handlePayment = async () => {
-        if (!stripe || !elements || !clientSecret) return;
+        if (!stripe || !clientSecret) return;
 
         setIsProcessing(true);
         setPaymentError(null);
 
         try {
-            const cardElement = elements.getElement(CardElement);
-            const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-                payment_method: {
-                    card: cardElement,
-                    billing_details: {
-                        name: user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : 'Cliente',
-                        email: user?.email || undefined,
-                    }
-                },
-                setup_future_usage: saveCard ? 'off_session' : undefined,
-            });
+            let confirmParams;
+
+            if (selectedCard) {
+                // Pagar con tarjeta guardada
+                confirmParams = { payment_method: selectedCard };
+            } else {
+                // Pagar con nueva tarjeta
+                const cardElement = elements.getElement(CardElement);
+                confirmParams = {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            name: user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : 'Cliente',
+                            email: user?.email || undefined,
+                        }
+                    },
+                };
+            }
+
+            const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, confirmParams);
 
             if (error) {
                 setPaymentError(error.message);
                 return;
             }
 
-            if (paymentIntent.status === 'succeeded') {
+            if (paymentIntent.status === 'requires_capture') {
                 const totals = getTotals();
+
+                // Guardar dirección de envío para futuros pedidos
+                if (user?.id && shippingForm.calle) {
+                    fetch('/api/addresses', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(shippingForm),
+                    }).catch(() => {});
+                }
+
                 await fetch('/api/checkout/confirm', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -187,18 +247,25 @@ function CheckoutFlow() {
 
     const handleApplyDiscount = async () => {
         if (!discountInput.trim()) return;
+        const code = discountInput.trim().toUpperCase();
+        const alreadyApplied = totals.appliedCoupons?.find(c => c.code === code);
+        if (alreadyApplied) { setDiscountError('Este cupón ya fue aplicado'); return; }
+
         setIsApplyingDiscount(true);
         setDiscountError(null);
+        setDiscountSuccess(null);
         try {
             const res = await fetch('/api/discount', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: discountInput, subtotal: totals.subtotalStock + totals.subtotalAnticipos })
+                body: JSON.stringify({ code, subtotal: totals.subtotalStock + totals.subtotalAnticipos })
             });
             const data = await res.json();
             if (data.success) {
-                setDiscount(data.code, data.discountAmount);
+                addCoupon(data.code, data.discountAmount);
                 setDiscountInput('');
+                setDiscountSuccess(data.code);
+                setTimeout(() => setDiscountSuccess(null), 3000);
             } else {
                 setDiscountError(data.error);
             }
@@ -360,6 +427,58 @@ function CheckoutFlow() {
                                 <p className="text-muted">Ingresa a dónde enviaremos tu pedido. Todos los envíos se realizan por paquetería express.</p>
                             </div>
 
+                            {/* Banner dirección guardada */}
+                            {showAddressBanner && savedAddress && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    style={{
+                                        background: 'rgba(230,57,70,0.08)',
+                                        border: '1px solid rgba(230,57,70,0.3)',
+                                        borderRadius: '12px',
+                                        padding: '14px 18px',
+                                        marginBottom: '20px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px',
+                                        flexWrap: 'wrap',
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary)', marginBottom: '2px' }}>
+                                            📍 Tienes una dirección guardada
+                                        </div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                                            {savedAddress.calle} {savedAddress.numero}, {savedAddress.colonia}, {savedAddress.municipio}, {savedAddress.estado} CP {savedAddress.cp}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                                        <button
+                                            onClick={applySavedAddress}
+                                            style={{
+                                                background: 'var(--primary)', color: '#fff',
+                                                border: 'none', borderRadius: '8px',
+                                                padding: '8px 16px', fontSize: '0.8rem',
+                                                fontWeight: 700, cursor: 'pointer',
+                                            }}
+                                        >
+                                            Usar esta dirección
+                                        </button>
+                                        <button
+                                            onClick={() => setShowAddressBanner(false)}
+                                            style={{
+                                                background: 'transparent', color: 'var(--muted)',
+                                                border: '1px solid var(--border)', borderRadius: '8px',
+                                                padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer',
+                                            }}
+                                        >
+                                            Ignorar
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            )}
+
                             <div className={styles.formGrid}>
                                 {/* Nombre y teléfono */}
                                 <div className={styles.formGroup}>
@@ -443,33 +562,95 @@ function CheckoutFlow() {
                             </div>
 
                             <div className={styles.paymentContainer}>
-                                <label className={styles.label} style={{ marginBottom: '1rem', display: 'block' }}>Datos de Tarjeta</label>
-                                <div style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '4px', border: '1px solid var(--border)' }}>
-                                    <CardElement options={{
-                                        style: {
-                                            base: {
-                                                fontSize: '16px',
-                                                color: '#ffffff',
-                                                '::placeholder': { color: '#aab7c4' },
-                                                iconColor: '#ff2e4b',
-                                            },
-                                            invalid: { color: '#ef4444' }
-                                        }
-                                    }}/>
-                                </div>
-                                {/* Guardar tarjeta */}
-                                <label className={styles.saveCardLabel}>
-                                    <input
-                                        type="checkbox"
-                                        checked={saveCard}
-                                        onChange={e => setSaveCard(e.target.checked)}
-                                        className={styles.saveCardCheck}
-                                    />
-                                    <span>
-                                        Guardar tarjeta para futuras compras
-                                        <span className={styles.saveCardSafe}> · Procesado de forma segura por Stripe</span>
-                                    </span>
-                                </label>
+
+                                {/* Tarjetas guardadas */}
+                                {savedCards.length > 0 && (
+                                    <div className={styles.savedCardsSection}>
+                                        <div className={styles.savedCardsTitle}>Tus tarjetas guardadas</div>
+                                        <div className={styles.savedCardsList}>
+                                            {savedCards.map(card => (
+                                                <motion.div
+                                                    key={card.id}
+                                                    className={`${styles.savedCard} ${selectedCard === card.id ? styles.savedCardSelected : ''}`}
+                                                    onClick={() => setSelectedCard(selectedCard === card.id ? null : card.id)}
+                                                    whileHover={{ scale: 1.01 }}
+                                                    whileTap={{ scale: 0.98 }}
+                                                >
+                                                    <div className={styles.savedCardBrand}>
+                                                        {card.brand === 'visa' ? '💳' : card.brand === 'mastercard' ? '💳' : '💳'}
+                                                        <span className={styles.savedCardBrandName}>{card.brand.toUpperCase()}</span>
+                                                    </div>
+                                                    <span className={styles.savedCardNumber}>•••• •••• •••• {card.last4}</span>
+                                                    <span className={styles.savedCardExp}>{card.exp_month}/{String(card.exp_year).slice(-2)}</span>
+                                                    {selectedCard === card.id && (
+                                                        <span className={styles.savedCardCheck}><CheckCircle size={16} /></span>
+                                                    )}
+                                                    <button
+                                                        className={styles.savedCardDelete}
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            await fetch('/api/payment-methods', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ paymentMethodId: card.id }) });
+                                                            setSavedCards(prev => prev.filter(c => c.id !== card.id));
+                                                            if (selectedCard === card.id) setSelectedCard(null);
+                                                        }}
+                                                        title="Eliminar tarjeta"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                        {savedCards.length > 0 && (
+                                            <button
+                                                className={styles.useNewCardBtn}
+                                                onClick={() => setSelectedCard(null)}
+                                            >
+                                                {selectedCard ? '+ Usar otra tarjeta' : '+ Agregar nueva tarjeta'}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Formulario nueva tarjeta */}
+                                <AnimatePresence>
+                                    {!selectedCard && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            style={{ overflow: 'hidden' }}
+                                        >
+                                            <label className={styles.label} style={{ marginBottom: '0.75rem', display: 'block' }}>
+                                                {savedCards.length > 0 ? 'Nueva tarjeta' : 'Datos de Tarjeta'}
+                                            </label>
+                                            <div style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                <CardElement options={{
+                                                    style: {
+                                                        base: {
+                                                            fontSize: '16px',
+                                                            color: '#ffffff',
+                                                            '::placeholder': { color: '#aab7c4' },
+                                                            iconColor: '#ff2e4b',
+                                                        },
+                                                        invalid: { color: '#ef4444' }
+                                                    }
+                                                }}/>
+                                            </div>
+                                            <label className={styles.saveCardLabel}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={saveCard}
+                                                    onChange={e => setSaveCard(e.target.checked)}
+                                                    className={styles.saveCardCheck}
+                                                />
+                                                <span>
+                                                    Guardar tarjeta para futuras compras
+                                                    <span className={styles.saveCardSafe}> · Procesado de forma segura por Stripe</span>
+                                                </span>
+                                            </label>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
 
                                 {paymentError && (
                                     <div style={{ color: '#ef4444', fontSize: '0.9rem', marginTop: '1rem' }}>{paymentError}</div>
@@ -614,65 +795,111 @@ function CheckoutFlow() {
                         </div>
                     )}
 
-                    <div className={styles.creditSection} style={{ marginTop: '1.5rem', paddingTop: '1.5rem' }}>
-                        <div style={{ marginBottom: '1rem' }}>
-                            <label className={styles.label} style={{ display: 'block', marginBottom: '0.5rem' }}>Código de Descuento</label>
-                            {appliedDiscount.code ? (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(16, 185, 129, 0.1)', padding: '0.75rem', borderRadius: '4px', border: '1px solid #10b981' }}>
-                                    <span style={{ color: '#10b981', fontWeight: 'bold' }}>{appliedDiscount.code} aplicado</span>
-                                    <button onClick={removeDiscount} style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', textDecoration: 'underline' }}>Remover</button>
-                                </div>
-                            ) : (
-                                <div>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <input 
-                                            type="text" 
-                                            className={styles.input} 
-                                            placeholder="Ingresa tu cupón" 
-                                            value={discountInput}
-                                            onChange={(e) => setDiscountInput(e.target.value)}
-                                            style={{ flex: 1 }}
-                                        />
-                                        <button className={styles.btnSecondary} onClick={handleApplyDiscount} disabled={isApplyingDiscount || !discountInput}>
-                                            {isApplyingDiscount ? '...' : 'Aplicar'}
-                                        </button>
-                                    </div>
-                                    {discountError && <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>{discountError}</span>}
-                                </div>
-                            )}
+                    {/* ── Cupones ── */}
+                    <div className={styles.couponSection}>
+                        <div className={styles.couponLabel}><Tag size={13} /> Códigos de descuento</div>
+
+                        {/* Cupones ya aplicados */}
+                        <AnimatePresence>
+                            {(totals.appliedCoupons || []).map(c => (
+                                <motion.div
+                                    key={c.code}
+                                    className={styles.couponTag}
+                                    initial={{ opacity: 0, scale: 0.85, y: -6 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.85 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                >
+                                    <CheckCircle size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+                                    <span className={styles.couponCode}>{c.code}</span>
+                                    <span className={styles.couponAmount}>−{formatPrice(c.amount)}</span>
+                                    <button className={styles.couponRemove} onClick={() => removeCoupon(c.code)}>
+                                        <X size={13} />
+                                    </button>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+
+                        {/* Input nuevo cupón */}
+                        <div className={styles.couponInputRow}>
+                            <input
+                                type="text"
+                                className={`${styles.input} ${styles.couponInput} ${discountError ? styles.inputError : discountSuccess ? styles.inputSuccess : ''}`}
+                                placeholder="Código de cupón"
+                                value={discountInput}
+                                onChange={e => { setDiscountInput(e.target.value.toUpperCase()); setDiscountError(null); }}
+                                onKeyDown={e => e.key === 'Enter' && handleApplyDiscount()}
+                            />
+                            <motion.button
+                                className={styles.couponBtn}
+                                onClick={handleApplyDiscount}
+                                disabled={isApplyingDiscount || !discountInput}
+                                whileTap={{ scale: 0.95 }}
+                            >
+                                {isApplyingDiscount ? (
+                                    <span className={styles.couponSpinner} />
+                                ) : (
+                                    'Aplicar'
+                                )}
+                            </motion.button>
                         </div>
 
-                        {totals.promoDiscount > 0 && (
-                            <div className={styles.summaryRow} style={{ color: '#10b981' }}>
-                                <span>Descuento aplicado</span>
-                                <span>-{formatPrice(totals.promoDiscount)}</span>
-                            </div>
-                        )}
+                        <AnimatePresence mode="wait">
+                            {discountError && (
+                                <motion.span key="err" className={styles.couponMsg} style={{ color: '#ef4444' }}
+                                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                                    ✗ {discountError}
+                                </motion.span>
+                            )}
+                            {discountSuccess && (
+                                <motion.span key="ok" className={styles.couponMsg} style={{ color: '#10b981' }}
+                                    initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                                    ✓ Cupón <strong>{discountSuccess}</strong> aplicado
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
                     </div>
 
+                    {/* ── Saldo de tienda ── */}
                     {user?.store_credit > 0 && (
-                        <div className={styles.creditSection}>
-                            <div className={styles.creditHeader}>
-                                <span>Crédito de Tienda Disponible</span>
-                                <span className={styles.creditBalance}>{formatPrice(user.store_credit)}</span>
-                            </div>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', cursor: 'pointer' }}>
-                                <input 
-                                    type="checkbox" 
-                                    checked={totals.creditDiscount > 0} 
-                                    onChange={(e) => {
-                                        if (e.target.checked) applyCredit(user.store_credit);
-                                        else applyCredit(0);
-                                    }}
-                                />
-                                Aplicar crédito a esta compra
-                            </label>
-                            {totals.creditDiscount > 0 && (
-                                <div className={styles.summaryRow} style={{ marginTop: '1rem', color: '#10b981' }}>
-                                    <span>Crédito Aplicado</span>
-                                    <span>-{formatPrice(totals.creditDiscount)}</span>
+                        <motion.div
+                            className={`${styles.creditCard} ${useCreditBalance ? styles.creditCardActive : ''}`}
+                            onClick={() => {
+                                const next = !useCreditBalance;
+                                setUseCreditBalance(next);
+                                if (next) applyCredit(user.store_credit);
+                                else applyCredit(0);
+                            }}
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <div className={styles.creditCardLeft}>
+                                <div className={`${styles.creditIcon} ${useCreditBalance ? styles.creditIconActive : ''}`}>
+                                    <Wallet size={18} />
                                 </div>
-                            )}
+                                <div>
+                                    <div className={styles.creditCardTitle}>Saldo de tienda</div>
+                                    <div className={styles.creditCardSub}>
+                                        Disponible: <strong>{formatPrice(user.store_credit)}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className={`${styles.creditToggle} ${useCreditBalance ? styles.creditToggleOn : ''}`}>
+                                <div className={styles.creditToggleThumb} />
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {totals.creditDiscount > 0 && (
+                        <div className={styles.summaryRow} style={{ color: '#10b981' }}>
+                            <span>Saldo de tienda aplicado</span>
+                            <span>−{formatPrice(totals.creditDiscount)}</span>
+                        </div>
+                    )}
+                    {totals.promoDiscount > 0 && (
+                        <div className={styles.summaryRow} style={{ color: '#10b981' }}>
+                            <span>Descuentos totales</span>
+                            <span>−{formatPrice(totals.promoDiscount)}</span>
                         </div>
                     )}
 

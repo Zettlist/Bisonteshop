@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, UserPlus, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, UserPlus, CheckCircle, MailCheck } from 'lucide-react';
 import styles from './registro.module.css';
 import TipsOverlay from '@/components/TipsOverlay';
 
@@ -76,8 +76,7 @@ export default function RegistroPage() {
                 return;
             }
             // Success!
-            setSuccess({ clientNumber: data.clientNumber });
-            setTimeout(() => router.push('/login'), 4000);
+            setSuccess({ clientNumber: data.clientNumber, email: form.email });
         } catch {
             setError('No se pudo conectar con el servidor. Verifica tu conexión.');
             setLoading(false);
@@ -118,20 +117,16 @@ export default function RegistroPage() {
                         transition={{ duration: 0.5 }}
                     >
                         <div className={styles.successIcon}>
-                            <CheckCircle size={56} color="var(--primary)" strokeWidth={1.5} />
+                            <MailCheck size={56} color="#f59e0b" strokeWidth={1.5} />
                         </div>
-                        <h1 className={styles.successTitle}>¡Bienvenido a Bisonte Manga!</h1>
+                        <h1 className={styles.successTitle}>¡Cuenta creada!</h1>
                         <p className={styles.successText}>
-                            Tu cuenta ha sido creada exitosamente.
+                            Enviamos un enlace de verificación a <strong>{success.email}</strong>.<br />
+                            Revisa tu bandeja de entrada y activa tu cuenta para iniciar sesión.
                         </p>
-                        <div className={styles.successCode}>
-                            <span className={styles.successCodeLabel}>Tu número de cliente</span>
-                            <span className={styles.successCodeValue}>{success.clientNumber}</span>
-                            <span className={styles.successCodeHint}>Guárdalo, lo necesitarás para soporte.</span>
-                        </div>
-                        <p className={styles.successRedirect}>
-                            Redirigiendo al inicio de sesión en unos segundos…
-                        </p>
+                        <Link href="/login" className={styles.submitBtn} style={{ textDecoration: 'none', textAlign: 'center', marginTop: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                            Ir al inicio de sesión
+                        </Link>
                     </motion.div>
                 ) : (
                     /* ── Formulario de registro ── */

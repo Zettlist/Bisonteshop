@@ -3,6 +3,9 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { sendOrderConfirmation } from '@/lib/mailer';
 
+const POS_URL = process.env.POS_TORLAN_URL || 'http://localhost:3001';
+const POS_API_KEY = process.env.CAPTURE_API_KEY;
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 });
@@ -89,7 +92,18 @@ export async function POST(request) {
         }).catch(err => console.error('[Mailer]', err.message));
       }
 
-      console.log(`[Confirm] Pedido #${saleId} registrado. PI ${paymentIntentId} pendiente de captura.`);
+      console.log(`[Confirm] Pedido #${saleId} registrado. PI ${paymentIntentId} — iniciando auto-process...`);
+
+      // Disparar auto-process en POS Torlan (sin bloquear la respuesta al cliente)
+      fetch(`${POS_URL}/api/web-orders/${saleId}/auto-process`, {
+        method: 'POST',
+        headers: { 'x-api-key': POS_API_KEY },
+      }).then(r => r.json()).then(d => {
+        console.log(`[AutoProcess] Pedido #${saleId}:`, d);
+      }).catch(err => {
+        console.error(`[AutoProcess] Error llamando POS para pedido #${saleId}:`, err.message);
+      });
+
       return NextResponse.json({ success: true, saleId });
 
     } catch (dbError) {

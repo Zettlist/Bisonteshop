@@ -604,6 +604,293 @@ select.input option {
   color: var(--primary);
 }
 
+/* ── Tarjetas guardadas ───────────────────────────── */
+.savedCardsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.savedCardsTitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.savedCardsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.savedCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.savedCard:hover { border-color: rgba(230,57,70,0.4); }
+
+.savedCardSelected {
+  border-color: var(--primary) !important;
+  background: rgba(230,57,70,0.06);
+}
+
+.savedCardBrand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.savedCardBrandName {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+
+.savedCardNumber {
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--foreground);
+}
+
+.savedCardExp {
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.savedCardCheck {
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.savedCardDelete {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.savedCardDelete:hover { opacity: 1; color: #ef4444; }
+
+.useNewCardBtn {
+  background: none;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  transition: all 0.2s;
+}
+.useNewCardBtn:hover { border-color: var(--primary); color: var(--primary); }
+
+/* ── Cupones ──────────────────────────────────────── */
+.couponSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
+.couponLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.couponTag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.couponCode {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #10b981;
+  flex: 1;
+  letter-spacing: 1px;
+}
+
+.couponAmount {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.couponRemove {
+  background: none;
+  border: none;
+  color: #10b981;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.couponRemove:hover { opacity: 1; }
+
+.couponInputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.couponInput {
+  flex: 1;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.inputError  { border-color: #ef4444 !important; }
+.inputSuccess { border-color: #10b981 !important; }
+
+.couponBtn {
+  padding: 0 20px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.couponBtn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.couponBtn:disabled { opacity: 0.4; cursor: default; }
+
+.couponSpinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.couponMsg {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* ── Saldo de tienda (toggle card) ──────────────── */
+.creditCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-top: 4px;
+}
+
+.creditCardActive {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.creditCardLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.creditIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.creditIconActive { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); color: #10b981; }
+
+.creditCardTitle { font-weight: 700; font-size: 0.9rem; }
+.creditCardSub   { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+/* Toggle switch */
+.creditToggle {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--border);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.25s;
+}
+.creditToggleOn { background: #10b981; }
+
+.creditToggleThumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.25s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.creditToggleOn .creditToggleThumb { transform: translateX(20px); }
+
 @media (max-width: 900px) {
   .checkoutContainer {
     grid-template-columns: 1fr;

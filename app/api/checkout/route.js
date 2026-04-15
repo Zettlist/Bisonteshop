@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 export async function POST(request) {
   try {
-    const { items, userId, discountCode, appliedCredit: clientCredit } = await request.json();
+    const { items, userId, discountCode, appliedCredit: clientCredit, saveCard } = await request.json();
 
     // 1. Calcular totales en el backend (no confiar en el cliente)
     let subtotalStock = 0;
@@ -67,14 +67,35 @@ export async function POST(request) {
       }
     }
 
-    // 4. Crear PaymentIntent en Stripe (mínimo 10 centavos)
+    // 4. Obtener/crear Stripe Customer si el usuario quiere guardar tarjeta
+    let stripeCustomerId = null;
+    if (userId && saveCard) {
+      const [clienteRows] = await pool.query('SELECT stripe_customer_id, nombre, apellido, email FROM clientes WHERE id = ? LIMIT 1', [userId]);
+      if (clienteRows.length) {
+        const cliente = clienteRows[0];
+        if (cliente.stripe_customer_id) {
+          stripeCustomerId = cliente.stripe_customer_id;
+        } else {
+          const customer = await stripe.customers.create({
+            email: cliente.email,
+            name: `${cliente.nombre} ${cliente.apellido || ''}`.trim(),
+            metadata: { bisonte_cliente_id: String(userId) },
+          });
+          stripeCustomerId = customer.id;
+          await pool.query('UPDATE clientes SET stripe_customer_id = ? WHERE id = ?', [stripeCustomerId, userId]);
+        }
+      }
+    }
+
+    // 5. Crear PaymentIntent en Stripe (mínimo 10 centavos)
     const amountInCents = Math.max(Math.round(totalCharge * 100), 10);
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
       currency: 'mxn',
-      capture_method: 'manual',       // autoriza pero NO cobra hasta captura explícita
+      capture_method: 'manual',
       automatic_payment_methods: { enabled: true },
+      ...(stripeCustomerId && { customer: stripeCustomerId, setup_future_usage: 'off_session' }),
       metadata: {
         userId: userId?.toString() || 'guest',
         discountCode: discountCode || '',

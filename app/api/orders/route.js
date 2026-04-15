@@ -15,10 +15,12 @@ export async function GET() {
         const clienteId = payload.id;
 
         const [sales] = await pool.query(
-            `SELECT id, subtotal, discount, surcharge, total, payment_method, created_at
-             FROM sales
-             WHERE cliente_id = ?
-             ORDER BY created_at DESC`,
+            `SELECT s.id, s.subtotal, s.discount, s.surcharge, s.total, s.payment_method, s.created_at,
+                    bo.status AS web_status, bo.items_json
+             FROM sales s
+             INNER JOIN bisonte_orders bo ON bo.sale_id = s.id
+             WHERE s.cliente_id = ?
+             ORDER BY s.created_at DESC`,
             [clienteId]
         );
 
@@ -26,9 +28,9 @@ export async function GET() {
 
         const saleIds = sales.map(s => s.id);
 
-        const [items] = await pool.query(
+        const [dbItems] = await pool.query(
             `SELECT si.sale_id, si.quantity, si.price,
-                    p.name, p.image_url, p.type
+                    p.name, p.image_url
              FROM sale_items si
              LEFT JOIN products p ON p.id = si.product_id
              WHERE si.sale_id IN (?)`,
@@ -36,7 +38,7 @@ export async function GET() {
         );
 
         const itemsBySale = {};
-        for (const item of items) {
+        for (const item of dbItems) {
             if (!itemsBySale[item.sale_id]) itemsBySale[item.sale_id] = [];
             itemsBySale[item.sale_id].push(item);
         }
@@ -44,12 +46,26 @@ export async function GET() {
         const orders = sales.map(sale => {
             const saleItems = itemsBySale[sale.id] || [];
             const firstItem = saleItems[0];
-            const isPreventa = saleItems.some(i => i.type === 'preventa');
+
+            // Detectar preventa desde items_json de bisonte_orders
+            let isPreventa = false;
+            try {
+                const parsed = JSON.parse(sale.items_json || '[]');
+                isPreventa = parsed.some(i => i.type === 'preventa');
+            } catch {}
+
+            // Mapear status de bisonte_orders a status visible
+            const statusMap = {
+                pending:   'verificando',
+                captured:  'preparando',
+                cancelled: 'cancelado',
+            };
+            const status = statusMap[sale.web_status] || 'verificando';
 
             return {
                 id: String(sale.id),
                 date: sale.created_at,
-                status: 'verificando',   // estado inicial web
+                status,
                 itemName: firstItem?.name || 'Artículo',
                 itemsCount: saleItems.reduce((a, i) => a + i.quantity, 0),
                 type: isPreventa ? 'Preventa' : 'Pedido Normal',

@@ -7,7 +7,8 @@ export const useCartStore = create(
       items: [],
       shippingCost: 0,
       appliedCredit: 0,
-      appliedDiscount: { code: null, amount: 0 },
+      appliedCoupons: [],          // array de { code, amount }
+      appliedDiscount: { code: null, amount: 0 }, // compat legacy
       isSyncing: false,
       isCartOpen: false,
       isLoginOpen: false,
@@ -15,17 +16,15 @@ export const useCartStore = create(
       setIsCartOpen: (isOpen) => set({ isCartOpen: isOpen }),
       setIsLoginOpen: (isOpen) => set({ isLoginOpen: isOpen }),
 
-      // Sync local cart to db (optional / called manually or via effect plugin if needed)
       syncToBackend: async (userId) => {
         try {
           set({ isSyncing: true });
           const items = get().items;
-          const res = await fetch('/api/cart', {
+          await fetch('/api/cart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId, items })
           });
-          if (!res.ok) throw new Error('Failed to sync cart');
         } catch (error) {
           console.error("Cart sync error:", error);
         } finally {
@@ -49,18 +48,13 @@ export const useCartStore = create(
         const existing = state.items.find((i) => i.id === product.id && i.type === type);
         let newItems;
         if (existing) {
-          newItems = state.items.map((i) => 
-            (i.id === product.id && i.type === type) 
-              ? { ...i, quantity: i.quantity + quantity } 
+          newItems = state.items.map((i) =>
+            (i.id === product.id && i.type === type)
+              ? { ...i, quantity: i.quantity + quantity }
               : i
           );
         } else {
-          newItems = [...state.items, { 
-            ...product, 
-            quantity, 
-            type, 
-            anticipo_percent 
-          }];
+          newItems = [...state.items, { ...product, quantity, type, anticipo_percent }];
         }
         return { items: newItems };
       }),
@@ -70,29 +64,43 @@ export const useCartStore = create(
       })),
 
       updateQuantity: (productId, type, quantity) => set((state) => ({
-        items: quantity <= 0 
+        items: quantity <= 0
           ? state.items.filter((i) => !(i.id === productId && i.type === type))
-          : state.items.map((i) => 
+          : state.items.map((i) =>
               (i.id === productId && i.type === type) ? { ...i, quantity } : i
             )
       })),
 
-      clearCart: () => set({ items: [], shippingCost: 0, appliedCredit: 0 }),
-      
+      clearCart: () => set({ items: [], shippingCost: 0, appliedCredit: 0, appliedCoupons: [] }),
+
       setShippingCost: (cost) => set({ shippingCost: cost }),
-      
+
       applyCredit: (amount) => set({ appliedCredit: amount }),
-      
       removeCredit: () => set({ appliedCredit: 0 }),
 
-      setDiscount: (code, amount) => set({ appliedDiscount: { code, amount } }),
-      
-      removeDiscount: () => set({ appliedDiscount: { code: null, amount: 0 } }),
+      // ── Cupones múltiples ──────────────────────────────
+      addCoupon: (code, amount) => set((state) => {
+        const already = state.appliedCoupons.find(c => c.code === code);
+        if (already) return {};
+        return { appliedCoupons: [...state.appliedCoupons, { code, amount }] };
+      }),
 
-      // Derived totals
+      removeCoupon: (code) => set((state) => ({
+        appliedCoupons: state.appliedCoupons.filter(c => c.code !== code)
+      })),
+
+      // compat (setDiscount / removeDiscount siguen funcionando)
+      setDiscount: (code, amount) => set((state) => {
+        const already = state.appliedCoupons.find(c => c.code === code);
+        if (already) return {};
+        return { appliedCoupons: [...state.appliedCoupons, { code, amount }] };
+      }),
+      removeDiscount: () => set({ appliedCoupons: [] }),
+
+      // ── Totales ────────────────────────────────────────
       getTotals: () => {
-        const { items, shippingCost, appliedCredit, appliedDiscount } = get();
-        
+        const { items, shippingCost, appliedCredit, appliedCoupons } = get();
+
         let subtotalStock = 0;
         let subtotalAnticipos = 0;
         let totalLater = 0;
@@ -108,14 +116,14 @@ export const useCartStore = create(
           }
         });
 
-        // Cobro inmediato: Stock + Anticipos + Envio
         let totalToPayNow = subtotalStock + subtotalAnticipos + Number(shippingCost);
-        
-        // Aplicar codigo de descuento al total a pagar
-        const promoDiscount = Math.min(appliedDiscount.amount, totalToPayNow);
+
+        // Sumar todos los cupones
+        const totalCouponDiscount = (appliedCoupons || []).reduce((sum, c) => sum + c.amount, 0);
+        const promoDiscount = Math.min(totalCouponDiscount, totalToPayNow);
         totalToPayNow -= promoDiscount;
 
-        // Aplicar credito despues de descuento
+        // Crédito de tienda
         const creditDiscount = Math.min(appliedCredit, totalToPayNow);
         totalToPayNow -= creditDiscount;
 
@@ -126,15 +134,18 @@ export const useCartStore = create(
           totalLater,
           creditDiscount,
           promoDiscount,
-          totalToPayNow
+          totalToPayNow,
+          appliedCoupons: appliedCoupons || [],
         };
       }
     }),
     {
       name: 'bisonte-cart-storage',
-      // We only persist items and credit optionally. 
-      // But we probably don't want to persist shipping cost between big sessions.
-      partialize: (state) => ({ items: state.items, appliedCredit: state.appliedCredit, appliedDiscount: state.appliedDiscount }),
+      partialize: (state) => ({
+        items: state.items,
+        appliedCredit: state.appliedCredit,
+        appliedCoupons: state.appliedCoupons,
+      }),
     }
   )
 );

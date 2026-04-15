@@ -1,0 +1,194 @@
+.section {
+    padding: 0 2rem 5rem;
+    max-width: var(--max-width);
+    margin: 0 auto;
+}
+
+/* Grid 50/50 desktop, apilado en mobile */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.bannerWrapper {
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+/* Banner clickeable */
+.banner {
+    position: relative;
+    display: block;
+    height: 320px;
+    overflow: hidden;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    transition: border-color 0.3s ease, transform 0.35s ease;
+    cursor: pointer;
+}
+
+.banner:hover {
+    border-color: var(--primary);
+    transform: translateY(-3px);
+}
+
+/* Slot imagen — fallback es el gradiente del contenedor */
+.imageSlot {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    transition: transform 0.5s ease;
+}
+
+.banner:hover .imageSlot {
+    transform: scale(1.06);
+}
+
+/* Fallback gradientes por banner */
+.left {
+    background: linear-gradient(135deg, #1a0000 0%, #3d0000 60%, #0a0000 100%);
+}
+
+.right {
+    background: linear-gradient(135deg, #05050f 0%, #0a0030 60%, #000510 100%);
+}
+
+/* Overlay oscuro */
+.overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.9) 0%,
+        rgba(0, 0, 0, 0.45) 55%,
+        rgba(0, 0, 0, 0.15) 100%
+    );
+    transition: background 0.3s ease;
+}
+
+.banner:hover .overlay {
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.95) 0%,
+        rgba(0, 0, 0, 0.6) 60%,
+        rgba(0, 0, 0, 0.2) 100%
+    );
+}
+
+/* Borde rojo animado en hover */
+.borderAccent {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    border: 2px solid var(--primary);
+    opacity: 0;
+    z-index: 5;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.banner:hover .borderAccent {
+    opacity: 1;
+}
+
+/* Contenido textual */
+.content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    padding: 1.75rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.badge {
+    display: inline-block;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--primary);
+    padding: 0.22rem 0.65rem;
+    border-radius: 3px;
+    width: fit-content;
+    margin-bottom: 0.25rem;
+}
+
+.title {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 400;
+    color: #fff;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    line-height: 1.05;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 300;
+    line-height: 1.45;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+    margin: 0;
+}
+
+.cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--primary);
+    margin-top: 0.35rem;
+    transition: gap var(--transition);
+}
+
+.banner:hover .cta {
+    gap: 0.6rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .section {
+        padding: 0 1rem 3.5rem;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .banner {
+        height: 260px;
+    }
+
+    .title {
+        font-size: 1.6rem;
+    }
+
+    .content {
+        padding: 1.25rem 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .banner {
+        height: 220px;
+    }
+
+    .title {
+        font-size: 1.4rem;
+    }
+}

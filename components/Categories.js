@@ -2,49 +2,50 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import styles from './Categories.module.css';
 
 const CATEGORIES = [
     {
         id: 'manga',
-        icon: '📚',
         title: 'MANGAS',
         desc: 'Shonen, Seinen, Shoujo y más',
         href: '/mangas',
         colorClass: 'manga',
+        imageSrc: '/banners/cat-manga.webp',
     },
     {
         id: 'figuras',
-        icon: '🗿',
         title: 'FIGURAS',
         desc: 'Coleccionables de alta calidad',
         href: '/figuras',
         colorClass: 'figuras',
+        imageSrc: '/banners/cat-figuras.webp',
     },
     {
         id: 'revistas',
-        icon: '📰',
         title: 'REVISTAS',
         desc: 'Las últimas publicaciones',
         href: '/revistas',
         colorClass: 'revistas',
+        imageSrc: '/banners/cat-revistas.webp',
     },
     {
         id: 'accesorios',
-        icon: '🎭',
         title: 'ACCESORIOS',
         desc: 'Posters, pins, ropa y más',
         href: '/accesorios',
         colorClass: 'accesorios',
+        imageSrc: '/banners/cat-accesorios.webp',
     },
 ];
 
 const cardVariants = {
-    hidden: { opacity: 0, y: 40 },
+    hidden: { opacity: 0, y: 48 },
     visible: (i) => ({
         opacity: 1,
         y: 0,
-        transition: { duration: 0.5, delay: i * 0.1, ease: 'easeOut' },
+        transition: { duration: 0.55, delay: i * 0.1, ease: 'easeOut' },
     }),
 };
 
@@ -65,19 +66,37 @@ export default function Categories() {
                             custom={i}
                             initial="hidden"
                             whileInView="visible"
-                            viewport={{ once: true, amount: 0.2 }}
+                            viewport={{ once: true, amount: 0.15 }}
                             variants={cardVariants}
                         >
-                            <div className={`${styles.cardBg} ${styles[cat.colorClass]}`} />
-                            <div className={styles.cardOverlay} />
-                            <div className={styles.cardContent}>
-                                <span className={styles.cardIcon}>{cat.icon}</span>
-                                <h3 className={styles.cardTitle}>{cat.title}</h3>
-                                <p className={styles.cardDesc}>{cat.desc}</p>
-                                <Link href={cat.href} className={styles.cardLink}>
-                                    Ver todo →
-                                </Link>
+                            {/* BANNER: /public/banners/cat-[nombre].webp — 600×800px */}
+                            <div className={`${styles.cardBg} ${styles[cat.colorClass]}`}>
+                                <Image
+                                    src={cat.imageSrc}
+                                    alt={cat.title}
+                                    fill
+                                    style={{ objectFit: 'cover', objectPosition: 'center' }}
+                                    sizes="(max-width: 768px) 50vw, 25vw"
+                                />
                             </div>
+
+                            <div className={styles.cardOverlay} />
+
+                            <div className={styles.cardContent}>
+                                <div className={styles.cardTop}>
+                                    <span className={styles.cardNumber}>0{i + 1}</span>
+                                </div>
+                                <div className={styles.cardBottom}>
+                                    <h3 className={styles.cardTitle}>{cat.title}</h3>
+                                    <p className={styles.cardDesc}>{cat.desc}</p>
+                                    <Link href={cat.href} className={styles.cardLink}>
+                                        Ver todo →
+                                    </Link>
+                                </div>
+                            </div>
+
+                            {/* Borde rojo en hover */}
+                            <div className={styles.cardBorder} />
                         </motion.div>
                     ))}
                 </div>

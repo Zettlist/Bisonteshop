@@ -1,0 +1,100 @@
+.page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background);
+    padding: 2rem 1rem;
+}
+
+.card {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='dark'] .card {
+    background: #111;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.logo {
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #dc2626;
+    text-transform: uppercase;
+    margin-bottom: 36px;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.iconSpin {
+    color: #9ca3af;
+    animation: spin 1s linear infinite;
+}
+
+.iconSuccess {
+    color: #16a34a;
+}
+
+.iconWarn {
+    color: #f59e0b;
+}
+
+.iconError {
+    color: #dc2626;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--foreground);
+    margin: 8px 0 4px;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 0 0 8px;
+}
+
+.btn {
+    display: inline-block;
+    margin-top: 12px;
+    background: #dc2626;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 28px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.btn:hover {
+    background: #b91c1c;
+}
+
+@media (max-width: 480px) {
+    .card {
+        padding: 36px 24px;
+    }
+}

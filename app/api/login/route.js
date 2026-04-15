@@ -43,7 +43,20 @@ export async function POST(req) {
             );
         }
 
-        // Create JWT 
+        // Block unverified accounts
+        if (!user.email_verified) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Verifica tu correo para activar tu cuenta.',
+                    requiresVerification: true,
+                    email: user.email,
+                },
+                { status: 403 }
+            );
+        }
+
+        // Create JWT
         const tokenPayload = {
             id: user.id,
             nombre: user.nombre,
