@@ -3,13 +3,16 @@ import { NextResponse } from 'next/server';
 
 const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
-export async function GET() {
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
+  const all = searchParams.get('all') === '1';
+
   try {
     const [rows] = await pool.query(`
-      SELECT 
-        p.id, 
-        p.name as title, 
-        p.sale_price as price, 
+      SELECT
+        p.id,
+        p.name as title,
+        p.sale_price as price,
         p.stock,
         p.category,
         p.gender,
@@ -25,22 +28,24 @@ export async function GET() {
         p.group_name,
         p.image_url,
         p.is_adult,
+        p.events,
         GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ',') as tags
       FROM products p
       LEFT JOIN product_tags pt ON p.id = pt.product_id
       LEFT JOIN tags t ON pt.tag_id = t.id
       WHERE p.empresa_id = ?
         AND (p.is_adult = 0 OR p.is_adult IS NULL)
-        AND p.category NOT LIKE '%Figura%' 
+        ${!all ? `AND p.category NOT LIKE '%Figura%'
         AND p.category NOT LIKE '%Calendario%'
-        AND p.category NOT LIKE '%Accesorio%'
+        AND p.category NOT LIKE '%Accesorio%'` : ''}
       GROUP BY p.id
       ORDER BY p.id DESC
     `, [EMPRESA_ID]);
 
     const mangas = rows.map(p => ({
       ...p,
-      tags: p.tags ? p.tags.split(',') : []
+      tags: p.tags ? p.tags.split(',') : [],
+      events: p.events ? (typeof p.events === 'string' ? JSON.parse(p.events) : p.events) : null,
     }));
 
     return NextResponse.json(

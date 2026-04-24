@@ -127,3 +127,95 @@
     background: var(--primary-dark);
     transform: scale(1.05);
 }
+
+/* ── Slot Machine ── */
+.slotGrid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
+}
+
+.slotItem {
+    will-change: transform, opacity;
+}
+
+.slotIdle {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@keyframes slotExitAnim {
+    0%   { transform: translateY(0);     opacity: 1; }
+    100% { transform: translateY(-48px); opacity: 0; }
+}
+
+@keyframes slotEnterAnim {
+    0%   { transform: translateY(48px); opacity: 0; }
+    100% { transform: translateY(0);    opacity: 1; }
+}
+
+.slotExit {
+    animation: slotExitAnim 0.35s ease-in forwards;
+}
+
+.slotEnter {
+    animation: slotEnterAnim 0.4s ease-out forwards;
+    opacity: 0;
+}
+
+.slotIndicator {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+}
+
+.slotDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+}
+
+.slotDotActive {
+    background: var(--primary);
+}
+
+/* ── Fallback badge ── */
+.fallbackBadge {
+    display: inline-block;
+    margin-left: 0.75rem;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    vertical-align: middle;
+    font-family: var(--font-body, sans-serif);
+}
+
+/* ── Skeleton ── */
+.skeletonGrid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1.5rem;
+}
+
+.skeletonCard {
+    height: 360px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+}

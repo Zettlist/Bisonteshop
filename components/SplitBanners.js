@@ -13,7 +13,7 @@ const DEFAULT_BANNERS = [
         title: 'ENVÍO GRATIS',
         subtitle: 'En compras mayores a $999',
         cta: 'Comprar ahora',
-        href: '/catalogo',
+        href: '/mangas',
         colorClass: 'left',
     },
     {
@@ -23,7 +23,7 @@ const DEFAULT_BANNERS = [
         title: 'PREVENTA ABIERTA',
         subtitle: 'Asegura tu ejemplar antes del lanzamiento',
         cta: 'Ver preventas',
-        href: '/preventas',
+        href: '/mangas',
         colorClass: 'right',
     },
 ];
@@ -51,32 +51,32 @@ export default function SplitBanners({ banners = DEFAULT_BANNERS }) {
                         viewport={{ once: true, amount: 0.2 }}
                         variants={bannerVariants}
                     >
-                        <Link href={banner.href} className={`${styles.banner} ${styles[banner.colorClass]}`}>
-                            {/* BANNER: /public/banners/promo-left.webp o promo-right.webp — 960×320px cada uno */}
-                            <div className={styles.imageSlot}>
-                                <Image
-                                    src={banner.imageSrc}
-                                    alt={banner.title}
-                                    fill
-                                    style={{ objectFit: 'cover', objectPosition: 'center' }}
-                                    sizes="(max-width: 768px) 100vw, 50vw"
-                                />
-                            </div>
-
-                            <div className={styles.overlay} />
-
-                            <div className={styles.content}>
-                                {banner.badge && (
-                                    <span className={styles.badge}>{banner.badge}</span>
-                                )}
-                                <h3 className={styles.title}>{banner.title}</h3>
-                                <p className={styles.subtitle}>{banner.subtitle}</p>
-                                <span className={styles.cta}>{banner.cta} →</span>
-                            </div>
-
-                            {/* Borde rojo en hover */}
-                            <div className={styles.borderAccent} />
-                        </Link>
+                        {(() => {
+                            const inner = (
+                                <>
+                                    <div className={styles.imageSlot}>
+                                        <Image
+                                            src={banner.imageSrc}
+                                            alt={banner.title}
+                                            fill
+                                            style={{ objectFit: 'cover', objectPosition: 'center' }}
+                                            sizes="(max-width: 768px) 100vw, 50vw"
+                                        />
+                                    </div>
+                                    <div className={styles.overlay} />
+                                    <div className={styles.content}>
+                                        {banner.badge && <span className={styles.badge}>{banner.badge}</span>}
+                                        <h3 className={styles.title}>{banner.title}</h3>
+                                        <p className={styles.subtitle}>{banner.subtitle}</p>
+                                        <span className={styles.cta}>{banner.cta} →</span>
+                                    </div>
+                                    <div className={styles.borderAccent} />
+                                </>
+                            );
+                            return banner.onClick
+                                ? <button onClick={banner.onClick} className={`${styles.banner} ${styles[banner.colorClass]}`}>{inner}</button>
+                                : <Link href={banner.href ?? '#'} className={`${styles.banner} ${styles[banner.colorClass]}`}>{inner}</Link>;
+                        })()}
                     </motion.div>
                 ))}
             </div>

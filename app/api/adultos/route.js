@@ -25,6 +25,7 @@ export async function GET() {
         p.group_name,
         p.image_url,
         p.is_adult,
+        p.events,
         GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ',') as tags
       FROM products p
       LEFT JOIN product_tags pt ON p.id = pt.product_id
@@ -37,7 +38,8 @@ export async function GET() {
 
     const products = rows.map(p => ({
       ...p,
-      tags: p.tags ? p.tags.split(',') : []
+      tags: p.tags ? p.tags.split(',') : [],
+      events: p.events ? (typeof p.events === 'string' ? JSON.parse(p.events) : p.events) : null,
     }));
 
     return NextResponse.json(
