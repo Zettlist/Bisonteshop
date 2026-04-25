@@ -3,9 +3,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { sendOrderConfirmation } from '@/lib/mailer';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16',
-});
+export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/orders/capture
@@ -17,6 +15,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
  * - 'cancel':  libera la autorización, no se cobra nada
  */
 export async function POST(request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   try {
     const { saleId, action, apiKey } = await request.json();
 

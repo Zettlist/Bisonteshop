@@ -4,7 +4,8 @@ import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import pool from '@/lib/db';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
+export const dynamic = 'force-dynamic';
+const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
 const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET || 'bisonte_super_secret_key_123!');
 
 async function getCliente() {
@@ -25,7 +26,7 @@ export async function GET() {
     if (!cliente.stripe_customer_id) return NextResponse.json({ paymentMethods: [] });
 
     try {
-        const pms = await stripe.paymentMethods.list({
+        const pms = await getStripe().paymentMethods.list({
             customer: cliente.stripe_customer_id,
             type: 'card',
         });
@@ -51,7 +52,7 @@ export async function POST() {
     let customerId = cliente.stripe_customer_id;
 
     if (!customerId) {
-        const customer = await stripe.customers.create({
+        const customer = await getStripe().customers.create({
             email: cliente.email,
             name: `${cliente.nombre} ${cliente.apellido || ''}`.trim(),
             metadata: { bisonte_cliente_id: String(cliente.id) },
@@ -67,6 +68,6 @@ export async function POST() {
 export async function DELETE(request) {
     const { paymentMethodId } = await request.json();
     if (!paymentMethodId) return NextResponse.json({ success: false }, { status: 400 });
-    await stripe.paymentMethods.detach(paymentMethodId);
+    await getStripe().paymentMethods.detach(paymentMethodId);
     return NextResponse.json({ success: true });
 }
