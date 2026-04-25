@@ -3,16 +3,14 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { sendOrderConfirmation } from '@/lib/mailer';
 
+export const dynamic = 'force-dynamic';
+
 const POS_URL = process.env.POS_TORLAN_URL || 'http://localhost:3001';
 const POS_API_KEY = process.env.CAPTURE_API_KEY;
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16',
-});
-
 const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
 export async function POST(request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   try {
     const { paymentIntentId, items, userId, userEmail, userName, subtotal, discount, shipping, total } = await request.json();
 
