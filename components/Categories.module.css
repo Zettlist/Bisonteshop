@@ -47,6 +47,7 @@
     overflow: hidden;
     cursor: pointer;
     border: 1px solid var(--border);
+    background: #0d0d0d;
     transition: border-color 0.35s ease, transform 0.35s ease;
 }
 

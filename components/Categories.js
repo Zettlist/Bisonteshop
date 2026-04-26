@@ -45,7 +45,7 @@ export default function Categories() {
                                     src={cat.imageSrc}
                                     alt={cat.id}
                                     fill
-                                    style={{ objectFit: 'cover', objectPosition: 'center' }}
+                                    style={{ objectFit: 'contain', objectPosition: 'center' }}
                                     sizes="(max-width: 768px) 100vw, 50vw"
                                 />
                                 <div className={styles.cardBorder} />
