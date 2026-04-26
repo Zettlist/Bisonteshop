@@ -3,7 +3,7 @@ import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import pool from '@/lib/db';
 
-const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET || 'bisonte_super_secret_key_123!');
+const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function GET() {
     try {

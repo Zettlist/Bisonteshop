@@ -6,7 +6,7 @@ import pool from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
-const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET || 'bisonte_super_secret_key_123!');
+const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET);
 
 async function getCliente() {
     const cookieStore = await cookies();

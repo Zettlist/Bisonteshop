@@ -4,7 +4,7 @@ import { SignJWT } from 'jose';
 import { NextResponse } from 'next/server';
 
 const getJwtSecretKey = () => {
-    const secret = process.env.JWT_SECRET || 'bisonte_super_secret_key_123!';
+    const secret = process.env.JWT_SECRET;
     return new TextEncoder().encode(secret);
 };
 
