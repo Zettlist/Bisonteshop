@@ -11,7 +11,7 @@ export default function FeaturedBanner({
     badge = 'NUEVO',
     ctaText = 'Ver colección',
     ctaHref = '/novedades',
-    imageSrc = '/banners/featured-banner.webp',
+    imageSrc = '/banners/featured-banner.jpg',
 }) {
     return (
         <motion.section
