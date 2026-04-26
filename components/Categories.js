@@ -8,7 +8,7 @@ import styles from './Categories.module.css';
 const CATEGORIES = [
     { id: 'manga',      href: '/mangas',    imageSrc: '/banners/cat-manga.png' },
     { id: 'figuras',    href: '/figuras',   imageSrc: '/banners/cat-figuras.png' },
-    { id: 'revistas',   href: '/revistas',  imageSrc: '/banners/cat-revistas.png' },
+    { id: 'revistas',   href: '/mangas?categoria=Revista',  imageSrc: '/banners/cat-revistas.png' },
     { id: 'accesorios', href: '/accesorios',imageSrc: '/banners/cat-accesorios.png' },
 ];
 

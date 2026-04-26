@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import MangaCard from '@/components/MangaCard';
@@ -18,13 +19,14 @@ const cardVariants = {
 };
 
 export default function MangasPage() {
+    const searchParams = useSearchParams();
     const [mangas, setMangas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // Search y Filtros
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || '');
     const [selectedPublisher, setSelectedPublisher] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('');
     const [selectedTags, setSelectedTags] = useState([]); // múltiples tags (AND)
