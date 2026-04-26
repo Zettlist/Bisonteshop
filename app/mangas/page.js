@@ -1,8 +1,6 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,7 +18,7 @@ const cardVariants = {
     }),
 };
 
-export default function MangasPage() {
+function MangasPageInner() {
     const searchParams = useSearchParams();
     const [mangas, setMangas] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -406,3 +404,5 @@ export default function MangasPage() {
         </div>
     );
 }
+
+export default function MangasPage() { return <Suspense><MangasPageInner /></Suspense>; }
