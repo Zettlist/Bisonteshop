@@ -1,3 +1,5 @@
+export const revalidate = 0;
+
 import AnnouncementBar from '@/components/AnnouncementBar';
 import Hero from '@/components/Hero';
 import Categories from '@/components/Categories';
