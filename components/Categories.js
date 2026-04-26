@@ -6,38 +6,10 @@ import Image from 'next/image';
 import styles from './Categories.module.css';
 
 const CATEGORIES = [
-    {
-        id: 'manga',
-        title: 'MANGAS',
-        desc: 'Shonen, Seinen, Shoujo y más',
-        href: '/mangas',
-        colorClass: 'manga',
-        imageSrc: '/banners/cat-manga.webp',
-    },
-    {
-        id: 'figuras',
-        title: 'FIGURAS',
-        desc: 'Coleccionables de alta calidad',
-        href: '/figuras',
-        colorClass: 'figuras',
-        imageSrc: '/banners/cat-figuras.webp',
-    },
-    {
-        id: 'revistas',
-        title: 'REVISTAS',
-        desc: 'Las últimas publicaciones',
-        href: '/revistas',
-        colorClass: 'revistas',
-        imageSrc: '/banners/cat-revistas.webp',
-    },
-    {
-        id: 'accesorios',
-        title: 'ACCESORIOS',
-        desc: 'Posters, pins, ropa y más',
-        href: '/accesorios',
-        colorClass: 'accesorios',
-        imageSrc: '/banners/cat-accesorios.webp',
-    },
+    { id: 'manga',      href: '/mangas',    imageSrc: '/banners/cat-manga.png' },
+    { id: 'figuras',    href: '/figuras',   imageSrc: '/banners/cat-figuras.png' },
+    { id: 'revistas',   href: '/revistas',  imageSrc: '/banners/cat-revistas.png' },
+    { id: 'accesorios', href: '/accesorios',imageSrc: '/banners/cat-accesorios.png' },
 ];
 
 const cardVariants = {
@@ -62,41 +34,22 @@ export default function Categories() {
                     {CATEGORIES.map((cat, i) => (
                         <motion.div
                             key={cat.id}
-                            className={styles.card}
                             custom={i}
                             initial="hidden"
                             whileInView="visible"
                             viewport={{ once: true, amount: 0.15 }}
                             variants={cardVariants}
                         >
-                            {/* BANNER: /public/banners/cat-[nombre].webp — 600×800px */}
-                            <div className={`${styles.cardBg} ${styles[cat.colorClass]}`}>
+                            <Link href={cat.href} className={styles.card}>
                                 <Image
                                     src={cat.imageSrc}
-                                    alt={cat.title}
+                                    alt={cat.id}
                                     fill
                                     style={{ objectFit: 'cover', objectPosition: 'center' }}
-                                    sizes="(max-width: 768px) 50vw, 25vw"
+                                    sizes="(max-width: 768px) 100vw, 50vw"
                                 />
-                            </div>
-
-                            <div className={styles.cardOverlay} />
-
-                            <div className={styles.cardContent}>
-                                <div className={styles.cardTop}>
-                                    <span className={styles.cardNumber}>0{i + 1}</span>
-                                </div>
-                                <div className={styles.cardBottom}>
-                                    <h3 className={styles.cardTitle}>{cat.title}</h3>
-                                    <p className={styles.cardDesc}>{cat.desc}</p>
-                                    <Link href={cat.href} className={styles.cardLink}>
-                                        Ver todo →
-                                    </Link>
-                                </div>
-                            </div>
-
-                            {/* Borde rojo en hover */}
-                            <div className={styles.cardBorder} />
+                                <div className={styles.cardBorder} />
+                            </Link>
                         </motion.div>
                     ))}
                 </div>
