@@ -27,7 +27,7 @@ export default function FeaturedBanner({
                     src={imageSrc}
                     alt={title}
                     fill
-                    style={{ objectFit: 'cover', objectPosition: 'center right' }}
+                    style={{ objectFit: 'cover', objectPosition: 'right center' }}
                     sizes="100vw"
                 />
             </div>
