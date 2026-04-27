@@ -26,7 +26,7 @@ export default function Home() {
                 badge="NUEVO"
                 ctaText="Ver colección"
                 ctaHref="/novedades"
-                imageSrc="/banners/featured-banner-primavera2.png"
+                imageSrc="/banners/featured-banner-primavera3.png"
             />
 
             {/* 5. Grid de productos — novedades */}
