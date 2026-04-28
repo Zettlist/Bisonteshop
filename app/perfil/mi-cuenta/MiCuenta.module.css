@@ -1,6 +1,7 @@
 /* ── Profile hero card ─────────────────────────────── */
 .profileCard {
     margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(230, 57, 70, 0.03) 100%);
 }
 
 .profileHero {
@@ -12,42 +13,45 @@
 .avatarWrapper {
     position: relative;
     flex-shrink: 0;
-    width: 80px;
-    height: 80px;
+    width: 88px;
+    height: 88px;
 }
 
 .avatar {
-    width: 80px;
-    height: 80px;
+    width: 88px;
+    height: 88px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2.5px solid rgba(230, 57, 70, 0.4);
-    box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.1);
+    border: 2.5px solid rgba(230, 57, 70, 0.5);
+    box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.1), 0 8px 24px rgba(0,0,0,0.3);
 }
 
 .avatarFallback {
-    width: 80px;
-    height: 80px;
+    width: 88px;
+    height: 88px;
     border-radius: 50%;
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary), #9b1c2a);
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 2rem;
     font-weight: 800;
-    border: 2.5px solid rgba(230, 57, 70, 0.4);
+    border: 2.5px solid rgba(230, 57, 70, 0.5);
+    box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.1), 0 8px 24px rgba(0,0,0,0.3);
+    letter-spacing: -1px;
 }
 
 .onlineDot {
     position: absolute;
-    bottom: 4px;
-    right: 4px;
-    width: 13px;
-    height: 13px;
+    bottom: 5px;
+    right: 5px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
     background: #22c55e;
-    border: 2px solid var(--surface);
+    border: 2.5px solid var(--surface);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
 }
 
 .profileInfo {
@@ -56,35 +60,66 @@
     gap: 0.3rem;
 }
 
+.profileNameRow {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
 .profileName {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     font-weight: 800;
     color: var(--foreground);
     margin: 0;
+    line-height: 1;
+}
+
+.memberBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
 }
 
 .profileEmail {
     font-size: 0.88rem;
     color: var(--muted);
-    margin: 0;
+    margin: 0.1rem 0 0;
+}
+
+.profileActions {
+    margin-top: 0.65rem;
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
 }
 
 .editBtn {
     display: inline-block;
-    margin-top: 0.5rem;
     font-size: 0.8rem;
     font-weight: 700;
     color: var(--primary);
     border: 1px solid rgba(230, 57, 70, 0.35);
     border-radius: 20px;
-    padding: 0.3rem 0.9rem;
+    padding: 0.3rem 1rem;
     text-decoration: none;
     width: fit-content;
     transition: all 0.18s;
+    cursor: pointer;
 }
 
 .editBtn:hover {
     background: rgba(230, 57, 70, 0.08);
+    border-color: var(--primary);
 }
 
 /* ── Stats grid ────────────────────────────────────── */
@@ -106,6 +141,7 @@
     position: relative;
     overflow: hidden;
     transition: transform 0.2s, border-color 0.2s;
+    cursor: default;
 }
 
 .statCard::before {
@@ -161,6 +197,7 @@
 .credentialCard {
     position: relative;
     overflow: hidden;
+    margin-bottom: 1.5rem;
 }
 
 .credentialCard::after {
@@ -176,13 +213,25 @@
     line-height: 1;
 }
 
+.credentialHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.credentialIcon {
+    color: var(--primary);
+    opacity: 0.7;
+}
+
 .credentialTitle {
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 0.4rem;
+    margin: 0;
 }
 
 .credentialDesc {
@@ -197,6 +246,7 @@
     display: flex;
     align-items: center;
     gap: 0.875rem;
+    flex-wrap: wrap;
 }
 
 .credentialCode {
@@ -239,6 +289,264 @@
     background: rgba(34, 197, 94, 0.08) !important;
 }
 
+/* ── Zona de peligro ───────────────────────────────── */
+.dangerCard {
+    border-color: rgba(239, 68, 68, 0.2) !important;
+    background: rgba(239, 68, 68, 0.02) !important;
+}
+
+.dangerHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.dangerIcon {
+    color: #ef4444;
+}
+
+.dangerTitle {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #ef4444;
+    margin: 0;
+    opacity: 0.8;
+}
+
+.dangerRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.dangerInfo {
+    flex: 1;
+    min-width: 200px;
+}
+
+.dangerActionTitle {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin: 0 0 0.3rem;
+}
+
+.dangerActionDesc {
+    font-size: 0.84rem;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.deleteBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.06);
+    color: #ef4444;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+    white-space: nowrap;
+}
+
+.deleteBtn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: #ef4444;
+}
+
+/* ── Modal ─────────────────────────────────────────── */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modal {
+    background: var(--surface);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 18px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+    animation: modalIn 0.22s ease-out;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modalHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.modalIconWrapper {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modalClose {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: color 0.15s;
+    display: flex;
+}
+
+.modalClose:hover { color: var(--foreground); }
+.modalClose:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.modalTitle {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--foreground);
+    margin: 0 0 0.6rem;
+}
+
+.modalDesc {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 0 0 1.5rem;
+}
+
+.modalDesc strong {
+    color: #ef4444;
+}
+
+.modalField {
+    margin-bottom: 1.5rem;
+}
+
+.modalLabel {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+}
+
+.modalEmailHint {
+    color: var(--foreground);
+    font-weight: 700;
+}
+
+.modalInput {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--foreground);
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.modalInput:focus {
+    outline: none;
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.modalInput::placeholder {
+    color: rgba(255,255,255,0.2);
+}
+
+.modalInputError {
+    border-color: #ef4444 !important;
+}
+
+.modalError {
+    display: block;
+    font-size: 0.8rem;
+    color: #ef4444;
+    margin-top: 0.4rem;
+}
+
+.modalActions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.modalCancel {
+    padding: 0.65rem 1.25rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: var(--font-sans);
+}
+
+.modalCancel:hover {
+    border-color: var(--foreground);
+    color: var(--foreground);
+}
+
+.modalCancel:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.modalConfirm {
+    padding: 0.65rem 1.35rem;
+    border-radius: 10px;
+    border: none;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s;
+    font-family: var(--font-sans);
+    opacity: 1;
+}
+
+.modalConfirm:hover:not(:disabled) {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
+
+.modalConfirm:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* ── Responsive ────────────────────────────────────── */
 @media (max-width: 640px) {
     .statsGrid {
@@ -249,6 +557,16 @@
         flex-direction: column;
         align-items: flex-start;
         gap: 1rem;
+    }
+
+    .dangerRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .deleteBtn {
+        width: 100%;
+        justify-content: center;
     }
 }
 
