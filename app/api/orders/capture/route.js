@@ -49,60 +49,17 @@ export async function POST(request) {
 
     if (action === 'capture') {
       // ── CAPTURAR: cobrar al cliente ──────────────────────────────
+      // Stock deduction is handled exclusively by TorlanPos (deductStock with stock_deducted guard).
+      // Bisonte only handles the Stripe capture and status update.
       await stripe.paymentIntents.capture(paymentIntentId);
 
-      // Descontar stock de productos (ahora que está confirmado el pago)
-      const conn = await pool.getConnection();
-      try {
-        await conn.beginTransaction();
-        const stockErrors = [];
+      await pool.query(
+        "UPDATE bisonte_orders SET status = 'captured', updated_at = NOW() WHERE sale_id = ?",
+        [saleId]
+      );
 
-        for (const item of items) {
-          if (item.type === 'preventa') continue;
-
-          const qty = Number(item.quantity) || 1;
-          const [productRows] = await conn.query(
-            'SELECT stock FROM products WHERE id = ? LIMIT 1',
-            [item.id]
-          );
-
-          if (!productRows.length) {
-            stockErrors.push(`Producto ${item.id} no encontrado`);
-            continue;
-          }
-          if (productRows[0].stock < qty) {
-            stockErrors.push(`Stock insuficiente: producto ${item.id}`);
-            continue;
-          }
-
-          await conn.query(
-            'UPDATE products SET stock = stock - ? WHERE id = ?',
-            [qty, item.id]
-          );
-        }
-
-        // Actualizar estado en bisonte_orders
-        await conn.query(
-          "UPDATE bisonte_orders SET status = 'captured', updated_at = NOW() WHERE sale_id = ?",
-          [saleId]
-        );
-
-        await conn.commit();
-        conn.release();
-
-        if (stockErrors.length) {
-          console.warn(`[Capture] Pedido #${saleId} capturado con errores de stock:`, stockErrors);
-        } else {
-          console.log(`[Capture] Pedido #${saleId} capturado exitosamente. PI: ${paymentIntentId}`);
-        }
-
-        return NextResponse.json({ success: true, action: 'captured', saleId, stockErrors });
-
-      } catch (dbErr) {
-        await conn.rollback();
-        conn.release();
-        throw dbErr;
-      }
+      console.log(`[Capture] Pedido #${saleId} capturado exitosamente. PI: ${paymentIntentId}`);
+      return NextResponse.json({ success: true, action: 'captured', saleId, stockErrors: [] });
 
     } else {
       // ── CANCELAR: liberar autorización, no cobrar ────────────────
