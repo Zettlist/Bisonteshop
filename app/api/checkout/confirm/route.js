@@ -5,21 +5,18 @@ import { sendOrderConfirmation } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
 
-const POS_URL = process.env.POS_TORLAN_URL || 'http://localhost:3001';
-const POS_API_KEY = process.env.CAPTURE_API_KEY;
 const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
 export async function POST(request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   try {
-    const { paymentIntentId, items, userId, userEmail, userName, subtotal, discount, shipping, total } = await request.json();
+    const { paymentIntentId, items, userId, userEmail, userName, subtotal, discount, shipping, total, shippingMethod, envia_quote_data, shipping_address } = await request.json();
 
     if (!paymentIntentId || !items?.length) {
       return NextResponse.json({ success: false, error: 'Datos incompletos' }, { status: 400 });
     }
 
     // 1. Verificar con Stripe que la autorización fue exitosa
-    // Con capture_method: 'manual', el estado es 'requires_capture' (fondos reservados, no cobrados)
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (paymentIntent.status !== 'requires_capture') {
       return NextResponse.json({ success: false, error: `Estado de pago inválido: ${paymentIntent.status}` }, { status: 400 });
@@ -32,7 +29,7 @@ export async function POST(request) {
       const surcharge = Number(shipping) || 150;
       const totalFinal = Number(total) || (Number(subtotal) - Number(discount) + surcharge);
 
-      // 2. Obtener user_id válido de PosTorlan (NO es el cliente, es el cajero/sistema)
+      // 2. Obtener user_id válido de PosTorlan
       let resolvedUserId = process.env.WEB_USER_ID ? Number(process.env.WEB_USER_ID) : null;
       if (!resolvedUserId) {
         const [usersRows] = await conn.query(
@@ -43,10 +40,11 @@ export async function POST(request) {
         resolvedUserId = usersRows[0].id;
       }
 
-      // 3. Insertar en sales (pedido visible en PosTorlan)
+      // 3. Insertar en sales
+      const resolvedShippingMethod = shippingMethod === 'envia' ? 'envia' : 'bisonte';
       const [saleResult] = await conn.query(
-        `INSERT INTO sales (empresa_id, user_id, cliente_id, subtotal, discount, surcharge, total, payment_method, web_status, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'card', 'pendiente', NOW())`,
+        `INSERT INTO sales (empresa_id, user_id, cliente_id, subtotal, discount, surcharge, total, payment_method, web_status, shipping_method, envia_quote_data, shipping_address_json, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'card', 'pendiente', ?, ?, ?, NOW())`,
         [
           EMPRESA_ID,
           resolvedUserId,
@@ -55,11 +53,14 @@ export async function POST(request) {
           Number(discount) || 0,
           surcharge,
           totalFinal,
+          resolvedShippingMethod,
+          envia_quote_data ? JSON.stringify(envia_quote_data) : null,
+          shipping_address ? JSON.stringify(shipping_address) : null,
         ]
       );
       const saleId = saleResult.insertId;
 
-      // 4. Insertar sale_items (stock NO se descuenta aquí, se descuenta al capturar)
+      // 4. Insertar sale_items
       for (const item of items) {
         await conn.query(
           `INSERT INTO sale_items (sale_id, product_id, quantity, price) VALUES (?, ?, ?, ?)`,
@@ -67,7 +68,7 @@ export async function POST(request) {
         );
       }
 
-      // 5. Registrar en bisonte_orders: vincula sale_id ↔ payment_intent_id para captura posterior
+      // 5. Registrar en bisonte_orders
       await conn.query(
         `INSERT INTO bisonte_orders (sale_id, payment_intent_id, status, cliente_id, items_json)
          VALUES (?, ?, 'pending', ?, ?)`,
@@ -76,7 +77,7 @@ export async function POST(request) {
 
       await conn.commit();
 
-      // 6. Correo de confirmación al cliente (fondos reservados, verificando existencias)
+      // 6. Correo de confirmación al cliente
       if (userEmail) {
         sendOrderConfirmation({
           to: userEmail,
@@ -90,17 +91,9 @@ export async function POST(request) {
         }).catch(err => console.error('[Mailer]', err.message));
       }
 
-      console.log(`[Confirm] Pedido #${saleId} registrado. PI ${paymentIntentId} — iniciando auto-process...`);
+      console.log(`[Confirm] Pedido #${saleId} registrado. PI ${paymentIntentId}`);
 
-      // Disparar auto-process en POS Torlan (sin bloquear la respuesta al cliente)
-      fetch(`${POS_URL}/api/web-orders/${saleId}/auto-process`, {
-        method: 'POST',
-        headers: { 'x-api-key': POS_API_KEY },
-      }).then(r => r.json()).then(d => {
-        console.log(`[AutoProcess] Pedido #${saleId}:`, d);
-      }).catch(err => {
-        console.error(`[AutoProcess] Error llamando POS para pedido #${saleId}:`, err.message);
-      });
+      // Nota: la guía Envia.com se genera en el POS al confirmar existencia, no aquí.
 
       return NextResponse.json({ success: true, saleId });
 
