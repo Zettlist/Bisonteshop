@@ -15,9 +15,8 @@ export const dynamic = 'force-dynamic';
  * - Does NOT modify stock (TorlanPos handles stock restoration)
  */
 export async function POST(request) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
-
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
     const { saleId, apiKey, reason } = await request.json();
 
     // Auth

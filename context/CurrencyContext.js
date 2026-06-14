@@ -4,63 +4,61 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const CurrencyContext = createContext();
 
-// Tasas de cambio (ejemplo estático, en una app real podrían venir de una API)
-// Base: MXN (Peso Mexicano)
-const EXCHANGE_RATES = {
-    MXN: 1,
-    USD: 0.049,   // 1 MXN = 0.049 USD
-    EUR: 0.046,   // 1 MXN = 0.046 EUR
-    COP: 198.50,  // 1 MXN = 198.50 Pesos Colombianos
-    CLP: 47.30,   // 1 MXN = 47.30 Pesos Chilenos
-    ARS: 42.50,   // 1 MXN = 42.50 Pesos Argentinos
-};
+const FALLBACK_USD_RATE = 0.049; // 1 MXN = 0.049 USD (fallback si falla API)
+const CACHE_KEY = 'bisonte-usd-rate';
+const CACHE_TTL = 60 * 60 * 1000; // 1 hora
 
-const CURRENCY_SYMBOLS = {
-    MXN: '$',
-    USD: '$',
-    EUR: '€',
-    COP: '$',
-    CLP: '$',
-    ARS: '$',
-};
+async function fetchUSDRate() {
+    try {
+        const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+        if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.rate;
+
+        const res = await fetch('https://open.er-api.com/v6/latest/MXN');
+        const data = await res.json();
+        const rate = data?.rates?.USD;
+        if (rate) {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ rate, ts: Date.now() }));
+            return rate;
+        }
+    } catch {}
+    return FALLBACK_USD_RATE;
+}
 
 export function CurrencyProvider({ children }) {
     const [currency, setCurrency] = useState('MXN');
+    const [usdRate, setUsdRate] = useState(FALLBACK_USD_RATE);
 
-    // Cargar preferencia del usuario si existe
     useEffect(() => {
         const saved = localStorage.getItem('bisonte-currency');
-        if (saved && EXCHANGE_RATES[saved]) {
-            setCurrency(saved);
-        }
+        if (saved === 'USD' || saved === 'MXN') setCurrency(saved);
+        fetchUSDRate().then(setUsdRate);
     }, []);
 
-    const changeCurrency = (newCurrency) => {
-        if (EXCHANGE_RATES[newCurrency]) {
-            setCurrency(newCurrency);
-            localStorage.setItem('bisonte-currency', newCurrency);
+    const changeCurrency = (c) => {
+        if (c === 'MXN' || c === 'USD') {
+            setCurrency(c);
+            localStorage.setItem('bisonte-currency', c);
         }
     };
 
-    /**
-     * Recibe un precio base en MXN y lo convierte a la moneda actual.
-     * Devuelve un string formateado con el símbolo.
-     */
     const formatPrice = (priceInMXN) => {
-        if (!priceInMXN || isNaN(priceInMXN)) return `${CURRENCY_SYMBOLS[currency]}0.00`;
-
-        const rate = EXCHANGE_RATES[currency] || 1;
-        const converted = priceInMXN * rate;
-
-        // Formatear dependiendo de la moneda
-        return new Intl.NumberFormat('es-MX', {
-            style: 'currency',
-            currency: currency,
-        }).format(converted);
+        if (!priceInMXN || isNaN(priceInMXN)) {
+            return currency === 'USD' ? '$0.00 USD' : '$0.00';
+        }
+        if (currency === 'USD') {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(priceInMXN * usdRate) + ' USD';
+        }
+        return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(priceInMXN);
     };
 
     return (
-        <CurrencyContext.Provider value={{ currency, changeCurrency, formatPrice, availableCurrencies: Object.keys(EXCHANGE_RATES) }}>
+        <CurrencyContext.Provider value={{
+            currency,
+            changeCurrency,
+            formatPrice,
+            usdRate,
+            availableCurrencies: ['MXN', 'USD'],
+        }}>
             {children}
         </CurrencyContext.Provider>
     );

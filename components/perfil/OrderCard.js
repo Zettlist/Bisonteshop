@@ -9,10 +9,14 @@ const STATUS_MAP = {
     entregado:   { label: 'Entregado',               class: styles.status_entregado   },
     cancelado:   { label: 'Cancelado',               class: styles.status_cancelado   },
     produccion:  { label: 'En Producción',           class: styles.status_produccion  },
+    reclamo:     { label: 'En Reclamo',              class: styles.status_reclamo     },
 };
 
 export default function OrderCard({ order, isHistory, onOpenDetail }) {
-    const statusConfig = STATUS_MAP[order.status] || STATUS_MAP['verificando'];
+    const resolvedClaim = order.status === 'reclamo' && order.claimStatus === 'resolucion';
+    const statusConfig = resolvedClaim
+        ? { label: 'Reclamo Resuelto', class: styles.status_entregado }
+        : STATUS_MAP[order.status] || STATUS_MAP['verificando'];
     const fmt  = (n) => `$${Number(n || 0).toFixed(2)}`;
     const paid = order.payments.reduce((acc, p) => acc + p.amount, 0);
     const debt = order.total - paid;

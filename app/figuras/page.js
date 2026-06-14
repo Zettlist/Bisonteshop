@@ -187,36 +187,6 @@ export default function FigurasPage() {
                     </div>
                 </div>
 
-                {/* Filtros activos (chips visuales) */}
-                {hasActiveFilters && (
-                    <div className={styles.activeFiltersBar}>
-                        <span style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 700 }}>Filtros activos:</span>
-                        {selectedCategory && (
-                            <span className={styles.activeFilterChip}>
-                                {selectedCategory} <button onClick={() => setSelectedCategory('')}><X size={12} /></button>
-                            </span>
-                        )}
-                        {selectedPublisher && (
-                            <span className={styles.activeFilterChip}>
-                                {selectedPublisher} <button onClick={() => setSelectedPublisher('')}><X size={12} /></button>
-                            </span>
-                        )}
-                        {selectedLanguage && (
-                            <span className={styles.activeFilterChip}>
-                                {selectedLanguage} <button onClick={() => setSelectedLanguage('')}><X size={12} /></button>
-                            </span>
-                        )}
-                        {selectedTags.map(tag => (
-                            <span key={tag} className={styles.activeFilterChip}>
-                                #{tag} <button onClick={() => toggleTag(tag)}><X size={12} /></button>
-                            </span>
-                        ))}
-                        <button className={styles.resetBtn} style={{ width: 'auto', padding: '0.3rem 1rem', fontSize: '0.8rem' }} onClick={resetAllFilters}>
-                            Limpiar todo
-                        </button>
-                    </div>
-                )}
-
                 {/* Layout Flex */}
                 <div className={styles.layout}>
 
@@ -225,9 +195,39 @@ export default function FigurasPage() {
                         <div className={styles.filterGroup}>
                             <h3 className={styles.filterTitle}><Filter size={16} /> Filtros</h3>
 
+                            {/* Filtros activos (chips visuales) — sidebar */}
+                            {hasActiveFilters && (
+                                <div className={styles.activeFiltersBar}>
+                                    <span style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 700 }}>Filtros activos:</span>
+                                    {selectedCategory && (
+                                        <span className={styles.activeFilterChip}>
+                                            {selectedCategory} <button onClick={() => setSelectedCategory('')}><X size={12} /></button>
+                                        </span>
+                                    )}
+                                    {selectedPublisher && (
+                                        <span className={styles.activeFilterChip}>
+                                            {selectedPublisher} <button onClick={() => setSelectedPublisher('')}><X size={12} /></button>
+                                        </span>
+                                    )}
+                                    {selectedLanguage && (
+                                        <span className={styles.activeFilterChip}>
+                                            {selectedLanguage} <button onClick={() => setSelectedLanguage('')}><X size={12} /></button>
+                                        </span>
+                                    )}
+                                    {selectedTags.map(tag => (
+                                        <span key={tag} className={styles.activeFilterChip}>
+                                            #{tag} <button onClick={() => toggleTag(tag)}><X size={12} /></button>
+                                        </span>
+                                    ))}
+                                    <button className={styles.resetBtn} style={{ width: 'auto', padding: '0.3rem 1rem', fontSize: '0.8rem' }} onClick={resetAllFilters}>
+                                        Limpiar todo
+                                    </button>
+                                </div>
+                            )}
+
                             {/* Ordenar por */}
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px' }}>ORDENAR POR</span>
+                            <div className={styles.filterSection}>
+                                <span className={styles.filterSectionLabel}>Ordenar por</span>
                                 <select className={styles.select} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                                     <option value="recent">Novedades Primero</option>
                                     <option value="price_asc">Precio: Menor a Mayor</option>
@@ -236,11 +236,9 @@ export default function FigurasPage() {
                                 </select>
                             </div>
 
-                            <div className={styles.sectionDivider} />
-
                             {/* Disponibilidad */}
-                            <div style={{ marginBottom: '1.25rem' }}>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px' }}>DISPONIBILIDAD</span>
+                            <div className={styles.filterSection}>
+                                <span className={styles.filterSectionLabel}>Disponibilidad</span>
                                 <label className={styles.switchContainer}>
                                     <div className={styles.switch}>
                                         <input
@@ -250,17 +248,17 @@ export default function FigurasPage() {
                                             className={styles.switchInput}
                                         />
                                         <span className={styles.slider}></span>
+                                        <img className={styles.switchOff} alt="" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAQABADASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAIG/8QAIxAAAgIABQQDAAAAAAAAAAAAAQMCBAAREiExBUFRcROBsf/EABQBAQAAAAAAAAAAAAAAAAAAAAX/xAAWEQADAAAAAAAAAAAAAAAAAAAAEiL/2gAMAwEAAhEDEQA/AMBTp03dNglMVuttjqnKQ2UPOfntkOThbqVVUJ12BKnogZQZpy+Ucc8knwePWJrWqyqEHVmrTahEBqpbBoAH1n635wt3a9mjN1p8X2pw0qVEbKB/CO/c4OphSVP/2Q==" />
+                                        <img className={styles.switchOn} alt="" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAAQABADASIAAhEBAxEB/8QAFwAAAwEAAAAAAAAAAAAAAAAAAQIEBf/EACMQAAEDAwQDAQEAAAAAAAAAAAQBAgUDESEAEjFBBlFhMkL/xAAUAQEAAAAAAAAAAAAAAAAAAAAF/8QAGBEAAwEBAAAAAAAAAAAAAAAAABIiMUH/2gAMAwEAAhEDEQA/AM+Bg4mS8coRccMOdNG01qVyH/kRvHPKKmMdr8uujPwUTG+NkRpw1AKWCbvHKa2zTGphc9u9p0q+rLqeMl4kSCGkYgtoE0HTahIz3bWGNanPrdyqWzn7p5ibh5CArnyZNMyVLpK0QSkt2BNXtVX+7ol1wuLJiyaHt+6Kyp//2Q==" />
                                     </div>
                                     <span className={styles.switchLabel}>Solo disponibles</span>
                                 </label>
                             </div>
 
-                            <div className={styles.sectionDivider} />
-
                             {/* Categorías */}
                             {categories.length > 0 && (
-                                <div style={{ marginBottom: '1.25rem' }}>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px' }}>CATEGORÍA</span>
+                                <div className={styles.filterSection}>
+                                    <span className={styles.filterSectionLabel}>Categoría</span>
                                     <div className={styles.filterList}>
                                         <button className={styles.filterBtn} data-active={!selectedCategory} onClick={() => setSelectedCategory('')}>Todas</button>
                                         {categories.map(cat => (
@@ -272,12 +270,10 @@ export default function FigurasPage() {
                                 </div>
                             )}
 
-                            <div className={styles.sectionDivider} />
-
                             {/* Idiomas */}
                             {languages.length > 0 && (
-                                <div style={{ marginBottom: '1.25rem' }}>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px' }}>IDIOMA</span>
+                                <div className={styles.filterSection}>
+                                    <span className={styles.filterSectionLabel}>Idioma</span>
                                     <div className={styles.tagChips}>
                                         {languages.map(lang => (
                                             <button key={lang} className={styles.tagChip} data-active={selectedLanguage === lang} onClick={() => setSelectedLanguage(selectedLanguage === lang ? '' : lang)}>
@@ -288,12 +284,10 @@ export default function FigurasPage() {
                                 </div>
                             )}
 
-                            <div className={styles.sectionDivider} />
-
                             {/* Tags */}
                             {allTags.length > 0 && (
-                                <div style={{ marginBottom: '1.25rem' }}>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px' }}>ETIQUETAS</span>
+                                <div className={styles.filterSection}>
+                                    <span className={styles.filterSectionLabel}>Etiquetas</span>
                                     <div className={styles.tagChips}>
                                         {allTags.map(tag => (
                                             <button key={tag} className={styles.tagChip} data-active={selectedTags.includes(tag)} onClick={() => toggleTag(tag)}>
@@ -304,12 +298,10 @@ export default function FigurasPage() {
                                 </div>
                             )}
 
-                            <div className={styles.sectionDivider} />
-
                             {/* Editoriales */}
                             {publishers.length > 0 && (
-                                <div>
-                                    <span style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '0.5rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.5px' }}>EDITORIAL</span>
+                                <div className={styles.filterSection}>
+                                    <span className={styles.filterSectionLabel}>Editorial</span>
                                     <div className={styles.filterList}>
                                         <button className={styles.filterBtn} data-active={!selectedPublisher} onClick={() => setSelectedPublisher('')}>Todas</button>
                                         {publishers.map(pub => (
@@ -322,12 +314,9 @@ export default function FigurasPage() {
                             )}
 
                             {hasActiveFilters && (
-                                <>
-                                    <div className={styles.sectionDivider} />
-                                    <button className={styles.resetBtn} onClick={resetAllFilters}>
-                                        Limpiar Filtros
-                                    </button>
-                                </>
+                                <button className={styles.resetBtn} onClick={resetAllFilters}>
+                                    Limpiar Filtros
+                                </button>
                             )}
                         </div>
                     </aside>

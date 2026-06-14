@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { ShoppingBag, Ticket, CreditCard, Copy, CheckCircle2, AlertTriangle, X, Trash2, Shield, Star } from 'lucide-react';
-import commonStyles from '../CommonProfile.module.css';
 import styles from './MiCuenta.module.css';
 
 export default function MiCuenta() {
@@ -17,9 +16,58 @@ export default function MiCuenta() {
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState('');
 
+    // Cupones de la cuenta
+    const [cupones, setCupones] = useState([]);
+    const [showCupones, setShowCupones] = useState(false);
+    const [codeInput, setCodeInput] = useState('');
+    const [codeResult, setCodeResult] = useState(null); // { ok, msg }
+    const [checking, setChecking] = useState(false);
+    const [copiedCupon, setCopiedCupon] = useState(null);
+
     useEffect(() => {
         if (!isAuthenticated) router.replace('/');
     }, [isAuthenticated, router]);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        fetch('/api/cupones')
+            .then(r => r.json())
+            .then(d => { if (d.success) setCupones(d.cupones || []); })
+            .catch(() => {});
+    }, [isAuthenticated]);
+
+    const checkCode = async () => {
+        const code = codeInput.trim().toUpperCase();
+        if (!code) return;
+        setChecking(true);
+        setCodeResult(null);
+        try {
+            const res = await fetch('/api/discount', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, subtotal: 0 }),
+            });
+            const d = await res.json();
+            if (d.success) {
+                const valor = d.discount_type === 'percentage'
+                    ? `${d.discount_value}% de descuento`
+                    : `$${d.discount_value} MXN de descuento`;
+                setCodeResult({ ok: true, msg: `Cupón válido: ${valor}. Aplícalo en el checkout al pagar.` });
+            } else {
+                setCodeResult({ ok: false, msg: d.error || 'Código inválido' });
+            }
+        } catch {
+            setCodeResult({ ok: false, msg: 'Error de conexión. Intenta de nuevo.' });
+        } finally {
+            setChecking(false);
+        }
+    };
+
+    const copyCupon = (code) => {
+        navigator.clipboard.writeText(code);
+        setCopiedCupon(code);
+        setTimeout(() => setCopiedCupon(null), 2200);
+    };
 
     if (!user) return null;
 
@@ -50,18 +98,18 @@ export default function MiCuenta() {
     const initials = `${user.nombre?.charAt(0) ?? ''}${user.apellido?.charAt(0) ?? ''}`.toUpperCase();
 
     return (
-        <div className={commonStyles.container}>
-            <div className={commonStyles.header}>
-                <h1 className={commonStyles.title}>Mi Cuenta</h1>
-                <p className={commonStyles.subtitle}>Gestiona tu identidad y datos básicos en la plataforma.</p>
+        <div className={styles.container}>
+            <div className={styles.header}>
+                <h1 className={styles.title}>MI CUENTA<span>.</span></h1>
+                <p className={styles.subtitle}>tu identidad en la banda Bisonte ✌️</p>
             </div>
 
             {/* ── Perfil hero ── */}
-            <div className={`${commonStyles.card} ${styles.profileCard}`}>
+            <div className={`${styles.card} ${styles.profileCard}`}>
                 <div className={styles.profileHero}>
                     <div className={styles.avatarWrapper}>
                         {user.avatar ? (
-                            <img src={user.avatar} alt="Avatar" className={styles.avatar} />
+                            <img src={`${user.avatar}?v=2`} alt="Avatar" className={styles.avatar} />
                         ) : (
                             <div className={styles.avatarFallback}>
                                 {initials || user.nombre?.charAt(0).toUpperCase()}
@@ -94,10 +142,17 @@ export default function MiCuenta() {
                     <span className={styles.statValue}>0</span>
                     <span className={styles.statLabel}>Pedidos Activos</span>
                 </div>
-                <div className={styles.statCard}>
+                <div
+                    className={styles.statCard}
+                    onClick={() => { setShowCupones(true); setCodeResult(null); setCodeInput(''); }}
+                    style={{ cursor: 'pointer' }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => e.key === 'Enter' && setShowCupones(true)}
+                >
                     <div className={styles.statIcon}><Ticket size={18} /></div>
-                    <span className={styles.statValue}>0</span>
-                    <span className={styles.statLabel}>Preventas</span>
+                    <span className={styles.statValue}>{cupones.length}</span>
+                    <span className={styles.statLabel}>Cupones</span>
                 </div>
                 <div className={styles.statCard}>
                     <div className={styles.statIcon}><CreditCard size={18} /></div>
@@ -107,14 +162,11 @@ export default function MiCuenta() {
             </div>
 
             {/* ── Credencial ── */}
-            <div className={`${commonStyles.card} ${styles.credentialCard}`}>
+            <div className={`${styles.card} ${styles.credentialCard}`}>
                 <div className={styles.credentialHeader}>
                     <Shield size={16} className={styles.credentialIcon} />
                     <p className={styles.credentialTitle}>Credencial Bisonte</p>
                 </div>
-                <p className={styles.credentialDesc}>
-                    Tu identificador único en nuestra base de datos. Compártelo con soporte si necesitas ayuda por WhatsApp.
-                </p>
                 <div className={styles.credentialRow}>
                     <span className={styles.credentialCode}>{user.client_code}</span>
                     <button
@@ -128,7 +180,7 @@ export default function MiCuenta() {
             </div>
 
             {/* ── Zona de peligro ── */}
-            <div className={`${commonStyles.card} ${styles.dangerCard}`}>
+            <div className={`${styles.card} ${styles.dangerCard}`}>
                 <div className={styles.dangerHeader}>
                     <AlertTriangle size={16} className={styles.dangerIcon} />
                     <p className={styles.dangerTitle}>Zona de peligro</p>
@@ -149,6 +201,88 @@ export default function MiCuenta() {
                     </button>
                 </div>
             </div>
+
+            {/* ── Modal cupones ── */}
+            {showCupones && (
+                <div className={styles.modalOverlay} onClick={() => setShowCupones(false)}>
+                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <div className={styles.modalIconWrapper} style={{ background: 'rgba(255,214,10,0.12)', color: '#ffd60a' }}>
+                                <Ticket size={22} />
+                            </div>
+                            <button className={styles.modalClose} onClick={() => setShowCupones(false)}>
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <h3 className={styles.modalTitle}>Tus cupones</h3>
+
+                        {cupones.length === 0 ? (
+                            <p className={styles.modalDesc}>
+                                No tienes cupones disponibles por ahora. Participa en los eventos de la tienda para ganar descuentos 👀
+                            </p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', margin: '0.5rem 0 1rem' }}>
+                                {cupones.map(c => (
+                                    <div key={c.code} style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+                                        background: 'rgba(255,214,10,0.07)', border: '1px dashed rgba(255,214,10,0.45)',
+                                        borderRadius: '10px', padding: '0.7rem 0.9rem',
+                                    }}>
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontWeight: 800, letterSpacing: '1px', color: '#ffd60a', fontFamily: 'monospace', fontSize: '1.05rem' }}>{c.code}</div>
+                                            <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: '2px' }}>{c.origen} · {c.detalle}</div>
+                                        </div>
+                                        <button
+                                            onClick={() => copyCupon(c.code)}
+                                            className={`${styles.copyBtn} ${copiedCupon === c.code ? styles.copyBtnSuccess : ''}`}
+                                        >
+                                            {copiedCupon === c.code ? <CheckCircle2 size={15} /> : <Copy size={15} />}
+                                            {copiedCupon === c.code ? '¡Copiado!' : 'Copiar'}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <div className={styles.modalField}>
+                            <label className={styles.modalLabel}>¿Tienes un código? Valídalo aquí</label>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <input
+                                    type="text"
+                                    className={styles.modalInput}
+                                    placeholder="Ej. MUNDIAL10"
+                                    value={codeInput}
+                                    onChange={e => { setCodeInput(e.target.value.toUpperCase()); setCodeResult(null); }}
+                                    onKeyDown={e => e.key === 'Enter' && checkCode()}
+                                    autoComplete="off"
+                                    style={{ flex: 1 }}
+                                />
+                                <button
+                                    className={styles.modalCancel}
+                                    onClick={checkCode}
+                                    disabled={checking || !codeInput.trim()}
+                                    style={{ whiteSpace: 'nowrap' }}
+                                >
+                                    {checking ? 'Validando…' : 'Validar'}
+                                </button>
+                            </div>
+                            {codeResult && (
+                                <span style={{
+                                    display: 'block', marginTop: '0.5rem', fontSize: '0.85rem',
+                                    color: codeResult.ok ? '#10b981' : '#ef4444',
+                                }}>
+                                    {codeResult.ok ? '✓ ' : '✗ '}{codeResult.msg}
+                                </span>
+                            )}
+                        </div>
+
+                        <p className={styles.modalDesc} style={{ marginTop: '0.75rem', fontSize: '0.78rem' }}>
+                            Los cupones se aplican en el checkout, en la sección "Códigos de descuento".
+                        </p>
+                    </div>
+                </div>
+            )}
 
             {/* ── Modal confirmación ── */}
             {showDeleteModal && (

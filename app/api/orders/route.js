@@ -1,22 +1,15 @@
 import { NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
 import pool from '@/lib/db';
-
-const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET);
+import { getClienteId } from '@/lib/auth';
 
 export async function GET() {
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get('bisonte_session')?.value;
-        if (!token) return NextResponse.json({ orders: [] });
-
-        const { payload } = await jwtVerify(token, getJwtSecretKey());
-        const clienteId = payload.id;
+        const clienteId = await getClienteId();
+        if (!clienteId) return NextResponse.json({ orders: [] });
 
         const [sales] = await pool.query(
             `SELECT s.id, s.subtotal, s.discount, s.surcharge, s.total, s.payment_method, s.created_at,
-                    bo.status AS web_status, bo.items_json
+                    s.web_status, s.claim_status, s.tracking_number, s.envia_quote_data, bo.items_json
              FROM sales s
              INNER JOIN bisonte_orders bo ON bo.sale_id = s.id
              WHERE s.cliente_id = ?
@@ -54,11 +47,22 @@ export async function GET() {
                 isPreventa = parsed.some(i => i.type === 'preventa');
             } catch {}
 
-            // Mapear status de bisonte_orders a status visible
+            // Extraer carrier desde envia_quote_data
+            let carrier = null;
+            try {
+                const qd = JSON.parse(sale.envia_quote_data || '{}');
+                carrier = qd.carrier || qd.carrier_name || null;
+                if (carrier) carrier = carrier.toLowerCase();
+            } catch {}
+
+            // Mapear web_status de sales a status visible en ecommerce
             const statusMap = {
-                pending:   'verificando',
-                captured:  'preparando',
-                cancelled: 'cancelado',
+                pendiente:  'verificando',
+                confirmado: 'preparando',
+                envio:      'transito',
+                entregado:  'entregado',
+                reclamo:    'reclamo',
+                cancelado:  'cancelado',
             };
             const status = statusMap[sale.web_status] || 'verificando';
 
@@ -66,6 +70,7 @@ export async function GET() {
                 id: String(sale.id),
                 date: sale.created_at,
                 status,
+                claimStatus: sale.claim_status || null,
                 itemName: firstItem?.name || 'Artículo',
                 itemsCount: saleItems.reduce((a, i) => a + i.quantity, 0),
                 type: isPreventa ? 'Preventa' : 'Pedido Normal',
@@ -74,6 +79,8 @@ export async function GET() {
                 subtotal: Number(sale.subtotal),
                 discount: Number(sale.discount),
                 shipping: Number(sale.surcharge),
+                trackingNumber: sale.tracking_number || null,
+                carrier: carrier,
                 payments: [{ id: `pay_${sale.id}`, amount: Number(sale.total), date: sale.created_at }],
                 items: saleItems.map(i => ({
                     name: i.name,

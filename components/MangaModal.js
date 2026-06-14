@@ -126,6 +126,14 @@ export default function MangaModal({ manga, onClose }) {
                         {isOutOfStock ? 'No disponible' : 'Agregar al Carrito'}
                     </button>
 
+                    {/* Sinopsis */}
+                    <div className={styles.sinopsisSection}>
+                        <p className={styles.sinopsisTitle}>Sinopsis</p>
+                        <p className={`${styles.sinopsisText} ${!manga.sinopsis ? styles.sinopsisEmpty : ''}`}>
+                            {manga.sinopsis || 'Sinopsis no disponible aún.'}
+                        </p>
+                    </div>
+
                     {/* Detalles */}
                     {details.length > 0 && (
                         <>

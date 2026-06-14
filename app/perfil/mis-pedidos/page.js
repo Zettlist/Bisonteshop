@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './MisPedidos.module.css';
 import OrderCard from '@/components/perfil/OrderCard';
@@ -19,9 +19,18 @@ export default function MisPedidos() {
             .finally(() => setLoading(false));
     }, []);
 
-    const activeOrders  = orders.filter(o => o.status !== 'entregado');
-    const historyOrders = orders.filter(o => o.status === 'entregado');
-    const currentList   = activeTab === 'curso' ? activeOrders : historyOrders;
+    const enCursoOrders  = orders.filter(o => ['verificando', 'preparando', 'transito'].includes(o.status));
+    const pedidosOrders  = orders.filter(o =>
+        ['entregado', 'cancelado'].includes(o.status) ||
+        (o.status === 'reclamo' && o.claimStatus === 'resolucion')
+    );
+    const reclamosOrders = orders.filter(o => o.status === 'reclamo' && o.claimStatus !== 'resolucion');
+
+    const currentList = activeTab === 'curso'
+        ? enCursoOrders
+        : activeTab === 'reclamos'
+        ? reclamosOrders
+        : pedidosOrders;
 
     const openModal  = (i) => setModalIndex(i);
     const closeModal = ()  => setModalIndex(null);
@@ -40,13 +49,19 @@ export default function MisPedidos() {
                     className={`${styles.tab} ${activeTab === 'curso' ? styles.active : ''}`}
                     onClick={() => { setActiveTab('curso'); setModalIndex(null); }}
                 >
-                    En Curso <span className={styles.tabBadge}>{activeOrders.length}</span>
+                    En Curso {enCursoOrders.length > 0 && <span className={styles.tabBadge}>{enCursoOrders.length}</span>}
                 </button>
                 <button
-                    className={`${styles.tab} ${activeTab === 'historial' ? styles.active : ''}`}
-                    onClick={() => { setActiveTab('historial'); setModalIndex(null); }}
+                    className={`${styles.tab} ${activeTab === 'pedidos' ? styles.active : ''}`}
+                    onClick={() => { setActiveTab('pedidos'); setModalIndex(null); }}
                 >
-                    Historial
+                    Pedidos
+                </button>
+                <button
+                    className={`${styles.tab} ${activeTab === 'reclamos' ? styles.active : ''}`}
+                    onClick={() => { setActiveTab('reclamos'); setModalIndex(null); }}
+                >
+                    Reclamos {reclamosOrders.length > 0 && <span className={`${styles.tabBadge} ${styles.tabBadgeAlert}`}>{reclamosOrders.length}</span>}
                 </button>
             </div>
 
@@ -60,7 +75,7 @@ export default function MisPedidos() {
                         <OrderCard
                             key={order.id}
                             order={order}
-                            isHistory={activeTab === 'historial'}
+                            isHistory={activeTab === 'pedidos'}
                             onOpenDetail={() => openModal(i)}
                         />
                     ))
@@ -81,6 +96,16 @@ export default function MisPedidos() {
                     onClose={closeModal}
                     onNext={goNext}
                     onPrev={goPrev}
+                    onOrderStatusChange={(id, newStatus, newClaimStatus) => {
+                        setOrders(prev => prev.map(o => o.id === id
+                            ? { ...o, status: newStatus, ...(newClaimStatus !== undefined ? { claimStatus: newClaimStatus } : {}) }
+                            : o
+                        ));
+                        if (newStatus === 'reclamo' && newClaimStatus !== 'resolucion') {
+                            setActiveTab('reclamos');
+                            setModalIndex(null);
+                        }
+                    }}
                 />
             )}
         </div>
@@ -89,14 +114,22 @@ export default function MisPedidos() {
 
 // Importar el modal aquí para tener acceso a los controles de navegación
 import { createPortal } from 'react-dom';
-import { X, Package, CreditCard, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Package, CreditCard, CheckCircle, ChevronLeft, ChevronRight, Truck, AlertTriangle } from 'lucide-react';
 import modalStyles from '@/components/perfil/OrderCard.module.css';
+
+const CARRIER_INFO = {
+    paquetexpress: { name: 'Paquetexpress', url: (t) => `https://www.paquetexpress.com.mx/rastreo/?guia=${t}` },
+    fedex:         { name: 'FedEx',         url: (t) => `https://www.fedex.com/apps/fedextrack/?tracknumbers=${t}` },
+    dhl:           { name: 'DHL',           url: (t) => `https://www.dhl.com/mx-es/home/tracking.html?tracking-id=${t}` },
+    estafeta:      { name: 'Estafeta',      url: (t) => `https://www.estafeta.com/herramientas/rastreo?wayBillType=1&wayBill=${t}` },
+};
 
 const STATUS_MAP = {
     verificando: { label: 'Verificando existencias', cls: modalStyles.status_verificando },
     preparando:  { label: 'Preparando',              cls: modalStyles.status_preparando  },
     transito:    { label: 'En Tránsito',             cls: modalStyles.status_transito    },
     entregado:   { label: 'Entregado',               cls: modalStyles.status_entregado   },
+    reclamo:     { label: 'En Reclamo',              cls: modalStyles.status_cancelado   },
     cancelado:   { label: 'Cancelado',               cls: modalStyles.status_cancelado   },
 };
 
@@ -108,10 +141,61 @@ const STEPS = [
 ];
 const STATUS_ORDER = ['verificando', 'preparando', 'transito', 'entregado'];
 
-function OrderModalWithNav({ order, index, total, onClose, onNext, onPrev }) {
+const CLAIM_REASONS = [
+    'Producto dañado',
+    'Producto incorrecto',
+    'Producto no llegó',
+    'Producto incompleto',
+    'Problema con la paquetería',
+    'Otro',
+];
+
+function OrderModalWithNav({ order: initialOrder, index, total, onClose, onNext, onPrev, onOrderStatusChange }) {
+    const [order, setOrder] = React.useState(initialOrder);
+    const [showClaimForm, setShowClaimForm] = React.useState(false);
+    const [claimReason, setClaimReason] = React.useState('');
+    const [claimNotes, setClaimNotes] = React.useState('');
+    const [claimLoading, setClaimLoading] = React.useState(false);
+    const [claimError, setClaimError] = React.useState('');
+
+    // Sync order when navigating between orders
+    React.useEffect(() => {
+        setOrder(initialOrder);
+        setShowClaimForm(false);
+        setClaimReason('');
+        setClaimNotes('');
+        setClaimError('');
+    }, [initialOrder]);
+
+    const canClaim = ['transito', 'entregado'].includes(order.status);
+
+    const handleClaim = async () => {
+        if (!claimReason) { setClaimError('Selecciona un motivo'); return; }
+        setClaimLoading(true);
+        setClaimError('');
+        try {
+            const res = await fetch(`/api/orders/${order.id}/claim`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ claim_reason: claimReason, claim_notes: claimNotes }),
+            });
+            const data = await res.json();
+            if (!res.ok) { setClaimError(data.error || 'Error al enviar'); return; }
+            setOrder(prev => ({ ...prev, status: 'reclamo' }));
+            onOrderStatusChange?.(order.id, 'reclamo');
+            setShowClaimForm(false);
+        } catch { setClaimError('Error de conexión'); }
+        finally { setClaimLoading(false); }
+    };
+
     const fmt = (n) => `$${Number(n || 0).toFixed(2)}`;
-    const statusConfig = STATUS_MAP[order.status] || STATUS_MAP['verificando'];
+    const resolvedClaim = order.status === 'reclamo' && order.claimStatus === 'resolucion';
+    const statusConfig = resolvedClaim
+        ? { label: 'Reclamo Resuelto', cls: modalStyles.status_entregado }
+        : STATUS_MAP[order.status] || STATUS_MAP['verificando'];
     const currentIdx = STATUS_ORDER.indexOf(order.status);
+    const carrierInfo = order.carrier ? CARRIER_INFO[order.carrier.toLowerCase()] : null;
+    const trackingUrl = carrierInfo && order.trackingNumber ? carrierInfo.url(order.trackingNumber) : null;
     const hasPrev = index > 0;
     const hasNext = index < total - 1;
 
@@ -246,6 +330,103 @@ function OrderModalWithNav({ order, index, total, onClose, onNext, onPrev }) {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Tracking — solo si hay número de guía */}
+                        {order.trackingNumber && (order.status === 'transito' || order.status === 'entregado') && (
+                            <div className={modalStyles.trackingCard}>
+                                <div className={modalStyles.modalSectionTitle}><Truck size={13} /> Rastreo de envío</div>
+                                <div className={modalStyles.trackingBox}>
+                                    <div className={modalStyles.trackingLabel}>
+                                        {carrierInfo ? carrierInfo.name : 'Paquetería'} · Número de guía
+                                    </div>
+                                    <div className={modalStyles.trackingNumber}>{order.trackingNumber}</div>
+                                    {trackingUrl ? (
+                                        <a
+                                            href={trackingUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={modalStyles.trackingBtn}
+                                        >
+                                            Rastrear paquete →
+                                        </a>
+                                    ) : (
+                                        <span className={modalStyles.trackingHint}>
+                                            Ingresa este número en el sitio de la paquetería
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Reclamo — solo si está en tránsito o entregado */}
+                        {canClaim && order.status !== 'reclamo' && (
+                            <div className={modalStyles.claimSection}>
+                                {!showClaimForm ? (
+                                    <button
+                                        className={modalStyles.claimBtn}
+                                        onClick={() => setShowClaimForm(true)}
+                                    >
+                                        <AlertTriangle size={14} />
+                                        Levantar reclamo
+                                    </button>
+                                ) : (
+                                    <div className={modalStyles.claimForm}>
+                                        <div className={modalStyles.claimFormTitle}>
+                                            <AlertTriangle size={13} />
+                                            Levantar reclamo
+                                        </div>
+                                        <select
+                                            className={modalStyles.claimSelect}
+                                            value={claimReason}
+                                            onChange={e => setClaimReason(e.target.value)}
+                                        >
+                                            <option value="">Selecciona el motivo…</option>
+                                            {CLAIM_REASONS.map(r => (
+                                                <option key={r} value={r}>{r}</option>
+                                            ))}
+                                        </select>
+                                        <textarea
+                                            className={modalStyles.claimTextarea}
+                                            placeholder="Describe el problema (opcional)…"
+                                            rows={3}
+                                            value={claimNotes}
+                                            onChange={e => setClaimNotes(e.target.value)}
+                                        />
+                                        {claimError && (
+                                            <p className={modalStyles.claimError}>{claimError}</p>
+                                        )}
+                                        <div className={modalStyles.claimActions}>
+                                            <button
+                                                className={modalStyles.claimSubmitBtn}
+                                                onClick={handleClaim}
+                                                disabled={claimLoading}
+                                            >
+                                                {claimLoading ? 'Enviando…' : 'Enviar reclamo'}
+                                            </button>
+                                            <button
+                                                className={modalStyles.claimCancelBtn}
+                                                onClick={() => { setShowClaimForm(false); setClaimError(''); }}
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {order.status === 'reclamo' && order.claimStatus !== 'resolucion' && (
+                            <div className={modalStyles.claimActive}>
+                                <AlertTriangle size={14} />
+                                Reclamo activo · En revisión
+                            </div>
+                        )}
+                        {order.status === 'reclamo' && order.claimStatus === 'resolucion' && (
+                            <div className={modalStyles.claimResolved}>
+                                <CheckCircle size={14} />
+                                Reclamo resuelto · Caso cerrado
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

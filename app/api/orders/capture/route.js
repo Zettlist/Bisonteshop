@@ -15,8 +15,8 @@ export const dynamic = 'force-dynamic';
  * - 'cancel':  libera la autorización, no se cobra nada
  */
 export async function POST(request) {
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
     const { saleId, action, apiKey } = await request.json();
 
     // Verificar API key
@@ -57,6 +57,54 @@ export async function POST(request) {
         "UPDATE bisonte_orders SET status = 'captured', updated_at = NOW() WHERE sale_id = ?",
         [saleId]
       );
+
+      // Efectos que SOLO deben ocurrir cuando el dinero se cobra de verdad
+      // (no en autorizaciones abandonadas o canceladas):
+      try {
+        const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+        const md = pi.metadata || {};
+        // El cliente autoritativo lo fijó /checkout en el metadata (no confiar en order.cliente_id,
+        // que viene del body de /confirm y es manipulable).
+        const clienteId = parseInt(md.userId) || order.cliente_id || null;
+
+        // a) Descontar el crédito de tienda usado (nunca se descontaba → saldo infinito)
+        const credit = parseFloat(md.appliedCredit) || 0;
+        if (credit > 0 && clienteId) {
+          await pool.query(
+            'UPDATE clientes SET store_credit = GREATEST(0, store_credit - ?) WHERE id = ?',
+            [credit, clienteId]
+          );
+        }
+
+        // b) Cupón: registrar el canje (un canje por cliente y cupón) e incrementar el uso
+        //    SOLO si el canje es nuevo. Antes se quemaba al crear el PI (carritos abandonados)
+        //    y un mismo cliente podía reusar un cupón global en varios pedidos.
+        const couponId = parseInt(md.couponId) || null;
+        if (couponId && clienteId) {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS coupon_redemptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                coupon_id INT NOT NULL,
+                cliente_id INT NOT NULL,
+                sale_id INT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_coupon_cliente (coupon_id, cliente_id)
+            )`);
+          const [ins] = await pool.query(
+            'INSERT IGNORE INTO coupon_redemptions (coupon_id, cliente_id, sale_id) VALUES (?, ?, ?)',
+            [couponId, clienteId, saleId]
+          );
+          if (ins.affectedRows === 1) {
+            await pool.query(
+              'UPDATE coupons SET usage_count = usage_count + 1 WHERE id = ? AND (usage_limit IS NULL OR usage_count < usage_limit)',
+              [couponId]
+            );
+          }
+        }
+      } catch (sideErr) {
+        // El cobro ya ocurrió; estos ajustes no deben tumbar la respuesta.
+        console.error('[Capture] Ajuste post-cobro falló:', sideErr.message);
+      }
 
       console.log(`[Capture] Pedido #${saleId} capturado exitosamente. PI: ${paymentIntentId}`);
       return NextResponse.json({ success: true, action: 'captured', saleId, stockErrors: [] });

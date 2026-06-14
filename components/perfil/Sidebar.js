@@ -7,9 +7,7 @@ import styles from './Sidebar.module.css';
 import {
     FiUser,
     FiPackage,
-    FiDollarSign,
     FiCreditCard,
-    FiHeart,
     FiBell,
     FiSettings,
     FiLogOut,
@@ -18,9 +16,7 @@ import {
 const navItems = [
     { path: '/perfil/mi-cuenta', label: 'Mi Cuenta', icon: FiUser },
     { path: '/perfil/mis-pedidos', label: 'Mis Pedidos', icon: FiPackage },
-    { path: '/perfil/anticipos', label: 'Anticipos', icon: FiDollarSign },
     { path: '/perfil/credito', label: 'Crédito de Tienda', icon: FiCreditCard },
-    { path: '/perfil/series', label: 'Series que Sigo', icon: FiHeart },
     { path: '/perfil/notificaciones', label: 'Notificaciones', icon: FiBell },
     { path: '/perfil/ajustes', label: 'Ajustes', icon: FiSettings },
 ];

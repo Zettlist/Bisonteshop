@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { sendVerificationEmail } from '@/lib/mailer';
+import { isValidEmail, isStrongPassword, isValidText, firstError } from '@/lib/validate';
 
 const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
@@ -21,9 +22,18 @@ async function generateClientCode() {
     return code;
 }
 
+async function ensureNacionalidadCol() {
+    try {
+        await pool.query(`ALTER TABLE clientes ADD COLUMN nacionalidad VARCHAR(100) NULL DEFAULT NULL`);
+    } catch (e) {
+        if (e.code !== 'ER_DUP_FIELDNAME') throw e;
+    }
+}
+
 export async function POST(req) {
     try {
-        const { nombre, apellido, fechaNacimiento, email, password, telefono } = await req.json();
+        await ensureNacionalidadCol();
+        const { nombre, apellido, fechaNacimiento, nacionalidad, email, password, telefono } = await req.json();
 
         // Basic server-side validation
         if (!nombre || !apellido || !fechaNacimiento || !email || !password) {
@@ -31,6 +41,16 @@ export async function POST(req) {
                 { success: false, error: 'Todos los campos son requeridos.' },
                 { status: 400 }
             );
+        }
+
+        const valErr = firstError([
+            [isValidText(nombre, { min: 1, max: 100 }), 'Nombre inválido.'],
+            [isValidText(apellido, { min: 1, max: 100 }), 'Apellido inválido.'],
+            [isValidEmail(String(email).toLowerCase()), 'Correo electrónico inválido.'],
+            [isStrongPassword(password), 'La contraseña debe tener 8-128 caracteres, con al menos una letra y un número.'],
+        ]);
+        if (valErr) {
+            return NextResponse.json({ success: false, error: valErr }, { status: 400 });
         }
 
         // Validate age (must be 18+)
@@ -68,9 +88,9 @@ export async function POST(req) {
 
         // Insert new user (unverified)
         await pool.query(
-            `INSERT INTO clientes (nombre, apellido, fecha_nac, email, password, client_code, empresa_id, telefono, email_verified, verification_token, token_expires_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-            [nombre, apellido, fechaNacimiento, email.toLowerCase(), hashedPassword, clientCode, EMPRESA_ID, telefono || null, token, expiresAt]
+            `INSERT INTO clientes (nombre, apellido, fecha_nac, email, password, client_code, empresa_id, telefono, nacionalidad, email_verified, verification_token, token_expires_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+            [nombre, apellido, fechaNacimiento, email.toLowerCase(), hashedPassword, clientCode, EMPRESA_ID, telefono || null, nacionalidad || null, token, expiresAt]
         );
 
         // Send verification email (non-blocking — don't fail registration if email fails)

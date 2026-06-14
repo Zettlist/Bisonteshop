@@ -1,104 +1,159 @@
 .section {
-    padding: 3rem 2rem;
+    padding: var(--space-16) var(--container-pad);
     background: var(--surface);
 }
 
 .container {
-    max-width: 78%;
+    max-width: var(--container-width);
     margin: 0 auto;
 }
 
 .header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: var(--space-12);
 }
 
 .label {
     display: inline-block;
-    font-size: 0.72rem;
+    font-size: var(--text-xs);
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--primary);
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-3);
 }
 
 .title {
     font-family: var(--font-display);
-    font-size: 2.5rem;
+    font-size: var(--text-2xl);
     color: var(--foreground);
     letter-spacing: 2px;
 }
 
-/* Grid 2×2 para banners anchos */
+/* ── Grid — columna única de cards horizontales ── */
 .grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
-/* Card */
+/* ── Card ── */
 .card {
-    position: relative;
-    display: block;
-    aspect-ratio: 5 / 2;
-    max-height: 260px;
     border-radius: var(--radius);
     overflow: hidden;
-    cursor: pointer;
     border: 1px solid var(--border);
     background: #0d0d0d;
-    transition: border-color 0.35s ease, transform 0.35s ease;
+    transition: border-color 0.3s ease, transform 0.3s ease;
 }
 
 .card:hover {
-    transform: translateY(-4px);
     border-color: var(--primary);
+    transform: translateY(-3px);
 }
 
-/* Slot imagen con fallback de gradiente */
-.cardBg {
+.cardInner {
+    display: flex;
+    text-decoration: none;
+    height: 160px;
+    position: relative;
+}
+
+/* ── Imagen izquierda ── */
+.cardImage {
+    position: relative;
+    width: 42%;
+    flex-shrink: 0;
+    /* overflow:hidden removido — logo badge sale right:-28px, .card lo contiene */
+}
+
+.imageOverlay {
     position: absolute;
     inset: 0;
-    transition: transform 0.55s ease;
-    z-index: 0;
-}
-
-.card:hover .cardBg {
-    transform: scale(1.08);
-}
-
-/* Overlay gradiente de abajo hacia arriba */
-.cardOverlay {
-    position: absolute;
-    inset: 0;
+    background: linear-gradient(to right, transparent 50%, #0d0d0d 100%);
     z-index: 1;
-    background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.95) 0%,
-        rgba(0, 0, 0, 0.55) 45%,
-        rgba(0, 0, 0, 0.15) 100%
-    );
-    transition: background 0.35s ease;
 }
 
-.card:hover .cardOverlay {
-    background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.97) 0%,
-        rgba(0, 0, 0, 0.65) 50%,
-        rgba(0, 0, 0, 0.2) 100%
-    );
+/* ── Logo badge ── */
+.logoBadge {
+    position: absolute;
+    right: -28px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #0d0d0d;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
 }
 
-/* Borde rojo animado en hover */
+/* ── Contenido derecho ── */
+.cardContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.25rem 1.5rem 1.25rem 2rem;
+    position: relative;
+    z-index: 2;
+}
+
+.cardNumber {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--primary);
+    opacity: 0.7;
+    margin-bottom: var(--space-1);
+    font-family: var(--font-display);
+}
+
+.cardTitle {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    color: #fff;
+    letter-spacing: 1px;
+    line-height: 1.1;
+    margin: 0 0 var(--space-1);
+    text-transform: uppercase;
+}
+
+.cardDesc {
+    font-size: var(--text-sm);
+    color: rgba(255,255,255,0.5);
+    margin: 0 0 var(--space-3);
+    line-height: 1.4;
+}
+
+.cardCta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    transition: gap 0.25s ease;
+}
+
+.card:hover .cardCta {
+    gap: 0.7rem;
+}
+
+/* Borde rojo animado hover */
 .cardBorder {
     position: absolute;
     inset: 0;
     border-radius: var(--radius);
     border: 2px solid var(--primary);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.25s ease;
     z-index: 5;
     pointer-events: none;
 }
@@ -107,94 +162,45 @@
     opacity: 1;
 }
 
-/* Contenido superpuesto */
-.cardContent {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 1.25rem 1.5rem;
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .container {
+        max-width: 100%;
+        padding: 0 var(--container-pad);
+    }
+    .section {
+        padding: var(--space-12) 0;
+    }
+    .cardInner {
+        height: 140px;
+    }
 }
 
-.cardTop {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.cardNumber {
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: rgba(255, 255, 255, 0.3);
-    font-family: var(--font-display);
-}
-
-.cardBottom {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
-
-.cardTitle {
-    font-family: var(--font-display);
-    font-size: 2rem;
-    color: #fff;
-    letter-spacing: 1px;
-    line-height: 1;
-    margin: 0;
-}
-
-.cardDesc {
-    font-size: 0.82rem;
-    color: rgba(255, 255, 255, 0.55);
-    margin: 0 0 0.75rem 0;
-    line-height: 1.4;
-}
-
-.cardLink {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--primary);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    text-decoration: none;
-    transition: gap var(--transition);
-}
-
-.card:hover .cardLink {
-    gap: 0.7rem;
-}
-
-/* Fallback gradientes por categoría */
-.manga {
-    background: linear-gradient(160deg, #1a0505 0%, #3d0000 60%, #200000 100%);
-}
-
-.figuras {
-    background: linear-gradient(160deg, #05050f 0%, #10003d 60%, #0a0020 100%);
-}
-
-.revistas {
-    background: linear-gradient(160deg, #050f05 0%, #003d00 60%, #001a00 100%);
-}
-
-.accesorios {
-    background: linear-gradient(160deg, #0f0705 0%, #3d1a00 60%, #1a0a00 100%);
-}
-
-/* Responsive */
 @media (max-width: 640px) {
+    .section {
+        padding: var(--space-8) 0;
+    }
+    .container {
+        padding: 0 var(--container-pad);
+    }
     .grid {
-        grid-template-columns: 1fr;
         gap: 0.75rem;
     }
-
-    .title {
-        font-size: 2.5rem;
+    .cardInner {
+        height: 120px;
+    }
+    .cardImage {
+        width: 38%;
+    }
+    .logoBadge {
+        width: 44px;
+        height: 44px;
+        right: -22px;
+    }
+    .cardContent {
+        padding: 1rem 1rem 1rem 1.5rem;
+    }
+    .cardTitle {
+        letter-spacing: 0.5px;
     }
 }

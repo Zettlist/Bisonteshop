@@ -1,7 +1,14 @@
 import pool from '@/lib/db';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+// Utilidad de setup: requiere la clave interna (no es de uso público).
+export async function GET(request) {
+    const key = request.headers.get('x-admin-key');
+    if (!key || key !== process.env.CAPTURE_API_KEY) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
     try {
         await pool.query(`
             CREATE TABLE IF NOT EXISTS clientes (

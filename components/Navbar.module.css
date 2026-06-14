@@ -2,7 +2,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.2rem 2.5rem;
+    padding: 0 var(--container-pad);
+    height: var(--navbar-height, 70px);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -11,6 +12,97 @@
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);
     transition: background var(--transition), border-color var(--transition);
+}
+
+.logoGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* ── Neon Sign ── */
+.neonSignGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.neonSwitch {
+    width: 34px;
+    height: 19px;
+    border-radius: 999px;
+    background: #1e1e1e;
+    border: 1px solid #3a3a3a;
+    cursor: pointer;
+    position: relative;
+    padding: 0;
+    flex-shrink: 0;
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+
+.neonSwitchOn {
+    background: rgba(155, 93, 229, 0.25);
+    border-color: #9b5de5;
+    box-shadow: 0 0 8px rgba(155, 93, 229, 0.5), inset 0 0 4px rgba(155, 93, 229, 0.2);
+}
+
+.neonSwitchThumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #555;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s, box-shadow 0.3s;
+}
+
+.neonSwitchOn .neonSwitchThumb {
+    transform: translateX(15px);
+    background: #c084fc;
+    box-shadow: 0 0 6px #c084fc, 0 0 12px rgba(192, 132, 252, 0.6);
+}
+
+/* Neon text — apagado */
+.neonLabel {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(192, 132, 252, 0.22);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.4s, text-shadow 0.4s;
+    user-select: none;
+    line-height: 1;
+    /* reset button defaults */
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Neon text — encendido */
+.neonLabelOn {
+    color: #e0aaff;
+    text-shadow:
+        0 0 4px #c084fc,
+        0 0 10px #c084fc,
+        0 0 22px #9b5de5,
+        0 0 44px #7b3fbf;
+    animation: neonFlicker 0.55s ease-out forwards;
+}
+
+@keyframes neonFlicker {
+    0%   { opacity: 0.3; text-shadow: none; }
+    18%  { opacity: 1;   text-shadow: 0 0 4px #c084fc, 0 0 10px #c084fc; }
+    28%  { opacity: 0.15; text-shadow: none; }
+    45%  { opacity: 1;   text-shadow: 0 0 4px #c084fc, 0 0 16px #c084fc, 0 0 28px #9b5de5; }
+    65%  { opacity: 0.7; }
+    100% { opacity: 1;   text-shadow: 0 0 4px #c084fc, 0 0 10px #c084fc, 0 0 22px #9b5de5, 0 0 44px #7b3fbf; }
 }
 
 .logo {
@@ -53,64 +145,153 @@
     color: var(--muted);
     text-decoration: none;
     font-weight: 600;
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
     text-transform: uppercase;
-    transition: color var(--transition);
-    position: relative;
-    padding: 0.25rem 0;
+    transition: color 0.2s ease, background 0.2s ease;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
 }
 
 .navLink:hover {
     color: var(--foreground);
+    background: rgba(255, 255, 255, 0.07);
 }
 
-.navLink::after {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 2px;
-    bottom: -4px;
-    left: 0;
-    background-color: var(--primary);
-    transition: width var(--transition);
+[data-theme='light'] .navLink:hover {
+    background: rgba(0, 0, 0, 0.06);
 }
 
-.navLink:hover::after {
-    width: 100%;
-}
-
-/* Disabled link - Muy pronto */
+/* Disabled link */
 .navLinkDisabled {
-    color: rgba(255, 255, 255, 0.35);
-    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.28);
+    font-size: 0.78rem;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     text-transform: uppercase;
     cursor: not-allowed;
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
     user-select: none;
 }
 
 [data-theme='light'] .navLinkDisabled {
-    color: rgba(0, 0, 0, 0.3);
+    color: rgba(0, 0, 0, 0.28);
 }
 
 .comingSoon {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 1px;
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     color: #fff;
     background: var(--primary);
     padding: 0.15rem 0.45rem;
-    border-radius: 20px;
-    line-height: 1.4;
+    border-radius: 3px;
+    line-height: 1;
     white-space: nowrap;
-    opacity: 0.9;
+    display: inline-block;
+    transform: rotate(-9deg);
+    box-shadow: 1px 1px 0 rgba(0,0,0,0.5), 2px 2px 0 rgba(0,0,0,0.2);
+    position: relative;
+    top: -2px;
+}
+
+/* Disabled link — modo adultos morado */
+.navLinkDisabledAdultos {
+    color: rgba(192, 132, 252, 0.45);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    cursor: not-allowed;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    user-select: none;
+}
+
+.comingSoonAdultos {
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #fff;
+    background: #7c3aed;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    line-height: 1;
+    white-space: nowrap;
+    display: inline-block;
+    transform: rotate(-9deg);
+    box-shadow: 1px 1px 0 rgba(0,0,0,0.5), 2px 2px 0 rgba(0,0,0,0.2);
+    position: relative;
+    top: -2px;
+}
+
+/* Preventa — neon averiado (mayormente apagado, parpadea al intentar encender) */
+@keyframes neonBroken {
+    0%   { opacity: 0.18; text-shadow: none; }
+    4%   { opacity: 0.75; text-shadow: 0 0 4px #ff6b00, 0 0 10px #ff6b00; }
+    5%   { opacity: 0.08; text-shadow: none; }
+    6%   { opacity: 0.55; text-shadow: 0 0 3px #ff6b00; }
+    7%   { opacity: 0.12; text-shadow: none; }
+    36%  { opacity: 0.18; text-shadow: none; }
+    38%  { opacity: 0.7;  text-shadow: 0 0 4px #ff6b00, 0 0 8px #ff6b00; }
+    39%  { opacity: 0.1;  text-shadow: none; }
+    40%  { opacity: 0.18; text-shadow: none; }
+    71%  { opacity: 0.18; text-shadow: none; }
+    73%  { opacity: 0.85; text-shadow: 0 0 4px #ff6b00, 0 0 12px #ff6b00; }
+    74%  { opacity: 0.18; text-shadow: none; }
+    75%  { opacity: 0.5;  text-shadow: 0 0 3px #ff6b00; }
+    76%  { opacity: 0.1;  text-shadow: none; }
+    77%  { opacity: 0.55; text-shadow: 0 0 4px #ff6b00; }
+    78%  { opacity: 0.12; text-shadow: none; }
+    100% { opacity: 0.18; text-shadow: none; }
+}
+
+/* Muy Pronto — siempre encendido, pulso suave */
+@keyframes neonSteady {
+    0%, 100% { text-shadow: 0 0 3px #ff6b00, 0 0 8px #ff6b00;        box-shadow: 0 0 5px rgba(255,107,0,0.35); }
+    50%       { text-shadow: 0 0 5px #ff6b00, 0 0 14px #ff6b00, 0 0 20px #ff4400; box-shadow: 0 0 9px rgba(255,107,0,0.55); }
+}
+
+.navLinkPreventaNeon {
+    color: #ff6b00;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid rgba(255, 107, 0, 0.3);
+    border-radius: 999px;
+    background: rgba(255, 107, 0, 0.05);
+    white-space: nowrap;
+    cursor: not-allowed;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    position: relative;
+}
+
+.preventasText {
+    animation: neonBroken 3.5s ease-in-out infinite;
+}
+
+.neonMuyPronto {
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #ffaa55;
+    border: 1px solid rgba(255, 107, 0, 0.85);
+    padding: 0.1rem 0.35rem;
+    border-radius: 20px;
+    line-height: 1.5;
+    white-space: nowrap;
+    text-shadow: 0 0 3px #ff6b00, 0 0 8px #ff6b00;
+    box-shadow: 0 0 5px rgba(255, 107, 0, 0.35);
+    animation: neonSteady 2s ease-in-out infinite;
 }
 
 /* Preventa special link */
@@ -118,24 +299,87 @@
     color: #ff6b00;
     text-decoration: none;
     font-weight: 700;
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
     text-transform: uppercase;
-    transition: all var(--transition);
-    position: relative;
-    padding: 0.2rem 0.6rem;
-    border: 1px solid rgba(255, 107, 0, 0.5);
-    border-radius: 20px;
-    background: rgba(255, 107, 0, 0.08);
+    transition: all 0.2s ease;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid rgba(255, 107, 0, 0.4);
+    border-radius: 999px;
+    background: rgba(255, 107, 0, 0.07);
     white-space: nowrap;
 }
 
 .navLinkPreventa:hover {
     color: #fff;
-    background: rgba(255, 107, 0, 0.25);
+    background: rgba(255, 107, 0, 0.22);
     border-color: #ff6b00;
-    box-shadow: 0 0 14px rgba(255, 107, 0, 0.45);
-    transform: translateY(-1px);
+    box-shadow: 0 0 16px rgba(255, 107, 0, 0.35);
+}
+
+/* Preventas en modo adultos — neon averiado púrpura */
+@keyframes neonBrokenPurple {
+    0%   { opacity: 0.18; text-shadow: none; }
+    4%   { opacity: 0.75; text-shadow: 0 0 4px #a855f7, 0 0 10px #a855f7; }
+    5%   { opacity: 0.08; text-shadow: none; }
+    6%   { opacity: 0.55; text-shadow: 0 0 3px #a855f7; }
+    7%   { opacity: 0.12; text-shadow: none; }
+    36%  { opacity: 0.18; text-shadow: none; }
+    38%  { opacity: 0.7;  text-shadow: 0 0 4px #a855f7, 0 0 8px #a855f7; }
+    39%  { opacity: 0.1;  text-shadow: none; }
+    40%  { opacity: 0.18; text-shadow: none; }
+    71%  { opacity: 0.18; text-shadow: none; }
+    73%  { opacity: 0.85; text-shadow: 0 0 4px #a855f7, 0 0 12px #c084fc; }
+    74%  { opacity: 0.18; text-shadow: none; }
+    75%  { opacity: 0.5;  text-shadow: 0 0 3px #a855f7; }
+    76%  { opacity: 0.1;  text-shadow: none; }
+    77%  { opacity: 0.55; text-shadow: 0 0 4px #a855f7; }
+    78%  { opacity: 0.12; text-shadow: none; }
+    100% { opacity: 0.18; text-shadow: none; }
+}
+
+@keyframes neonSteadyPurple {
+    0%, 100% { text-shadow: 0 0 3px #a855f7, 0 0 8px #a855f7;        box-shadow: 0 0 5px rgba(168,85,247,0.35); }
+    50%       { text-shadow: 0 0 5px #a855f7, 0 0 14px #c084fc, 0 0 20px #7c3aed; box-shadow: 0 0 9px rgba(168,85,247,0.55); }
+}
+
+.navLinkPreventaAdultos {
+    color: #c084fc;
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid rgba(192, 132, 252, 0.3);
+    border-radius: 999px;
+    background: rgba(192, 132, 252, 0.05);
+    white-space: nowrap;
+    cursor: not-allowed;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    position: relative;
+}
+
+.preventasTextAdultos {
+    animation: neonBrokenPurple 3.5s ease-in-out infinite;
+}
+
+.neonMuyProntoAdultos {
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #e9d5ff;
+    border: 1px solid rgba(192, 132, 252, 0.85);
+    padding: 0.1rem 0.35rem;
+    border-radius: 20px;
+    line-height: 1.5;
+    white-space: nowrap;
+    text-shadow: 0 0 3px #a855f7, 0 0 8px #a855f7;
+    box-shadow: 0 0 5px rgba(168, 85, 247, 0.35);
+    animation: neonSteadyPurple 2s ease-in-out infinite;
 }
 
 /* Adultos special link */
@@ -218,7 +462,152 @@
     padding: 0.4rem;
 }
 
-@media (max-width: 768px) {
+/* ── User dropdown ── */
+.userMenuWrap {
+    position: relative;
+}
+
+.userMenuTrigger {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.3rem 0.4rem;
+    border-radius: 8px;
+    color: var(--muted);
+    transition: background 0.15s, color 0.15s;
+}
+
+.userMenuTrigger:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--foreground);
+}
+
+[data-theme='light'] .userMenuTrigger:hover {
+    background: rgba(0,0,0,0.05);
+}
+
+.userAvatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--primary);
+}
+
+.userChevron {
+    color: var(--muted);
+    transition: transform 0.2s;
+}
+
+.userChevronOpen {
+    transform: rotate(180deg);
+}
+
+.userDropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+    overflow: hidden;
+    z-index: 2000;
+}
+
+[data-theme='light'] .userDropdown {
+    box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+}
+
+.dropdownHeader {
+    padding: 0.8rem 1rem 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.dropdownName {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdownEmail {
+    font-size: 0.73rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdownDivider {
+    height: 1px;
+    background: var(--border);
+    margin: 0;
+}
+
+.dropdownItem {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-decoration: none;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: background 0.12s, color 0.12s;
+}
+
+.dropdownItem:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--foreground);
+}
+
+[data-theme='light'] .dropdownItem:hover {
+    background: rgba(0,0,0,0.04);
+}
+
+.dropdownLogout {
+    color: var(--primary);
+}
+
+.dropdownLogout:hover {
+    background: rgba(230,57,70,0.08) !important;
+    color: var(--primary) !important;
+}
+
+@media (min-width: 1025px) {
+    .mobileMenuBtn {
+        display: none !important;
+    }
+}
+
+/* Ocultar en mobile, visible solo en desktop */
+.desktopOnly {
+    display: contents;
+}
+
+.drawerTools {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+}
+
+@media (max-width: 1024px) {
     .navLinks {
         display: none;
     }
@@ -228,6 +617,449 @@
     }
 
     .navbar {
-        padding: 1rem 1.5rem;
+        padding: 0 1.25rem;
     }
+
+    .logo {
+        font-size: 1.4rem;
+        letter-spacing: 2px;
+    }
+
+    .logoHentai {
+        font-size: 1.4rem;
+        letter-spacing: 2px;
+    }
+
+    .desktopOnly {
+        display: none;
+    }
+}
+
+@media (max-width: 400px) {
+    .navbar {
+        padding: 0 1rem;
+    }
+
+    .logo {
+        font-size: 1.2rem;
+        letter-spacing: 1.5px;
+    }
+
+    .logoHentai {
+        font-size: 1.2rem;
+        letter-spacing: 1.5px;
+    }
+}
+
+/* ── Mobile Drawer ─────────────────────────────────────────── */
+.mobileOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1499;
+}
+
+.mobileDrawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(320px, 85vw);
+    height: 100vh;
+    height: 100dvh;
+    background: var(--navbar-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-right: 1px solid var(--border);
+    z-index: 1500;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.drawerHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.drawerLogo {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    color: var(--primary);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-decoration: none;
+}
+
+.drawerLogoHentai {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #8b5cf6, #a855f7, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+}
+
+.drawerClose {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+}
+
+.drawerClose:hover {
+    background: rgba(255,255,255,0.06);
+    color: var(--foreground);
+}
+
+.drawerNav {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+    flex: 1;
+}
+
+.drawerLink {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: background 0.15s, color 0.15s;
+}
+
+.drawerLink:hover {
+    background: rgba(255,255,255,0.04);
+    color: var(--foreground);
+}
+
+[data-theme='light'] .drawerLink:hover {
+    background: rgba(0,0,0,0.04);
+}
+
+.drawerLinkDisabled {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.22);
+    cursor: not-allowed;
+    user-select: none;
+}
+
+[data-theme='light'] .drawerLinkDisabled {
+    color: rgba(0,0,0,0.22);
+}
+
+/* Drawer disabled — modo adultos morado */
+.drawerLinkDisabledAdultos {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: rgba(192, 132, 252, 0.45);
+    cursor: not-allowed;
+    user-select: none;
+}
+
+.drawerLinkPreventa {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #ff6b00;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+
+.drawerLinkPreventa:hover {
+    background: rgba(255, 107, 0, 0.08);
+}
+
+/* Drawer Preventas neon averiado */
+.drawerLinkPreventaNeon {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #ff6b00;
+    cursor: not-allowed;
+    user-select: none;
+}
+
+/* Drawer Preventas neon averiado — adultos púrpura */
+.drawerLinkPreventaAdultos {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #c084fc;
+    cursor: not-allowed;
+    user-select: none;
+}
+
+.drawerLinkAdultos {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #c084fc;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+
+.drawerLinkAdultos:hover {
+    background: rgba(192, 132, 252, 0.08);
+}
+
+.drawerFooter {
+    padding: 1rem 0;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+.drawerDivider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.5rem 1.5rem;
+}
+
+.drawerUser {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem 1rem;
+}
+
+.drawerUserName {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.drawerUserEmail {
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+
+.drawerLogout {
+    color: var(--primary) !important;
+}
+
+.drawerSignIn {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.75rem 1.5rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: background 0.2s;
+}
+
+.drawerSignIn:hover {
+    background: var(--primary-dark);
+}
+
+/* ── Age Gate Modal ── */
+.ageGateOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+.ageGateModal {
+    background: #0d0018;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 20px;
+    padding: 2rem 2.25rem;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 60px rgba(139,92,246,0.12);
+}
+
+.ageGateBadge {
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+    border-radius: 50px;
+    padding: 0.3rem 1rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #a78bfa;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.ageGateTitle {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    font-weight: 900;
+    color: #fff;
+    margin: 0;
+    line-height: 1.15;
+    letter-spacing: 1px;
+}
+
+.ageGateAccent {
+    background: linear-gradient(135deg, #8b5cf6, #a855f7, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.ageGateDesc {
+    color: rgba(255,255,255,0.55);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 0;
+    max-width: 360px;
+}
+
+.ageGateDesc strong {
+    color: #a78bfa;
+}
+
+.ageGateWarning {
+    background: rgba(139, 92, 246, 0.06);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    text-align: left;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.ageGateWarning p {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.ageGateWarning strong {
+    color: #a78bfa;
+}
+
+.ageGateActions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+.ageGateDecline {
+    flex: 1;
+    min-width: 140px;
+    padding: 0.75rem 1.25rem;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
+    font-size: 0.88rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+}
+
+.ageGateDecline:hover {
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+}
+
+.ageGateAccept {
+    flex: 1;
+    min-width: 140px;
+    padding: 0.75rem 1.25rem;
+    background: #8b5cf6;
+    border: 1px solid #8b5cf6;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.88rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-sans);
+    box-shadow: 0 0 20px rgba(139,92,246,0.4);
+}
+
+.ageGateAccept:hover {
+    background: #7c3aed;
+    box-shadow: 0 0 28px rgba(139,92,246,0.6);
 }

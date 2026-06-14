@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useCartStore } from '@/store/cartStore';
 import LoginModal from '@/components/LoginModal';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useAuthStore } from '@/store/authStore';
-import { CheckCircle, ShieldCheck, Truck, CreditCard, ShoppingBag, ArrowLeft, Plus, Minus, Trash2, Tag, X, Wallet } from 'lucide-react';
+import { CheckCircle, ChevronDown, ShieldCheck, Truck, CreditCard, ShoppingBag, ArrowLeft, Plus, Minus, Trash2, Tag, X, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import styles from './checkout.module.css';
 
@@ -17,15 +17,111 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
 
 export default function CheckoutPage() {
     return (
-        <Elements stripe={stripePromise}>
+        <Elements stripe={stripePromise} options={{ wallets: { link: 'never' } }}>
             <CheckoutFlow />
         </Elements>
     );
 }
 
+// ── Saved address dropdown ─────────────────────────────
+function AddressDropdown({ addresses, onSelect }) {
+    const [open, setOpen] = useState(false);
+    const [selected, setSelected] = useState(null);
+    const ref = React.useRef(null);
+
+    React.useEffect(() => {
+        const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const handleSelect = (addr) => {
+        setSelected(addr);
+        setOpen(false);
+        onSelect(addr);
+    };
+
+    const label = selected
+        ? `${selected.calle}${selected.numero_ext ? ` #${selected.numero_ext}` : ''}, ${selected.colonia}, ${selected.municipio}`
+        : 'Selecciona una dirección guardada';
+
+    return (
+        <div ref={ref} style={{ position: 'relative' }}>
+            <button
+                type="button"
+                onClick={() => setOpen(v => !v)}
+                style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${open ? 'var(--primary)' : 'var(--border)'}`,
+                    borderRadius: '10px', color: selected ? 'var(--foreground)' : 'var(--muted)',
+                    fontSize: '0.9rem', fontFamily: 'var(--font-sans)', cursor: 'pointer',
+                    boxShadow: open ? '0 0 0 3px rgba(230,57,70,0.12)' : 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s', textAlign: 'left', gap: '0.5rem',
+                }}
+            >
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {label}
+                </span>
+                <ChevronDown size={15} style={{ flexShrink: 0, color: 'var(--muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+
+            {open && (
+                <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15 }}
+                    style={{
+                        position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                        background: 'var(--surface)', border: '1px solid var(--border)',
+                        borderRadius: '10px', zIndex: 50, overflow: 'hidden',
+                        boxShadow: '0 8px 28px rgba(0,0,0,0.35)',
+                    }}
+                >
+                    {addresses.map((addr, i) => (
+                        <button
+                            key={addr.id}
+                            type="button"
+                            onClick={() => handleSelect(addr)}
+                            style={{
+                                width: '100%', padding: '0.85rem 1rem',
+                                background: selected?.id === addr.id ? 'rgba(230,57,70,0.07)' : 'transparent',
+                                border: 'none', borderBottom: i < addresses.length - 1 ? '1px solid var(--border)' : 'none',
+                                cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-sans)',
+                                display: 'flex', flexDirection: 'column', gap: '0.2rem',
+                                transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => { if (selected?.id !== addr.id) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                            onMouseLeave={e => { if (selected?.id !== addr.id) e.currentTarget.style.background = 'transparent'; }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--foreground)' }}>
+                                    {addr.nombre_recibe || `${addr.calle} #${addr.numero_ext}`}
+                                </span>
+                                {addr.is_default === 1 && (
+                                    <span style={{
+                                        fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.8px',
+                                        textTransform: 'uppercase', color: 'var(--primary)',
+                                        background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.25)',
+                                        padding: '0.1rem 0.4rem', borderRadius: '20px',
+                                    }}>Principal</span>
+                                )}
+                                {selected?.id === addr.id && <CheckCircle size={13} style={{ color: 'var(--primary)', marginLeft: 'auto' }} />}
+                            </div>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+                                {addr.calle}{addr.numero_ext ? ` #${addr.numero_ext}` : ''}{addr.numero_int ? ` Int. ${addr.numero_int}` : ''}, {addr.colonia}, {addr.municipio}, {addr.estado} CP {addr.cp}
+                            </span>
+                        </button>
+                    ))}
+                </motion.div>
+            )}
+        </div>
+    );
+}
+
 function CheckoutFlow() {
     const router = useRouter();
-    const { isAuthenticated, user } = useAuthStore();
+    const { isAuthenticated, user, clearUser } = useAuthStore();
     const cartItems = useCartStore(state => state.items);
     const getTotals = useCartStore(state => state.getTotals);
     const setShippingCost = useCartStore(state => state.setShippingCost);
@@ -41,7 +137,7 @@ function CheckoutFlow() {
     const setIsLoginOpen = useCartStore(state => state.setIsLoginOpen);
     const isLoginOpen = useCartStore(state => state.isLoginOpen);
 
-    const { formatPrice } = useCurrency();
+    const { formatPrice, currency, usdRate } = useCurrency();
     const [step, setStep] = useState(1);
     const [isMounted, setIsMounted] = useState(false);
     
@@ -74,8 +170,14 @@ function CheckoutFlow() {
     const [step2Error, setStep2Error] = useState(null);
     const [useCreditBalance, setUseCreditBalance] = useState(false);
     const [clientSecret, setClientSecret] = useState(null);
+    const [shippingOptions, setShippingOptions] = useState(null);
+    const [selectedShipping, setSelectedShipping] = useState(null);
+    const [isFetchingQuote, setIsFetchingQuote] = useState(false);
+    const [savedAddresses, setSavedAddresses] = useState([]);
     const [savedAddress, setSavedAddress] = useState(null);
     const [showAddressBanner, setShowAddressBanner] = useState(false);
+    const usedSavedAddressRef = React.useRef(false); // true si dirección viene de guardadas
+    const [saveAddressToProfile, setSaveAddressToProfile] = useState(false);
 
     const stripe = useStripe();
     const elements = useElements();
@@ -86,7 +188,9 @@ function CheckoutFlow() {
 
     useEffect(() => {
         if (isMounted && !isAuthenticated) {
+            // No expulsar a home: abrir login y conservar el carrito/checkout
             setIsLoginOpen(true);
+            return;
         }
         if (isAuthenticated) {
             setIsLoginOpen(false);
@@ -95,12 +199,14 @@ function CheckoutFlow() {
                 .then(r => r.json())
                 .then(({ paymentMethods }) => { if (paymentMethods?.length) setSavedCards(paymentMethods); })
                 .catch(() => {});
-            // Cargar dirección guardada
+            // Cargar direcciones guardadas
             fetch('/api/addresses')
                 .then(r => r.json())
-                .then(({ address }) => {
-                    if (address) {
-                        setSavedAddress(address);
+                .then(({ addresses }) => {
+                    if (addresses?.length) {
+                        setSavedAddresses(addresses);
+                        const def = addresses.find(a => a.is_default) || addresses[0];
+                        setSavedAddress(def);
                         setShowAddressBanner(true);
                     }
                 })
@@ -108,13 +214,34 @@ function CheckoutFlow() {
         }
     }, [isMounted, isAuthenticated, setIsLoginOpen]);
 
+    // Auto-fetch quote when entering step 3
+    // MUST be before any conditional return (Rules of Hooks)
+    React.useEffect(() => {
+        if (step === 3 && !shippingOptions && !isFetchingQuote) {
+            setIsFetchingQuote(true);
+            fetch('/api/shipping/quote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items: cartItems, destination: shippingForm }),
+            })
+                .then(r => r.json())
+                .then(data => {
+                    setShippingOptions(data.success ? data : { carriers: [] });
+                })
+                .catch(() => {
+                    setShippingOptions({ carriers: [] });
+                })
+                .finally(() => setIsFetchingQuote(false));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [step]);
+
     if (!isMounted) return null;
 
     const totals = getTotals();
 
     const handleNextStep = async () => {
         if (step === 2) {
-            // Validar campos requeridos
             const required = [
                 { key: 'nombre_recibe', label: 'Nombre de quien recibe' },
                 { key: 'telefono', label: 'Teléfono de contacto' },
@@ -136,84 +263,130 @@ function CheckoutFlow() {
             }
             setStep2Error(null);
 
-            setShippingCost(150);
-            // Crear PaymentIntent al avanzar al paso de pago
-            setIsProcessing(true);
-            try {
-                const res = await fetch('/api/checkout', {
+            // Guardar dirección si usuario lo marcó
+            if (saveAddressToProfile && !usedSavedAddressRef.current) {
+                fetch('/api/addresses', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        items: cartItems,
-                        userId: user?.id,
-                        discountCode: appliedDiscount?.code || null,
-                        appliedCredit: totals.appliedCredit || 0,
-                        saveCard,
-                    })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    setClientSecret(data.clientSecret);
-                } else {
-                    setStep2Error(data.error || 'Error al preparar el pago. Intenta nuevamente.');
-                    return;
-                }
-            } catch (e) {
-                setStep2Error('Error de conexión. Verifica tu internet e intenta de nuevo.');
-                return;
-            } finally {
-                setIsProcessing(false);
+                    body: JSON.stringify(shippingForm),
+                }).catch(() => {});
             }
+
+            setStep(3);
+            window.scrollTo(0, 0);
+            return;
         }
-        setStep(prev => Math.min(prev + 1, 4));
+        if (step === 3) {
+            if (!selectedShipping) {
+                setStep2Error('Selecciona una opción de envío para continuar.');
+                return;
+            }
+            setStep2Error(null);
+            setShippingCost(selectedShipping.price);
+            setStep(4);
+            window.scrollTo(0, 0);
+            return;
+        }
+        setStep(prev => Math.min(prev + 1, 5));
         window.scrollTo(0, 0);
     };
 
     const handlePrevStep = () => {
+        setClientSecret(null);
+        if (step === 3) {
+            // back to address — reset quote so it refetches if address changed
+            setShippingOptions(null);
+            setSelectedShipping(null);
+        }
         setStep(prev => Math.max(prev - 1, 1));
         window.scrollTo(0, 0);
     };
 
     const handleInputChange = (e) => {
         setShippingForm({ ...shippingForm, [e.target.name]: e.target.value });
+        usedSavedAddressRef.current = false;
         if (step2Error) setStep2Error(null);
+        setShippingOptions(null);
+        setSelectedShipping(null);
     };
 
-    const applySavedAddress = () => {
-        if (!savedAddress) return;
-        const [numExt, ...numIntParts] = (savedAddress.numero || '').split(' Int. ');
+    const applySavedAddress = (addr) => {
+        const a = addr || savedAddress;
+        if (!a) return;
         setShippingForm(prev => ({
             ...prev,
-            nombre_recibe: savedAddress.nombre_recibe || '',
-            calle: savedAddress.calle || '',
-            numero_exterior: numExt || '',
-            numero_interior: numIntParts.join(' Int. ') || '',
-            colonia: savedAddress.colonia || '',
-            cp: savedAddress.cp || '',
-            municipio: savedAddress.municipio || '',
-            estado: savedAddress.estado || '',
+            nombre_recibe: a.nombre_recibe || '',
+            telefono: a.telefono || prev.telefono || '',
+            calle: a.calle || '',
+            numero_exterior: a.numero_ext || '',
+            numero_interior: a.numero_int || '',
+            colonia: a.colonia || '',
+            cp: a.cp || '',
+            municipio: a.municipio || '',
+            estado: a.estado || '',
+            referencias: a.referencias || '',
         }));
+        usedSavedAddressRef.current = true;
         setShowAddressBanner(false);
+        setShippingOptions(null);
+        setSelectedShipping(null);
     };
 
     const handlePayment = async () => {
-        if (!stripe || !clientSecret) return;
+        if (!stripe) return;
 
         setIsProcessing(true);
         setPaymentError(null);
 
         try {
+            // Crear PaymentIntent aquí para capturar saveCard correcto
+            let activeSecret = clientSecret;
+            if (!activeSecret) {
+                const totals = getTotals();
+                const res = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        items: cartItems,
+                        discountCode: appliedDiscount?.code || null,
+                        appliedCredit: totals.appliedCredit || 0,
+                        saveCard,
+                        currency: currency || 'MXN',
+                        usdRate: usdRate || 0.049,
+                        shippingCost: totals.shippingCost || 220,
+                        shippingMethod: 'envia',
+                    }),
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    // Sesión expirada — limpiar estado y redirigir a login
+                    if (res.status === 401) {
+                        clearUser();
+                        router.replace('/login');
+                        return;
+                    }
+                    setPaymentError(data.error || 'Error al preparar el pago.');
+                    return;
+                }
+                activeSecret = data.clientSecret;
+                setClientSecret(activeSecret);
+            }
+
             let confirmParams;
 
             if (selectedCard) {
-                // Pagar con tarjeta guardada
-                confirmParams = { payment_method: selectedCard };
+                // Tarjeta guardada + verificación CVC
+                const cvcEl = elements.getElement(CardCvcElement);
+                confirmParams = {
+                    payment_method: selectedCard,
+                    ...(cvcEl && { payment_method_options: { card: { cvc: cvcEl } } }),
+                };
             } else {
-                // Pagar con nueva tarjeta
-                const cardElement = elements.getElement(CardElement);
+                // Nueva tarjeta — usar CardNumberElement como referencia
+                const cardNumberEl = elements.getElement(CardNumberElement);
                 confirmParams = {
                     payment_method: {
-                        card: cardElement,
+                        card: cardNumberEl,
                         billing_details: {
                             name: user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : 'Cliente',
                             email: user?.email || undefined,
@@ -222,7 +395,7 @@ function CheckoutFlow() {
                 };
             }
 
-            const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, confirmParams);
+            const { error, paymentIntent } = await stripe.confirmCardPayment(activeSecret, confirmParams);
 
             if (error) {
                 setPaymentError(error.message);
@@ -232,16 +405,9 @@ function CheckoutFlow() {
             if (paymentIntent.status === 'requires_capture') {
                 const totals = getTotals();
 
-                // Guardar dirección de envío para futuros pedidos
-                if (user?.id && shippingForm.calle) {
-                    fetch('/api/addresses', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(shippingForm),
-                    }).catch(() => {});
-                }
+                // Direcciones se gestionan desde perfil/ajustes, no desde checkout
 
-                await fetch('/api/checkout/confirm', {
+                const confirmRes = await fetch('/api/checkout/confirm', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -252,15 +418,20 @@ function CheckoutFlow() {
                         userName: user?.nombre || null,
                         subtotal: (totals.subtotalStock || 0) + (totals.subtotalAnticipos || 0),
                         discount: totals.promoDiscount || 0,
-                        shipping: totals.shippingCost || 150,
+                        shipping: totals.shippingCost || 220,
                         total: totals.totalToPayNow || 0,
+                        shippingMethod: 'envia',
+                        envia_quote_data: selectedShipping || null,
+                        shipping_address: shippingForm,
                     })
                 });
+                const confirmData = await confirmRes.json();
+                const saleId = confirmData?.saleId;
 
-                const orderNumber = 'BS-' + paymentIntent.id.slice(-8).toUpperCase();
+                const orderNumber = saleId ? `#${saleId}` : ('BS-' + paymentIntent.id.slice(-8).toUpperCase());
                 setOrderNumber(orderNumber);
                 clearCart();
-                setStep(4);
+                setStep(5);
             }
         } catch (err) {
             setPaymentError(err.message || 'Error procesando el pago. Intenta nuevamente.');
@@ -300,21 +471,27 @@ function CheckoutFlow() {
         }
     };
 
-    // Si no está autenticado, mostrar solo el modal de login
+    // Sin sesión: pedir login en el lugar (el modal lo renderiza el Navbar vía cartStore)
     if (!isAuthenticated) {
         return (
-            <LoginModal
-                isOpen={isLoginOpen}
-                onClose={() => {
-                    setIsLoginOpen(false);
-                    router.push('/');
-                }}
-            />
+            <div className={styles.checkoutContainer} style={{ gridTemplateColumns: '1fr', textAlign: 'center', padding: '6rem 2rem' }}>
+                <ShieldCheck size={64} style={{ margin: '0 auto 1rem', color: 'var(--muted)' }} />
+                <h2>Inicia sesión para continuar con tu compra</h2>
+                <p className="text-muted" style={{ marginTop: '0.5rem' }}>Tu carrito sigue guardado, no se pierde nada.</p>
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '2rem', flexWrap: 'wrap' }}>
+                    <button className={styles.btnSecondary} style={{ width: 'auto' }} onClick={() => router.push('/')}>
+                        Volver a la tienda
+                    </button>
+                    <button className={styles.btnPrimary} style={{ width: 'auto', margin: 0 }} onClick={() => setIsLoginOpen(true)}>
+                        Iniciar sesión
+                    </button>
+                </div>
+            </div>
         );
     }
 
     // If cart is empty and we are not in success step
-    if (cartItems.length === 0 && step !== 4) {
+    if (cartItems.length === 0 && step !== 5) {
         return (
             <div className={styles.checkoutContainer} style={{ gridTemplateColumns: '1fr', textAlign: 'center', padding: '6rem 2rem' }}>
                 <ShoppingBag size={64} style={{ margin: '0 auto 1rem', color: 'var(--muted)' }} />
@@ -327,11 +504,11 @@ function CheckoutFlow() {
     }
 
     return (
-        <div className={step === 4 ? styles.checkoutContainerSuccess : styles.checkoutContainer}>
+        <div className={step === 5 ? styles.checkoutContainerSuccess : styles.checkoutContainer}>
             {/* Main Content Column */}
             <div className={styles.mainColumn}>
-                
-                {step < 4 && (
+
+                {step < 5 && (
                     <div className={styles.progressIndicator}>
                         <div className={`${styles.progressStep} ${step >= 1 ? styles.active : ''}`}>
                             <ShoppingBag size={18} /> Carrito
@@ -342,6 +519,10 @@ function CheckoutFlow() {
                         </div>
                         <div className={styles.progressDivider}>—</div>
                         <div className={`${styles.progressStep} ${step >= 3 ? styles.active : ''}`}>
+                            <span style={{ fontSize: '1rem' }}>📦</span> Paquetería
+                        </div>
+                        <div className={styles.progressDivider}>—</div>
+                        <div className={`${styles.progressStep} ${step >= 4 ? styles.active : ''}`}>
                             <CreditCard size={18} /> Pago
                         </div>
                     </div>
@@ -451,56 +632,17 @@ function CheckoutFlow() {
                                 <p className="text-muted">Ingresa a dónde enviaremos tu pedido. Todos los envíos se realizan por paquetería express.</p>
                             </div>
 
-                            {/* Banner dirección guardada */}
-                            {showAddressBanner && savedAddress && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    style={{
-                                        background: 'rgba(230,57,70,0.08)',
-                                        border: '1px solid rgba(230,57,70,0.3)',
-                                        borderRadius: '12px',
-                                        padding: '14px 18px',
-                                        marginBottom: '20px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        gap: '12px',
-                                        flexWrap: 'wrap',
-                                    }}
-                                >
-                                    <div>
-                                        <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--primary)', marginBottom: '2px' }}>
-                                            📍 Tienes una dirección guardada
-                                        </div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-                                            {savedAddress.calle} {savedAddress.numero}, {savedAddress.colonia}, {savedAddress.municipio}, {savedAddress.estado} CP {savedAddress.cp}
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                                        <button
-                                            onClick={applySavedAddress}
-                                            style={{
-                                                background: 'var(--primary)', color: '#fff',
-                                                border: 'none', borderRadius: '8px',
-                                                padding: '8px 16px', fontSize: '0.8rem',
-                                                fontWeight: 700, cursor: 'pointer',
-                                            }}
-                                        >
-                                            Usar esta dirección
-                                        </button>
-                                        <button
-                                            onClick={() => setShowAddressBanner(false)}
-                                            style={{
-                                                background: 'transparent', color: 'var(--muted)',
-                                                border: '1px solid var(--border)', borderRadius: '8px',
-                                                padding: '8px 12px', fontSize: '0.8rem', cursor: 'pointer',
-                                            }}
-                                        >
-                                            Ignorar
-                                        </button>
-                                    </div>
-                                </motion.div>
+                            {/* Dropdown direcciones guardadas */}
+                            {savedAddresses.length > 0 && (
+                                <div style={{ marginBottom: '20px' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted)', display: 'block', marginBottom: '0.45rem' }}>
+                                        Direcciones guardadas
+                                    </label>
+                                    <AddressDropdown
+                                        addresses={savedAddresses}
+                                        onSelect={applySavedAddress}
+                                    />
+                                </div>
                             )}
 
                             <div className={styles.formGrid}>
@@ -566,18 +708,21 @@ function CheckoutFlow() {
                                 </div>
                             </div>
 
+                            {/* Guardar dirección */}
+                            {isAuthenticated && !usedSavedAddressRef.current && (
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '1rem', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--muted)' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={saveAddressToProfile}
+                                        onChange={e => setSaveAddressToProfile(e.target.checked)}
+                                        style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                    />
+                                    Guardar esta dirección en mi perfil
+                                </label>
+                            )}
+
                             {step2Error && (
-                                <div style={{
-                                    color: '#ef4444',
-                                    fontSize: '0.88rem',
-                                    background: 'rgba(239,68,68,0.08)',
-                                    border: '1px solid rgba(239,68,68,0.3)',
-                                    borderRadius: '8px',
-                                    padding: '0.75rem 1rem',
-                                    marginTop: '0.5rem',
-                                }}>
-                                    ✗ {step2Error}
-                                </div>
+                                <div className={styles.fieldError}>✗ {step2Error}</div>
                             )}
 
                             <div className={styles.checkoutActions}>
@@ -590,15 +735,84 @@ function CheckoutFlow() {
                                     onClick={handleNextStep}
                                     disabled={isProcessing}
                                 >
-                                    {isProcessing ? 'Preparando pago...' : 'Continuar a Pago'}
+                                    Continuar a Paquetería
                                 </button>
                             </div>
                         </motion.div>
                     )}
 
-                    {/* STEP 3: Pago */}
+                    {/* STEP 3: Selección de Paquetería */}
                     {step === 3 && (
                         <motion.div key="step3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+                            <div className={styles.stepHeader}>
+                                <h1>Opciones de Envío</h1>
+                                <p className="text-muted">Selecciona cómo quieres recibir tu pedido.</p>
+                            </div>
+
+                            {isFetchingQuote ? (
+                                <div className={styles.shipLoading}>
+                                    <div className={styles.shipSpinner} />
+                                    <p style={{ fontFamily: "'Caveat', cursive", fontSize: '1.2rem' }}>Cotizando paqueterías...</p>
+                                </div>
+                            ) : shippingOptions?.carriers?.length === 0 ? (
+                                <div className={styles.shipEmpty}>
+                                    <p style={{ fontSize: '0.95rem', marginBottom: '0.5rem' }}>⚠️ No encontramos paqueterías disponibles para tu código postal.</p>
+                                    <p style={{ fontSize: '0.82rem' }}>Verifica que tu dirección sea correcta o contáctanos.</p>
+                                </div>
+                            ) : (
+                                <div className={styles.shipList}>
+                                    {(shippingOptions?.carriers || []).map(opt => {
+                                        const isSelected = selectedShipping?.carrier === opt.carrier && selectedShipping?.service === opt.service;
+                                        return (
+                                            <button
+                                                key={`${opt.carrier}-${opt.service}`}
+                                                type="button"
+                                                onClick={() => { setSelectedShipping(opt); setStep2Error(null); }}
+                                                className={`${styles.shipOption} ${isSelected ? styles.shipOptionSelected : ''}`}
+                                            >
+                                                <div className={styles.shipLeft}>
+                                                    <div className={`${styles.shipRadio} ${isSelected ? styles.shipRadioOn : ''}`}>
+                                                        {isSelected && <div className={styles.shipRadioDot} />}
+                                                    </div>
+                                                    <div>
+                                                        <div className={styles.shipName}>📦 {opt.name}</div>
+                                                        <div className={styles.shipService}>
+                                                            {opt.service}{opt.deliveryEstimate ? ` · ${opt.deliveryEstimate}` : ''}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className={styles.shipPrice}>
+                                                    {formatPrice(opt.price)}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {step2Error && (
+                                <div className={styles.fieldError}>✗ {step2Error}</div>
+                            )}
+
+                            <div className={styles.checkoutActions}>
+                                <button className={styles.btnSecondary} onClick={handlePrevStep} disabled={isProcessing}>
+                                    <ArrowLeft size={18} style={{ display: 'inline', marginRight: '8px' }}/> Volver a dirección
+                                </button>
+                                <button
+                                    className={styles.btnPrimary}
+                                    style={{ width: 'fit-content', margin: 0 }}
+                                    onClick={handleNextStep}
+                                    disabled={isProcessing || isFetchingQuote || !selectedShipping}
+                                >
+                                    Continuar a Pago
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* STEP 4: Pago */}
+                    {step === 4 && (
+                        <motion.div key="step4" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
                             <div className={styles.stepHeader}>
                                 <h1>Resumen y Pago</h1>
                                 <p className="text-muted"><ShieldCheck size={18} style={{ display: 'inline', color: '#10b981' }}/> Transacción segura y encriptada por Stripe.</p>
@@ -654,8 +868,10 @@ function CheckoutFlow() {
                                     </div>
                                 )}
 
+
                                 {/* Formulario nueva tarjeta */}
                                 <AnimatePresence>
+                                    {/* Nueva tarjeta — 3 campos separados */}
                                     {!selectedCard && (
                                         <motion.div
                                             initial={{ opacity: 0, height: 0 }}
@@ -666,18 +882,27 @@ function CheckoutFlow() {
                                             <label className={styles.label} style={{ marginBottom: '0.75rem', display: 'block' }}>
                                                 {savedCards.length > 0 ? 'Nueva tarjeta' : 'Datos de Tarjeta'}
                                             </label>
-                                            <div style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                                <CardElement options={{
-                                                    style: {
-                                                        base: {
-                                                            fontSize: '16px',
-                                                            color: '#ffffff',
-                                                            '::placeholder': { color: '#aab7c4' },
-                                                            iconColor: '#ff2e4b',
-                                                        },
-                                                        invalid: { color: '#ef4444' }
-                                                    }
-                                                }}/>
+                                            {/* Número */}
+                                            <div style={{ marginBottom: '0.75rem' }}>
+                                                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '0.35rem' }}>Número de tarjeta</label>
+                                                <div style={{ background: 'rgba(255,255,255,0.04)', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #333' }}>
+                                                    <CardNumberElement options={{ showIcon: true, disableLink: true, style: { base: { fontSize: '16px', color: '#fff', '::placeholder': { color: '#666' }, iconColor: '#e63946' }, invalid: { color: '#ef4444' } } }} />
+                                                </div>
+                                            </div>
+                                            {/* Expiración + CVC */}
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                                                <div>
+                                                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '0.35rem' }}>Vencimiento</label>
+                                                    <div style={{ background: 'rgba(255,255,255,0.04)', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #333' }}>
+                                                        <CardExpiryElement options={{ style: { base: { fontSize: '16px', color: '#fff', '::placeholder': { color: '#666' } }, invalid: { color: '#ef4444' } } }} />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '0.35rem' }}>CVV</label>
+                                                    <div style={{ background: 'rgba(255,255,255,0.04)', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #333' }}>
+                                                        <CardCvcElement options={{ style: { base: { fontSize: '16px', color: '#fff', '::placeholder': { color: '#666' } }, invalid: { color: '#ef4444' } } }} />
+                                                    </div>
+                                                </div>
                                             </div>
                                             <label className={styles.saveCardLabel}>
                                                 <input
@@ -693,6 +918,16 @@ function CheckoutFlow() {
                                             </label>
                                         </motion.div>
                                     )}
+
+                                    {/* Tarjeta guardada — solo CVC */}
+                                    {selectedCard && (
+                                        <div style={{ marginTop: '0.75rem' }}>
+                                            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '0.35rem' }}>Código de seguridad (CVV)</label>
+                                            <div style={{ background: 'rgba(255,255,255,0.04)', padding: '0.85rem 1rem', borderRadius: '10px', border: '1px solid #333', maxWidth: '140px' }}>
+                                                <CardCvcElement options={{ style: { base: { fontSize: '16px', color: '#fff', '::placeholder': { color: '#666' } }, invalid: { color: '#ef4444' } } }} />
+                                            </div>
+                                        </div>
+                                    )}
                                 </AnimatePresence>
 
                                 {paymentError && (
@@ -702,7 +937,7 @@ function CheckoutFlow() {
 
                             <div className={styles.checkoutActions}>
                                 <button className={styles.btnSecondary} onClick={handlePrevStep} disabled={isProcessing}>
-                                    <ArrowLeft size={18} style={{ display: 'inline', marginRight: '8px' }}/> Volver a envío
+                                    <ArrowLeft size={18} style={{ display: 'inline', marginRight: '8px' }}/> Volver a paquetería
                                 </button>
                                 <button className={styles.btnPrimary} style={{ width: 'fit-content', margin: 0 }} onClick={handlePayment} disabled={isProcessing || !stripe}>
                                     {isProcessing ? 'Procesando...' : `Pagar ${formatPrice(totals.totalToPayNow)}`}
@@ -711,8 +946,8 @@ function CheckoutFlow() {
                         </motion.div>
                     )}
 
-                    {/* STEP 4: Confirmación */}
-                    {step === 4 && (
+                    {/* STEP 5: Confirmación */}
+                    {step === 5 && (
                         <motion.div
                             key="step4"
                             className={styles.successContainer}
@@ -754,7 +989,7 @@ function CheckoutFlow() {
                                         animate={{ opacity: 1 }}
                                         transition={{ delay: 0.5, duration: 0.4 }}
                                     >
-                                        Orden <strong>{orderNumber}</strong> — Te enviaremos la confirmación a tu correo.
+                                        Pedido <strong>{orderNumber}</strong> — Te enviaremos la confirmación a tu correo.
                                     </motion.p>
                                 </div>
                             </div>
@@ -815,7 +1050,7 @@ function CheckoutFlow() {
             </div>
 
             {/* Sticky Summary Column */}
-            {step < 4 && (
+            {step < 5 && (
                 <div className={styles.summaryColumn}>
                     <h2 className={styles.summaryTitle}>Resumen del Pedido</h2>
                     
@@ -831,10 +1066,10 @@ function CheckoutFlow() {
                         </div>
                     )}
 
-                    {step >= 3 && (
+                    {(step >= 4 || selectedShipping) && (
                         <div className={styles.summaryRow}>
-                            <span>Costo de Envío</span>
-                            <span>{formatPrice(totals.shippingCost)}</span>
+                            <span>Costo de Envío {selectedShipping?.carrier ? `(${selectedShipping.carrier})` : ''}</span>
+                            <span>{formatPrice(selectedShipping ? selectedShipping.price : (totals.shippingCost || 220))}</span>
                         </div>
                     )}
 

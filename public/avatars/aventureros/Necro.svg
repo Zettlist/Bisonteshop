@@ -1,0 +1,9 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Necro">
+  <rect x="0" y="0" width="200" height="200" rx="34" fill="#181018"/>
+  <rect x="6" y="6" width="188" height="188" rx="28" fill="none" stroke="#0a0a0a" stroke-width="4" opacity="0.35"/>
+  
+  <rect x="64" y="150" width="72" height="30" rx="10" fill="#34c759" stroke="#0a0a0a" stroke-width="6"/>
+  <circle cx="100" cy="108" r="40" fill="#e0a878" stroke="#0a0a0a" stroke-width="6"/>
+  <circle cx="84" cy="104" r="6" fill="#0a0a0a"/><circle cx="116" cy="104" r="6" fill="#0a0a0a"/><line x1="88" y1="126" x2="112" y2="126" stroke="#0a0a0a" stroke-width="4" stroke-linecap="round"/>
+  <path d="M52 96 q48 -70 96 0z" fill="#34c759" stroke="#0a0a0a" stroke-width="6"/>
+</svg>

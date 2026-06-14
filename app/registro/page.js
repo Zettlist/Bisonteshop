@@ -20,6 +20,7 @@ export default function RegistroPage() {
         nombre: '',
         apellido: '',
         fechaNacimiento: '',
+        nacionalidad: '',
         email: '',
         password: '',
         confirmar: '',
@@ -65,6 +66,7 @@ export default function RegistroPage() {
                     nombre: form.nombre,
                     apellido: form.apellido,
                     fechaNacimiento: form.fechaNacimiento,
+                    nacionalidad: form.nacionalidad || null,
                     email: form.email,
                     password: form.password,
                 }),
@@ -186,6 +188,33 @@ export default function RegistroPage() {
                                     max={new Date().toISOString().split('T')[0]}
                                 />
                                 {edadError && <p className={styles.fieldError}>{edadError}</p>}
+                            </div>
+
+                            {/* Nacionalidad */}
+                            <div className={styles.field}>
+                                <label className={styles.label} htmlFor="nacionalidad">Nacionalidad</label>
+                                <select
+                                    id="nacionalidad"
+                                    name="nacionalidad"
+                                    className={styles.input}
+                                    value={form.nacionalidad}
+                                    onChange={handleChange}
+                                >
+                                    <option value="">Selecciona tu país</option>
+                                    <option value="México">🇲🇽 México</option>
+                                    <option value="Argentina">🇦🇷 Argentina</option>
+                                    <option value="Chile">🇨🇱 Chile</option>
+                                    <option value="Colombia">🇨🇴 Colombia</option>
+                                    <option value="Perú">🇵🇪 Perú</option>
+                                    <option value="Venezuela">🇻🇪 Venezuela</option>
+                                    <option value="Ecuador">🇪🇨 Ecuador</option>
+                                    <option value="Bolivia">🇧🇴 Bolivia</option>
+                                    <option value="Uruguay">🇺🇾 Uruguay</option>
+                                    <option value="Paraguay">🇵🇾 Paraguay</option>
+                                    <option value="España">🇪🇸 España</option>
+                                    <option value="Estados Unidos">🇺🇸 Estados Unidos</option>
+                                    <option value="Otro">🌍 Otro</option>
+                                </select>
                             </div>
 
                             {/* Email */}

@@ -1,51 +1,200 @@
+/* ===========================
+   Footer — estética zine/manga
+=========================== */
+
 .footer {
+    position: relative;
     background-color: #050505;
     color: var(--foreground);
-    padding: 1.75rem 2rem 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0 var(--container-pad) var(--space-4);
     margin-top: auto;
+    /* halftone sutil */
+    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1.5px, transparent 1.5px);
+    background-size: 20px 20px;
+}
+
+/* Cinta superior roja inclinada */
+.topStrip {
+    height: 10px;
+    background: repeating-linear-gradient(
+        -45deg,
+        #e63946,
+        #e63946 18px,
+        #ffd60a 18px,
+        #ffd60a 36px
+    );
+    border-bottom: 3px solid #000;
+    margin: 0 calc(-1 * var(--container-pad)) var(--space-8);
+    transform: rotate(-0.4deg) scaleX(1.02);
 }
 
 .container {
-    max-width: 1200px;
+    max-width: var(--container-width);
     margin: 0 auto;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
+    gap: var(--space-6);
 }
 
-.column h3 {
-    color: var(--primary);
-    font-size: 0.85rem;
-    margin-bottom: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+/* ---- MARCA ---- */
+.brandRow {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.brandLogo {
+    transform: rotate(-6deg);
+    filter: drop-shadow(0 4px 12px rgba(230, 57, 70, 0.4));
+}
+
+.brandTitle {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    line-height: 0.9;
+    color: #e63946;
+    margin: 0;
+    letter-spacing: 2px;
+    display: flex;
+    flex-direction: column;
+}
+
+.brandTitle span {
+    color: transparent;
+    -webkit-text-stroke: 1.5px #fff;
+    font-size: 1.5rem;
+    letter-spacing: 4px;
+}
+
+.brandTagline {
+    font-family: 'Caveat', cursive;
+    font-size: 1.35rem;
+    color: rgba(255, 214, 10, 0.9);
+    line-height: 1.4;
+    margin: 0.8rem 0 0;
+    transform: rotate(-1.5deg);
+}
+
+/* ---- COLUMNAS ---- */
+.colTitle {
+    display: inline-block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.25rem;
+    letter-spacing: 3px;
+    color: #fff;
+    background: #e63946;
+    border: 2.5px solid #000;
+    border-radius: 5px;
+    box-shadow: 3px 3px 0 #000;
+    padding: 0.25rem 0.8rem;
+    margin-bottom: var(--space-3);
+    transform: rotate(-2deg);
+}
+
+.colTitleAlt {
+    background: #ffd60a;
+    color: #000;
+    transform: rotate(1.5deg);
 }
 
 .column ul {
     list-style: none;
     padding: 0;
+    margin: 0;
 }
 
 .column li {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.5rem;
 }
 
 .column a {
-    color: #888;
+    color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
-    transition: color 0.3s ease;
+    transition: color 0.2s ease, background-size 0.25s ease;
+    /* subrayado marcador al hover */
+    background-image: linear-gradient(to top, rgba(255, 214, 10, 0.45) 35%, transparent 35%);
+    background-repeat: no-repeat;
+    background-size: 0% 100%;
 }
 
 .column a:hover {
-    color: var(--foreground);
+    color: #fff;
+    background-size: 100% 100%;
 }
 
+/* ---- REDES (pills) ---- */
+.socialList {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.socialPill {
+    display: inline-block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    color: #fff !important;
+    background: #161616;
+    border: 2px solid #2e2e2e;
+    border-radius: 6px;
+    box-shadow: 3px 3px 0 rgba(230, 57, 70, 0.35);
+    padding: 0.25rem 0.75rem;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    background-image: none !important;
+}
+
+.socialPill:hover {
+    transform: translate(-2px, -2px) rotate(-2deg);
+    border-color: #e63946;
+    box-shadow: 5px 5px 0 rgba(255, 214, 10, 0.45);
+}
+
+/* ---- COPYRIGHT ---- */
 .copyright {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
     text-align: center;
-    margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    color: #666;
-    font-size: 0.8rem;
+    margin-top: var(--space-6);
+    padding-top: var(--space-4);
+    border-top: 2px dashed rgba(255, 255, 255, 0.15);
+    color: #777;
+    font-size: var(--text-xs);
+}
+
+.copyHand {
+    font-family: 'Caveat', cursive;
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.55);
+    transform: rotate(-1deg);
+}
+
+.privacyLink {
+    color: #999;
+    text-decoration: underline;
+}
+
+.privacyLink:hover {
+    color: #ffd60a;
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 768px) {
+    .container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-4);
+    }
+
+    .column:first-child {
+        grid-column: 1 / -1;
+    }
+
+    .socialList {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
 }

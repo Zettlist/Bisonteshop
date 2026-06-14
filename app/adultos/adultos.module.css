@@ -1,8 +1,15 @@
 .wrapper {
     padding-top: var(--navbar-height, 70px);
     min-height: 100vh;
-    background: var(--background);
+    background:
+        linear-gradient(rgba(5, 0, 20, 0.88), rgba(5, 0, 20, 0.88)),
+        url('/adultos-bg.jpg') center center / cover fixed;
     transition: background 0.4s ease, color 0.4s ease;
+}
+
+/* En modo catálogo: navbar + topBar manejados por catalogWrapper */
+.wrapperCatalog {
+    padding-top: 0;
 }
 
 /* ── Mural Banner ── */
@@ -88,12 +95,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.6rem 2rem;
-    border-bottom: none;
-    background: var(--background);
-    position: sticky;
+    padding: 0.55rem 2rem;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    background: rgba(5, 0, 20, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    position: fixed;
     top: var(--navbar-height, 70px);
-    z-index: 10;
+    left: 0;
+    right: 0;
+    z-index: 99;
     gap: 1rem;
 }
 
@@ -145,25 +156,33 @@
     color: var(--muted);
 }
 
+/* Empuja contenido debajo de navbar(fixed) + topBar(fixed) */
+.catalogWrapper {
+    padding-top: calc(var(--navbar-height, 70px) + 42px);
+}
+
 /* ── Layout ── */
 .layout {
     display: flex;
     align-items: flex-start;
-    max-width: 78%;
+    max-width: 96%;
     margin: 0 auto;
 }
 
 /* ── Sidebar ── */
 .sidebar {
-    width: 200px;
+    width: 240px;
     flex-shrink: 0;
     position: sticky;
     top: calc(var(--navbar-height, 70px) + 46px);
     align-self: flex-start;
     max-height: calc(100vh - var(--navbar-height, 70px) - 46px);
     overflow-y: auto;
-    border-right: 1px solid var(--border);
-    padding: 1rem 1rem 1rem 0;
+    scrollbar-width: thin;
+    padding: 0.75rem 0.75rem 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .filterHeader {
@@ -192,6 +211,25 @@
     margin-bottom: 0.6rem;
 }
 
+/* ── Filter Section Cards ── */
+.filterSection {
+    background: rgba(139, 92, 246, 0.07);
+    border: 1px solid rgba(139, 92, 246, 0.18);
+    border-radius: 10px;
+    padding: 0.75rem 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filterSectionLabel {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    font-weight: 700;
+}
+
 .filterList {
     display: flex;
     flex-direction: column;
@@ -204,40 +242,48 @@
     text-align: left;
     background: transparent;
     border: none;
-    color: var(--muted);
+    border-left: 2px solid transparent;
+    color: rgba(255, 255, 255, 0.5);
     font-size: 0.85rem;
-    padding: 0.4rem 0.5rem;
-    border-radius: 4px;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0 4px 4px 0;
     cursor: pointer;
     transition: all var(--transition);
 }
 
 .filterBtn:hover {
     color: var(--foreground);
-    background: rgba(155, 93, 229, 0.08);
+    background: rgba(139, 92, 246, 0.08);
 }
 
 .filterBtn[data-active="true"] {
-    color: var(--primary);
+    color: #a78bfa;
     font-weight: 600;
-    background: rgba(155, 93, 229, 0.12);
+    background: rgba(139, 92, 246, 0.12);
+    border-left-color: #8b5cf6;
 }
 
 .select {
     width: 100%;
-    padding: 0.55rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    padding: 0.55rem 0.7rem;
+    background: #0d0018;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 7px;
     color: var(--foreground);
     font-size: 0.85rem;
     cursor: pointer;
+    color-scheme: dark;
+}
+
+.select option {
+    background: #0d0018;
+    color: #e0e0e0;
 }
 
 /* ── Content ── */
 .content {
     flex: 1;
-    padding: 0.75rem 0.75rem 2rem 1rem;
+    padding: 0.75rem 0 2rem 1rem;
     min-width: 0;
 }
 
@@ -1230,8 +1276,151 @@
     background: #8b5cf6;
 }
 
+/* ── Botón Filtros mobile ── */
+.filterToggleBtn {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.filterBadge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    position: absolute;
+    top: 6px;
+    right: 6px;
+}
+
+/* ── Header del sheet mobile ── */
+.sidebarMobileHeader {
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem 0.75rem 0;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebarCloseBtn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.3rem;
+    display: flex;
+    align-items: center;
+}
+
+/* ── Animaciones sheet ── */
+@keyframes sheetSlideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+
+@keyframes sheetSlideDown {
+    from { transform: translateY(0); }
+    to   { transform: translateY(100%); }
+}
+
+@keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes overlayFadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+/* ── Overlay ── */
+.filterOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 1100;
+    animation: overlayFadeIn 0.22s ease forwards;
+}
+
+/* ── Mobile filter bottom sheet ── */
+.mobileSheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-height: 200px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--surface, #1a1a1a);
+    border-top: 1px solid var(--border, #333);
+    border-radius: 16px 16px 0 0;
+    padding: 0 1rem 2rem;
+    z-index: 1200;
+    animation: sheetSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.mobileSheetOut {
+    animation: sheetSlideDown 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.filterOverlayOut {
+    animation: overlayFadeOut 0.28s ease forwards;
+}
+
 /* ── Responsive ── */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+    /* Catalog layout */
+    .layout {
+        max-width: 100%;
+        flex-direction: column;
+    }
+
+    .sidebar {
+        display: none;
+    }
+
+    .sidebarMobileHeader {
+        display: flex;
+        position: sticky;
+        top: 0;
+        background: var(--surface);
+        z-index: 1;
+        padding-top: 1rem;
+    }
+
+    .filterToggleBtn {
+        display: flex;
+    }
+
+    .topBar {
+        padding: 0.6rem 1rem;
+    }
+
+    .content {
+        padding: 0.75rem 1rem 2rem;
+    }
+
+    /* Catalog grid: 3 col tablet */
+    .grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+
+    /* Landing grids */
     .categoriesGrid {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -1250,5 +1439,23 @@
 
     .heroTitle {
         font-size: 3.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    /* Mobile: 2 col */
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .grid {
+        gap: 0.5rem;
+    }
+
+    .topBar {
+        padding: 0.5rem 0.75rem;
     }
 }

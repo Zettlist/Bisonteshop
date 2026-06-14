@@ -324,6 +324,43 @@
     font-weight: 600;
 }
 
+/* Sinopsis */
+.sinopsisSection {
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+}
+
+[data-theme='light'] .sinopsisSection {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.sinopsisTitle {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 0.6rem;
+}
+
+.sinopsisText {
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: var(--foreground);
+    opacity: 0.85;
+    margin: 0;
+    white-space: pre-line;
+}
+
+.sinopsisEmpty {
+    opacity: 0.35;
+    font-style: italic;
+}
+
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 640px) {
     .modal {

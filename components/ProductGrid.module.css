@@ -1,10 +1,10 @@
 .gridSection {
-    padding: 5rem 2rem;
+    padding: var(--space-20) var(--container-pad);
     background-color: var(--background);
 }
 
 .container {
-    max-width: 78%;
+    max-width: var(--container-width);
     margin: 0 auto;
 }
 
@@ -12,27 +12,27 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 2.5rem;
+    margin-bottom: var(--space-12);
 }
 
 .sectionLabel {
-    font-size: 0.75rem;
+    font-size: var(--text-xs);
     font-weight: 700;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-2);
 }
 
 .sectionTitle {
     font-family: var(--font-display);
-    font-size: 3rem;
+    font-size: var(--text-3xl);
     color: var(--foreground);
     letter-spacing: 2px;
 }
 
 .seeAll {
-    font-size: 0.85rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: var(--muted);
     text-transform: uppercase;
@@ -92,9 +92,9 @@
 }
 
 .cardTitle {
-    font-size: 1rem;
+    font-size: var(--text-base);
     font-weight: 600;
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--space-3);
     color: var(--foreground);
     line-height: 1.4;
 }
@@ -108,7 +108,7 @@
 .cardPrice {
     color: var(--foreground);
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: var(--text-md);
 }
 
 .addToCart {
@@ -218,4 +218,63 @@
 @keyframes skeletonPulse {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.4; }
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+    .container {
+        max-width: 92%;
+    }
+
+    .grid,
+    .slotGrid,
+    .skeletonGrid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+@media (max-width: 900px) {
+    .container {
+        max-width: 100%;
+        padding: 0 var(--container-pad);
+    }
+
+    .gridSection {
+        padding: var(--space-12) 0;
+    }
+
+    .grid,
+    .slotGrid,
+    .skeletonGrid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .gridSection {
+        padding: var(--space-8) 0;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+        margin-bottom: var(--space-6);
+    }
+
+    .grid,
+    .slotGrid,
+    .skeletonGrid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.85rem;
+    }
+
+    .imagePlaceholder {
+        height: 200px;
+    }
+
+    .skeletonCard {
+        height: 280px;
+    }
 }

@@ -1,107 +1,112 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
+import { getClienteId } from '@/lib/auth';
+import { priceCart, priceCoupon, round2 } from '@/lib/pricing';
+import { getUsdRate } from '@/lib/fx';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
+  // Auth guard — rechaza peticiones sin sesión (valida firma + revocación)
+  const userId = await getClienteId();
+  if (!userId) {
+    return NextResponse.json({ success: false, error: 'Debes iniciar sesión para comprar.' }, { status: 401 });
+  }
+
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   try {
-    const { items, userId, discountCode, appliedCredit: clientCredit, saveCard } = await request.json();
+    const body = await request.json();
+    const { items, discountCode, saveCard, currency: clientCurrency, shippingCost: clientShippingCost } = body;
 
-    // 1. Calcular totales en el backend (no confiar en el cliente)
-    let subtotalStock = 0;
-    let subtotalAnticipos = 0;
-
-    for (const item of items) {
-      const price = parseFloat(item.price);
-      if (item.type === 'preventa') {
-        subtotalAnticipos += price * (parseFloat(item.anticipo_percent) / 100) * item.quantity;
-      } else {
-        subtotalStock += price * item.quantity;
-      }
+    // ── 1. Precios DESDE LA BD (nunca del cliente) ───────────────────────
+    const { lines, subtotal, errors } = await priceCart(items);
+    if (errors.length) {
+      return NextResponse.json({ success: false, error: errors[0] }, { status: 400 });
     }
 
-    const shippingCost = 150;
-    let totalCharge = subtotalStock + subtotalAnticipos + shippingCost;
+    // Envío: acotado server-side (el cliente solo elige entre cotizaciones reales)
+    const rawShipping = parseFloat(clientShippingCost);
+    const shippingCost = (rawShipping >= 10 && rawShipping <= 2000) ? rawShipping : 220;
 
-    // 2. Validar cupón en DB
-    let appliedDiscount = 0;
-    if (discountCode) {
-      const empresaId = process.env.EMPRESA_ID || null;
-      const [coupons] = await pool.query(
-        `SELECT * FROM coupons
-         WHERE code = ?
-           AND status = 'active'
-           AND (empresa_id = ? OR empresa_id IS NULL)
-           AND (expiration_date IS NULL OR expiration_date > NOW())
-           AND (usage_limit IS NULL OR usage_count < usage_limit)
-         LIMIT 1`,
-        [discountCode.toUpperCase(), empresaId]
-      );
+    let totalCharge = round2(subtotal + shippingCost);
 
-      if (coupons.length > 0) {
-        const coupon = coupons[0];
-        const base = subtotalStock + subtotalAnticipos;
-        if (coupon.discount_type === 'percentage') {
-          appliedDiscount = (base * parseFloat(coupon.discount_value)) / 100;
-        } else {
-          appliedDiscount = parseFloat(coupon.discount_value);
-        }
-        appliedDiscount = Math.min(appliedDiscount, totalCharge);
-        totalCharge -= appliedDiscount;
-
-        // Incrementar usage_count
-        await pool.query(`UPDATE coupons SET usage_count = usage_count + 1 WHERE id = ?`, [coupon.id]);
-      }
+    // ── 2. Cupón validado en BD (sobre el subtotal real) ─────────────────
+    // Nota: usage_count y el límite por usuario se aplican en la CAPTURA (no aquí),
+    // para no quemar cupones en carritos abandonados o pagos fallidos.
+    const { coupon, amount: appliedDiscount, error: couponError } = await priceCoupon(discountCode, subtotal, userId);
+    if (discountCode && couponError) {
+      return NextResponse.json({ success: false, error: couponError }, { status: 400 });
     }
+    if (appliedDiscount > 0) totalCharge = round2(totalCharge - appliedDiscount);
 
-    // 3. Aplicar crédito de tienda
+    // ── 3. Crédito de tienda (el saldo real lo tiene la BD) ──────────────
+    // Se "aplica" para reducir el cargo; se DESCUENTA del saldo en la captura.
     let appliedCreditFinal = 0;
-    if (userId) {
-      const [rows] = await pool.query(`SELECT store_credit FROM clientes WHERE id = ?`, [userId]);
-      if (rows.length > 0 && rows[0].store_credit > 0) {
-        appliedCreditFinal = Math.min(rows[0].store_credit, totalCharge);
-        totalCharge -= appliedCreditFinal;
-      }
+    const [creditRows] = await pool.query(`SELECT store_credit FROM clientes WHERE id = ?`, [userId]);
+    const saldo = parseFloat(creditRows[0]?.store_credit) || 0;
+    if (saldo > 0) {
+      appliedCreditFinal = round2(Math.min(saldo, totalCharge));
+      totalCharge = round2(totalCharge - appliedCreditFinal);
     }
 
-    // 4. Obtener/crear Stripe Customer si el usuario quiere guardar tarjeta
+    // ── 4. Stripe Customer (para tarjetas guardadas) ─────────────────────
     let stripeCustomerId = null;
-    if (userId && saveCard) {
-      const [clienteRows] = await pool.query('SELECT stripe_customer_id, nombre, apellido, email FROM clientes WHERE id = ? LIMIT 1', [userId]);
-      if (clienteRows.length) {
-        const cliente = clienteRows[0];
-        if (cliente.stripe_customer_id) {
-          stripeCustomerId = cliente.stripe_customer_id;
-        } else {
-          const customer = await stripe.customers.create({
-            email: cliente.email,
-            name: `${cliente.nombre} ${cliente.apellido || ''}`.trim(),
-            metadata: { bisonte_cliente_id: String(userId) },
-          });
-          stripeCustomerId = customer.id;
-          await pool.query('UPDATE clientes SET stripe_customer_id = ? WHERE id = ?', [stripeCustomerId, userId]);
-        }
+    const [clienteRows] = await pool.query('SELECT stripe_customer_id, nombre, apellido, email FROM clientes WHERE id = ? LIMIT 1', [userId]);
+    if (clienteRows.length) {
+      const cliente = clienteRows[0];
+      if (cliente.stripe_customer_id) {
+        stripeCustomerId = cliente.stripe_customer_id;
+      } else if (saveCard) {
+        const customer = await stripe.customers.create({
+          email: cliente.email,
+          name: `${cliente.nombre} ${cliente.apellido || ''}`.trim(),
+          metadata: { bisonte_cliente_id: String(userId) },
+        });
+        stripeCustomerId = customer.id;
+        await pool.query('UPDATE clientes SET stripe_customer_id = ? WHERE id = ?', [stripeCustomerId, userId]);
       }
     }
 
-    // 5. Crear PaymentIntent en Stripe (mínimo 10 centavos)
-    const amountInCents = Math.max(Math.round(totalCharge * 100), 10);
+    // ── 5. Moneda y tipo de cambio SERVER-SIDE ───────────────────────────
+    const stripeCurrency = (clientCurrency === 'USD') ? 'usd' : 'mxn';
+    const usdRate = await getUsdRate();
+    const chargeAmount = stripeCurrency === 'usd' ? totalCharge * usdRate : totalCharge;
+    const amountInCents = Math.max(Math.round(chargeAmount * 100), 10);
+
+    // ── Idempotencia: doble-clic / reintento no debe crear PaymentIntents duplicados.
+    // La llave depende del usuario + carrito + cupón + envío + moneda: mismo pedido →
+    // Stripe devuelve el MISMO PaymentIntent. Si el carrito cambia, la llave cambia.
+    const fingerprint = JSON.stringify({
+      u: userId,
+      items: lines.map(l => [l.id, l.quantity, l.unitPrice]).sort(),
+      cupon: coupon?.code || '',
+      envio: shippingCost,
+      cur: stripeCurrency,
+      cents: amountInCents,
+    });
+    const idempotencyKey = `checkout:${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 48)}`;
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInCents,
-      currency: 'mxn',
+      currency: stripeCurrency,
       capture_method: 'manual',
       automatic_payment_methods: { enabled: true },
-      ...(stripeCustomerId && { customer: stripeCustomerId, setup_future_usage: 'off_session' }),
+      ...(stripeCustomerId && { customer: stripeCustomerId }),
+      ...(stripeCustomerId && saveCard && { setup_future_usage: 'off_session' }),
       metadata: {
-        userId: userId?.toString() || 'guest',
-        discountCode: discountCode || '',
+        userId: String(userId),
+        discountCode: coupon?.code || '',
+        couponId: coupon ? String(coupon.id) : '',
         appliedDiscount: appliedDiscount.toFixed(2),
         appliedCredit: appliedCreditFinal.toFixed(2),
-      }
-    });
+        // Totales MXN autoritativos (para el registro del pedido en la confirmación)
+        subtotalMXN: subtotal.toFixed(2),
+        shippingMXN: shippingCost.toFixed(2),
+        totalMXN: totalCharge.toFixed(2),
+      },
+    }, { idempotencyKey });
 
     return NextResponse.json({
       success: true,

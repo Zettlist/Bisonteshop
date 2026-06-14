@@ -1,0 +1,378 @@
+/* Widget Mundial 2026 — esquina inferior derecha, estilo zine */
+
+.widget {
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    z-index: 90;
+    width: 390px;
+    max-width: calc(100vw - 36px);
+    background: #141414;
+    border: 3px solid #000;
+    border-radius: 18px;
+    box-shadow: 7px 7px 0 rgba(230, 57, 70, 0.55);
+    padding: 1.3rem 1.4rem 1.1rem;
+    color: #fff;
+    /* entrada/salida animadas con framer-motion en el componente */
+}
+
+/* Contenedor del estado cerrado: bocadillo + botón, entra deslizando desde la derecha */
+.miniWrap {
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Bocadillo cómic teaser */
+.miniTeaser {
+    position: relative;
+    max-width: 190px;
+    background: #fff;
+    color: #111;
+    border: 3px solid #000;
+    border-radius: 18px 18px 6px 18px;
+    padding: 0.5rem 0.8rem;
+    font-family: 'Caveat', cursive;
+    font-size: 1.2rem;
+    line-height: 1.15;
+    font-weight: 700;
+    box-shadow: 4px 4px 0 rgba(230, 57, 70, 0.55);
+    transform: rotate(-2deg);
+}
+
+.miniTeaser::after {
+    content: '';
+    position: absolute;
+    right: -15px;
+    bottom: 12px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-left: 16px solid #000;
+}
+
+.miniTeaser::before {
+    content: '';
+    position: absolute;
+    right: -10px;
+    bottom: 14px;
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 12px solid #fff;
+    z-index: 2;
+}
+
+.miniBtn {
+    position: relative;
+    flex-shrink: 0;
+    width: 130px;
+    height: 130px;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.miniImg {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    filter: drop-shadow(3px 4px 4px rgba(0, 0, 0, 0.45));
+}
+
+/* Mascota Bisonte asomada al lado izquierdo del widget */
+.mascota {
+    position: absolute;
+    right: calc(100% - 65px);
+    bottom: -3px;
+    height: 103%;
+    width: auto;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(4px 4px 0 rgba(0, 0, 0, 0.4));
+    animation: mascotaIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.15s backwards;
+}
+
+@keyframes mascotaIn {
+    from { opacity: 0; transform: translateX(18px) rotate(-4deg); }
+    to { opacity: 1; transform: translateX(0) rotate(0deg); }
+}
+
+/* ---- Banderas (SVG country-flag-icons) ---- */
+.flag {
+    width: 38px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1.5px #000;
+    vertical-align: -6px;
+}
+
+.flagBtn {
+    width: 56px;
+    flex-shrink: 0;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.6);
+}
+
+.miniBtn:hover {
+    transform: scale(1.12) rotate(-8deg);
+}
+
+.closeBtn {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 4px;
+}
+
+.closeBtn:hover { color: #fff; }
+
+.titleRow {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.9rem;
+    letter-spacing: 2px;
+    color: #ffd60a;
+}
+
+.subtitle {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 0.7rem;
+    transform: rotate(-1deg);
+}
+
+/* ---- Cuenta regresiva ---- */
+.countdown {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    background: rgba(230, 57, 70, 0.14);
+    border: 2px dashed rgba(230, 57, 70, 0.6);
+    border-radius: 12px;
+    padding: 0.5rem 0.6rem 0.6rem;
+    margin-bottom: 0.9rem;
+}
+
+.countLabel {
+    font-family: 'Caveat', cursive;
+    font-size: 1.15rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.countDigits {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.3rem;
+    line-height: 1;
+    letter-spacing: 4px;
+    color: #ffd60a;
+    text-shadow: 2px 2px 0 #000;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Barra versus ---- */
+.vsLabels {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.35rem;
+}
+
+.teamMx { color: #2ecc71; }
+.teamRsa { color: #5b9dff; }
+
+.vsBar {
+    display: flex;
+    height: 34px;
+    border: 2.5px solid #000;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #222;
+}
+
+.vsMx,
+.vsRsa {
+    display: flex;
+    align-items: center;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 1px;
+}
+
+.vsMx {
+    background: #006847;
+    justify-content: flex-start;
+    padding-left: 8px;
+    color: #fff;
+}
+
+.vsRsa {
+    background: #0047A0;
+    justify-content: flex-end;
+    padding-right: 8px;
+    color: #fff;
+}
+
+.totalVotos {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.55);
+    text-align: center;
+    margin: 0.4rem 0 0.8rem;
+}
+
+/* ---- Botones ---- */
+.botones {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btnVoto {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    white-space: nowrap;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    padding: 0.65rem 0.4rem;
+    border: 2.5px solid #000;
+    border-radius: 8px;
+    box-shadow: 3px 3px 0 #000;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    color: #fff;
+}
+
+.btnVoto:hover:not(:disabled) {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
+}
+
+.btnVoto:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #000;
+}
+
+.btnVoto:disabled { opacity: 0.6; cursor: wait; }
+
+.btnMx { background: #006847; }
+.btnRsa { background: #0047A0; }
+
+.vs {
+    font-family: 'Permanent Marker', cursive;
+    font-size: 0.95rem;
+    color: #e63946;
+}
+
+.loginHint,
+.premio,
+.cerrada {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 1.05rem;
+    text-align: center;
+    margin-top: 0.5rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.premio { color: rgba(255, 214, 10, 0.9); }
+
+/* ---- Estados ---- */
+.yaVotaste {
+    text-align: center;
+    font-size: 1.1rem;
+    background: rgba(0, 104, 71, 0.25);
+    border: 2px dashed rgba(46, 204, 113, 0.5);
+    border-radius: 10px;
+    padding: 0.55rem;
+}
+
+.yaVotaste span {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 1.05rem;
+    color: rgba(255, 214, 10, 0.85);
+    margin-top: 0.2rem;
+}
+
+.resultado {
+    text-align: center;
+    font-size: 1rem;
+}
+
+.codigoBox {
+    margin-top: 0.5rem;
+    background: rgba(255, 214, 10, 0.15);
+    border: 2px dashed #ffd60a;
+    border-radius: 10px;
+    padding: 0.6rem;
+    font-size: 0.92rem;
+}
+
+.codigoBox code {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #ffd60a;
+    margin-top: 0.3rem;
+    user-select: all;
+}
+
+.perdiste {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.3rem;
+}
+
+.error {
+    display: block;
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 0.4rem;
+}
+
+@media (max-width: 480px) {
+    .widget {
+        bottom: 12px;
+        right: 12px;
+        width: 320px;
+    }
+
+    /* sin espacio lateral en móvil */
+    .mascota { display: none; }
+}

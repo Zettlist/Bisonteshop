@@ -1,7 +1,13 @@
+/* ===========================
+   Checkout — estética zine/manga
+   (mismo vibe que la landing: bordes negros gruesos,
+    sombras duras, Bebas Neue, rotaciones, amarillo+rojo)
+=========================== */
+
 .checkoutContainer {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 4rem 2rem;
+  padding: 3.5rem 2rem 5rem;
   display: grid;
   grid-template-columns: 1fr 400px;
   gap: 3rem;
@@ -17,113 +23,122 @@
   justify-content: center;
 }
 
-/* ── Guardar tarjeta ── */
-.saveCardLabel {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  margin-top: 1.25rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-  color: var(--foreground);
-  line-height: 1.4;
-}
-
-.saveCardCheck {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  margin-top: 2px;
-  accent-color: var(--primary);
-  cursor: pointer;
-}
-
-.saveCardSafe {
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
 .mainColumn {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  min-width: 0;
 }
 
+/* ── Columna resumen: panel cómic sticky ── */
 .summaryColumn {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2rem;
+  background: #141414;
+  border: 3px solid #000;
+  border-radius: 18px;
+  box-shadow: 7px 7px 0 rgba(230, 57, 70, 0.55);
+  padding: 1.8rem;
   height: fit-content;
   position: sticky;
   top: 100px;
+  transform: rotate(-0.6deg);
 }
 
+/* ── Header de cada paso ── */
 .stepHeader {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
   margin-bottom: 2rem;
 }
 
 .stepHeader h1 {
-  font-family: var(--font-display);
-  font-size: 2.5rem;
-  font-weight: 800;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.4rem, 6vw, 3.6rem);
+  font-weight: 400;
+  letter-spacing: 2px;
+  line-height: 0.95;
+  color: #fff;
+  text-shadow: 3px 3px 0 #e63946;
+  transform: rotate(-1deg);
 }
 
+.stepHeader p {
+  font-family: 'Caveat', cursive;
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.7);
+  transform: rotate(-0.4deg);
+}
+
+/* ── Indicador de progreso (chips cómic) ── */
 .progressIndicator {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.6rem;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
 }
 
 .progressStep {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  color: var(--muted);
-  font-weight: 600;
+  gap: 0.45rem;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 1.5px;
+  color: #888;
+  background: #1a1a1a;
+  border: 2.5px solid #2e2e2e;
+  border-radius: 8px;
+  padding: 0.35rem 0.8rem;
+  transition: all 0.2s;
 }
 
 .progressStep.active {
-  color: var(--primary);
+  color: #000;
+  background: #ffd60a;
+  border-color: #000;
+  box-shadow: 3px 3px 0 #000;
+  transform: rotate(-2deg);
 }
 
 .progressDivider {
-  color: var(--border);
+  color: #444;
+  font-weight: 800;
 }
 
+/* ── Lista de carrito ── */
 .cartList {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .cartItem {
   display: flex;
   gap: 1.25rem;
-  padding: 1.25rem;
-  background: var(--surface);
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+  padding: 1.1rem;
+  background: #141414;
+  border: 3px solid #000;
+  border-radius: 14px;
   align-items: center;
-  transition: border-color 0.2s;
+  box-shadow: 4px 4px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .cartItem:hover {
-  border-color: rgba(255,255,255,0.15);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgba(230, 57, 70, 0.45);
 }
 
 .itemImageWrapper {
   flex-shrink: 0;
   width: 80px;
   height: 110px;
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--surface-2);
+  border: 2.5px solid #000;
+  transform: rotate(-2deg);
 }
 
 .itemImage {
@@ -141,54 +156,63 @@
 }
 
 .itemTitle {
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.3;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.25rem;
+  letter-spacing: 1px;
+  color: #fff;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .itemUnitPrice {
-  font-size: 0.82rem;
+  font-family: 'Caveat', cursive;
+  font-size: 1.05rem;
   color: var(--muted);
 }
 
-/* ── Cantidad controls ── */
+/* ── Controles cantidad ── */
 .qtyControls {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 0.5rem;
+  margin-top: 0.4rem;
 }
 
 .qtyBtn {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--foreground);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 2.5px solid #000;
+  background: #fff;
+  color: #000;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  box-shadow: 2px 2px 0 #000;
+  transition: transform 0.1s, box-shadow 0.1s, background 0.15s;
 }
 
 .qtyBtn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+  background: #ffd60a;
+}
+
+.qtyBtn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 #000;
 }
 
 .qtyValue {
-  font-size: 0.95rem;
-  font-weight: 700;
-  min-width: 24px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.25rem;
+  min-width: 26px;
   text-align: center;
+  color: #fff;
 }
 
-/* ── Precio y eliminar (columna derecha) ── */
+/* ── Precio + eliminar ── */
 .itemRight {
   display: flex;
   flex-direction: column;
@@ -214,9 +238,11 @@
 }
 
 .itemPrice {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: var(--primary);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 1px;
+  color: #ffd60a;
+  text-shadow: 2px 2px 0 #000;
 }
 
 .itemPriceFull {
@@ -230,54 +256,57 @@
   color: var(--muted);
   cursor: pointer;
   padding: 0.3rem;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s, transform 0.15s;
 }
 
 .removeBtn:hover {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
+  color: #fff;
+  background: #e63946;
+  transform: rotate(8deg) scale(1.1);
 }
 
-/* Badges */
-.badgeStock {
+/* ── Badges (stickers rotados) ── */
+.badgeStock,
+.badgePreventa {
   display: inline-block;
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 20px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 400;
+  padding: 2px 10px;
+  border: 2px solid #000;
+  border-radius: 5px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   width: fit-content;
+  box-shadow: 2px 2px 0 #000;
+}
+
+.badgeStock {
+  background: #06d6a0;
+  color: #000;
+  transform: rotate(-3deg);
 }
 
 .badgePreventa {
-  display: inline-block;
-  background: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  width: fit-content;
+  background: #ffd60a;
+  color: #000;
+  transform: rotate(2deg);
 }
 
+/* ── Formulario ── */
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .formGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .formGroup.fullWidth {
@@ -285,27 +314,30 @@
 }
 
 .label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--muted);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #ffd60a;
 }
 
 .input {
-  padding: 0.75rem 1rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  padding: 0.8rem 1rem;
+  background: #1a1a1a;
+  border: 2.5px solid #000;
+  border-radius: 10px;
   color: var(--foreground);
   font-size: 1rem;
   font-family: var(--font-sans);
   width: 100%;
-  transition: all 0.2s;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 select.input {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffd60a' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 2.5rem;
@@ -316,115 +348,296 @@ select.input option {
   color: var(--foreground);
 }
 
-.input:focus, .input:focus-visible {
+.input:focus,
+.input:focus-visible {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.2);
+  border-color: #e63946;
+  box-shadow: 3px 3px 0 #e63946;
 }
 
+/* ── Botones cómic ── */
 .btnPrimary {
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius);
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 2px;
+  background: #e63946;
+  color: #fff;
+  border: 3px solid #000;
+  border-radius: 10px;
+  padding: 0.7rem 2rem;
   cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
-  margin-top: 1rem;
+  box-shadow: 4px 4px 0 #000;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .btnPrimary:hover {
-  background: var(--primary-dark);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
+}
+
+.btnPrimary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #000;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 4px 4px 0 #000;
 }
 
 .btnSecondary {
-  background: transparent;
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 1.5px;
+  background: #fff;
+  color: #000;
+  border: 3px solid #000;
+  border-radius: 10px;
+  padding: 0.65rem 1.4rem;
   cursor: pointer;
-  transition: all 0.2s;
+  box-shadow: 4px 4px 0 #000;
   width: fit-content;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s;
 }
 
 .btnSecondary:hover {
-  background: var(--surface-2);
+  background: #ffd60a;
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 #000;
 }
 
+.btnSecondary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 #000;
+}
+
+.btnSecondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Resumen del pedido ── */
 .summaryTitle {
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 800;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem;
+  letter-spacing: 2px;
+  color: #fff;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 3px dashed rgba(255, 255, 255, 0.2);
+  text-shadow: 2px 2px 0 #e63946;
 }
 
 .summaryRow {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 1rem;
-  color: var(--muted);
+  margin-bottom: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.95rem;
 }
 
 .summaryRow.totalNow {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--foreground);
-  border-top: 1px solid var(--border);
-  padding-top: 1.5rem;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+  color: #fff;
+  border-top: 3px solid #000;
+  padding-top: 1.2rem;
   margin-top: 0.5rem;
+  align-items: center;
 }
 
 .summaryRow.totalLater {
   color: #f59e0b;
   font-weight: 700;
   margin-top: 1rem;
-  padding: 1rem;
+  padding: 0.9rem;
   background: rgba(245, 158, 11, 0.1);
-  border-radius: var(--radius);
+  border: 2px dashed rgba(245, 158, 11, 0.5);
+  border-radius: 10px;
 }
 
+/* ── Acciones (volver / continuar) ── */
 .checkoutActions {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
   margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
+  padding-top: 1.75rem;
+  border-top: 3px dashed rgba(255, 255, 255, 0.15);
+  flex-wrap: wrap;
 }
 
-.creditSection {
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
-}
-
-.creditHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.creditBalance {
-  color: #10b981;
-  font-weight: 700;
-}
-
+/* ── Pago: panel cómic ── */
 .paymentContainer {
-  background: var(--surface-2);
+  background: #141414;
+  padding: 1.75rem;
+  border-radius: 16px;
+  border: 3px solid #000;
+  box-shadow: 5px 5px 0 rgba(230, 57, 70, 0.4);
+}
+
+/* ── Guardar tarjeta ── */
+.saveCardLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--foreground);
+  line-height: 1.4;
+}
+
+.saveCardCheck {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: #e63946;
+  cursor: pointer;
+}
+
+.saveCardSafe {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* ===========================
+   STEP 3 — Opciones de envío (paquetería)
+=========================== */
+.shipList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.shipOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  background: #141414;
+  border: 3px solid #000;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+  box-shadow: 4px 4px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.shipOption:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgba(255, 214, 10, 0.4);
+}
+
+.shipOptionSelected {
+  background: rgba(230, 57, 70, 0.1);
+  box-shadow: 5px 5px 0 #e63946;
+  transform: rotate(-0.6deg);
+}
+
+.shipLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.shipRadio {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 3px solid #000;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shipRadioOn {
+  background: #ffd60a;
+}
+
+.shipRadioDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e63946;
+}
+
+.shipName {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+.shipService {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 2px;
+  text-transform: capitalize;
+}
+
+.shipPrice {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  color: #ffd60a;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.shipOptionSelected .shipPrice {
+  color: #fff;
+}
+
+.shipLoading {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--muted);
+}
+
+.shipSpinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #e63946;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+.shipEmpty {
+  text-align: center;
   padding: 2rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+  color: var(--muted);
+  background: #141414;
+  border: 3px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+}
+
+/* ── Mensaje de error tipo sticker ── */
+.fieldError {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #e63946;
+  border: 2.5px solid #000;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  margin-top: 0.75rem;
+  box-shadow: 3px 3px 0 #000;
+  transform: rotate(-0.5deg);
 }
 
 /* ── Success screen ── */
@@ -444,51 +657,55 @@ select.input option {
 }
 
 .checkmarkWrapper {
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   flex-shrink: 0;
   border-radius: 50%;
-  border: 2.5px solid #10b981;
-  background: rgba(16,185,129,0.08);
+  border: 3px solid #000;
+  background: #06d6a0;
+  box-shadow: 4px 4px 0 #000;
   display: flex;
   align-items: center;
   justify-content: center;
+  transform: rotate(-5deg);
 }
 
 .checkmarkSvg {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
 }
 
 .successTitle {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: var(--foreground);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(2.2rem, 6vw, 3rem);
+  letter-spacing: 1.5px;
+  color: #fff;
   margin-bottom: 0.3rem;
+  text-shadow: 3px 3px 0 #e63946;
+  transform: rotate(-1deg);
 }
 
 .successSubtitle {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--muted);
   line-height: 1.5;
 }
 
-/* ── Progress card ── */
+/* ── Tarjeta de progreso del pedido ── */
 .progressCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: #141414;
+  border: 3px solid #000;
   border-radius: 16px;
   padding: 1.75rem;
+  box-shadow: 5px 5px 0 rgba(230, 57, 70, 0.4);
 }
 
 .progressCardTitle {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #ffd60a;
   margin-bottom: 1.75rem;
 }
 
@@ -503,47 +720,51 @@ select.input option {
   flex-direction: column;
 }
 
-.progressStep {
+/* OJO: .progressStep se reusa del indicador superior; aquí lo neutralizamos */
+.progressTrack .progressStep {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 0.5rem 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .progressBubble {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   flex-shrink: 0;
-  border: 2px solid;
+  border: 3px solid #000;
   transition: all 0.3s;
 }
 
 .progressDone .progressBubble {
-  background: rgba(16,185,129,0.12);
-  border-color: #10b981;
+  background: #06d6a0;
+  box-shadow: 3px 3px 0 #000;
 }
 
 .progressActive .progressBubble {
-  background: rgba(230,57,70,0.1);
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(230,57,70,0.12);
-  animation: activePulse 2s infinite;
+  background: #ffd60a;
+  box-shadow: 3px 3px 0 #000;
+  animation: activePulse 1.6s infinite;
 }
 
 .progressPending .progressBubble {
-  background: rgba(255,255,255,0.03);
-  border-color: var(--border);
-  opacity: 0.45;
+  background: #1a1a1a;
+  border-color: #2e2e2e;
+  opacity: 0.5;
 }
 
 @keyframes activePulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(230,57,70,0.12); }
-  50%       { box-shadow: 0 0 0 8px rgba(230,57,70,0.05); }
+  0%, 100% { transform: rotate(-3deg) scale(1); }
+  50%       { transform: rotate(3deg) scale(1.08); }
 }
 
 .progressInfo {
@@ -553,9 +774,10 @@ select.input option {
 }
 
 .progressLabel {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--foreground);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+  color: #fff;
 }
 
 .progressPending .progressLabel {
@@ -563,48 +785,35 @@ select.input option {
 }
 
 .progressDesc {
-  font-size: 0.8rem;
+  font-family: 'Caveat', cursive;
+  font-size: 1rem;
   color: var(--muted);
 }
 
 .progressLine {
-  width: 2px;
-  height: 28px;
-  background: var(--border);
-  margin-left: 20px;
+  width: 3px;
+  height: 26px;
+  background: #2e2e2e;
+  margin-left: 21px;
 }
 
 .progressLineDone {
-  background: #10b981;
+  background: #06d6a0;
 }
 
-/* ── Botones ── */
 .successActions {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
 }
 
-.btnSecondary {
+.successActions .btnSecondary,
+.successActions .btnPrimary {
   flex: 1;
-  padding: 0.85rem 1.5rem;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--foreground);
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  transition: all 0.2s;
+  text-align: center;
 }
 
-.btnSecondary:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-/* ── Tarjetas guardadas ───────────────────────────── */
+/* ── Tarjetas guardadas ── */
 .savedCardsSection {
   display: flex;
   flex-direction: column;
@@ -613,17 +822,17 @@ select.input option {
 }
 
 .savedCardsTitle {
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #ffd60a;
 }
 
 .savedCardsList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .savedCard {
@@ -631,19 +840,24 @@ select.input option {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border-radius: 12px;
+  border: 3px solid #000;
+  background: #1a1a1a;
   cursor: pointer;
-  transition: all 0.2s;
+  box-shadow: 3px 3px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.12s, box-shadow 0.12s;
   position: relative;
 }
 
-.savedCard:hover { border-color: rgba(230,57,70,0.4); }
+.savedCard:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 rgba(230, 57, 70, 0.4);
+}
 
 .savedCardSelected {
-  border-color: var(--primary) !important;
-  background: rgba(230,57,70,0.06);
+  background: rgba(230, 57, 70, 0.1);
+  box-shadow: 4px 4px 0 #e63946 !important;
+  transform: rotate(-0.8deg);
 }
 
 .savedCardBrand {
@@ -654,8 +868,8 @@ select.input option {
 }
 
 .savedCardBrandName {
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.85rem;
   color: var(--muted);
   letter-spacing: 1px;
 }
@@ -675,7 +889,7 @@ select.input option {
 }
 
 .savedCardCheck {
-  color: var(--primary);
+  color: #e63946;
   display: flex;
   align-items: center;
   flex-shrink: 0;
@@ -694,38 +908,42 @@ select.input option {
   transition: all 0.2s;
   flex-shrink: 0;
 }
-.savedCardDelete:hover { opacity: 1; color: #ef4444; }
+
+.savedCardDelete:hover { opacity: 1; color: #e63946; transform: rotate(8deg); }
 
 .useNewCardBtn {
   background: none;
-  border: 1px dashed var(--border);
+  border: 2.5px dashed rgba(255, 255, 255, 0.25);
   color: var(--muted);
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 0.82rem;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
   cursor: pointer;
   width: 100%;
   text-align: center;
   transition: all 0.2s;
 }
-.useNewCardBtn:hover { border-color: var(--primary); color: var(--primary); }
 
-/* ── Cupones ──────────────────────────────────────── */
+.useNewCardBtn:hover { border-color: #e63946; color: #e63946; }
+
+/* ── Cupones ── */
 .couponSection {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 16px 0;
-  border-top: 1px solid var(--border);
+  border-top: 3px dashed rgba(255, 255, 255, 0.2);
   margin-top: 8px;
 }
 
 .couponLabel {
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #ffd60a;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -736,16 +954,16 @@ select.input option {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(6, 214, 160, 0.12);
+  border: 2.5px solid #06d6a0;
   border-radius: 10px;
   padding: 8px 12px;
 }
 
 .couponCode {
-  font-weight: 800;
-  font-size: 0.85rem;
-  color: #10b981;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  color: #06d6a0;
   flex: 1;
   letter-spacing: 1px;
 }
@@ -753,13 +971,13 @@ select.input option {
 .couponAmount {
   font-size: 0.85rem;
   font-weight: 700;
-  color: #10b981;
+  color: #06d6a0;
 }
 
 .couponRemove {
   background: none;
   border: none;
-  color: #10b981;
+  color: #06d6a0;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -782,34 +1000,37 @@ select.input option {
   text-transform: uppercase;
 }
 
-.inputError  { border-color: #ef4444 !important; }
-.inputSuccess { border-color: #10b981 !important; }
+.inputError  { border-color: #e63946 !important; box-shadow: 2px 2px 0 #e63946 !important; }
+.inputSuccess { border-color: #06d6a0 !important; box-shadow: 2px 2px 0 #06d6a0 !important; }
 
 .couponBtn {
   padding: 0 20px;
-  height: 44px;
+  height: 46px;
   border-radius: 10px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--foreground);
-  font-weight: 700;
-  font-size: 0.85rem;
+  background: #fff;
+  border: 2.5px solid #000;
+  color: #000;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 1px;
   cursor: pointer;
   white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: all 0.2s;
+  box-shadow: 3px 3px 0 #000;
+  transition: transform 0.12s, box-shadow 0.12s, background 0.15s;
   flex-shrink: 0;
 }
-.couponBtn:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); }
+.couponBtn:hover:not(:disabled) { background: #ffd60a; transform: translate(-1px,-1px); box-shadow: 4px 4px 0 #000; }
+.couponBtn:active:not(:disabled) { transform: translate(2px,2px); box-shadow: 1px 1px 0 #000; }
 .couponBtn:disabled { opacity: 0.4; cursor: default; }
 
 .couponSpinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white;
+  border: 2px solid rgba(0,0,0,0.3);
+  border-top-color: #000;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   display: inline-block;
@@ -822,7 +1043,7 @@ select.input option {
   margin-top: 2px;
 }
 
-/* ── Saldo de tienda (toggle card) ──────────────── */
+/* ── Saldo de tienda (toggle card) ── */
 .creditCard {
   display: flex;
   align-items: center;
@@ -830,16 +1051,18 @@ select.input option {
   gap: 12px;
   padding: 14px 16px;
   border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border: 3px solid #000;
+  background: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  box-shadow: 3px 3px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.12s, box-shadow 0.12s;
   margin-top: 4px;
 }
 
 .creditCardActive {
-  border-color: rgba(16, 185, 129, 0.5);
-  background: rgba(16, 185, 129, 0.06);
+  background: rgba(6, 214, 160, 0.1);
+  box-shadow: 4px 4px 0 #06d6a0;
+  transform: rotate(-0.6deg);
 }
 
 .creditCardLeft {
@@ -849,11 +1072,11 @@ select.input option {
 }
 
 .creditIcon {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2.5px solid #000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -861,42 +1084,60 @@ select.input option {
   transition: all 0.2s;
   flex-shrink: 0;
 }
-.creditIconActive { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.4); color: #10b981; }
+.creditIconActive { background: #06d6a0; color: #000; }
 
-.creditCardTitle { font-weight: 700; font-size: 0.9rem; }
+.creditCardTitle { font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; letter-spacing: 0.5px; color: #fff; }
 .creditCardSub   { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
 
-/* Toggle switch */
 .creditToggle {
-  width: 44px;
-  height: 24px;
-  border-radius: 12px;
-  background: var(--border);
+  width: 46px;
+  height: 26px;
+  border-radius: 13px;
+  background: #2e2e2e;
+  border: 2px solid #000;
   position: relative;
   flex-shrink: 0;
   transition: background 0.25s;
 }
-.creditToggleOn { background: #10b981; }
+.creditToggleOn { background: #06d6a0; }
 
 .creditToggleThumb {
   position: absolute;
-  top: 3px;
-  left: 3px;
+  top: 2px;
+  left: 2px;
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: white;
+  background: #fff;
+  border: 1.5px solid #000;
   transition: transform 0.25s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 .creditToggleOn .creditToggleThumb { transform: translateX(20px); }
 
+/* ── Responsive ── */
 @media (max-width: 900px) {
   .checkoutContainer {
     grid-template-columns: 1fr;
-    padding: 2rem 1rem;
+    padding: 2rem 1rem 4rem;
+  }
+  .summaryColumn {
+    position: static;
+    transform: none;
   }
   .formGrid {
     grid-template-columns: 1fr;
   }
+  .checkoutActions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .checkoutActions .btnPrimary,
+  .checkoutActions .btnSecondary {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressActive .progressBubble { animation: none; }
 }

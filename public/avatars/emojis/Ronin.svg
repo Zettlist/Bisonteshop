@@ -1,0 +1,9 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ronin">
+  <rect x="0" y="0" width="200" height="200" rx="34" fill="#101418"/>
+  <rect x="6" y="6" width="188" height="188" rx="28" fill="none" stroke="#0a0a0a" stroke-width="4" opacity="0.35"/>
+  
+  <circle cx="100" cy="108" r="56" fill="#ffcf4d" stroke="#0a0a0a" stroke-width="6"/>
+  <circle cx="80" cy="95" r="8" fill="#0a0a0a"/><circle cx="120" cy="95" r="8" fill="#0a0a0a"/>
+  <path d="M74 118 q26 26 52 0" fill="none" stroke="#0a0a0a" stroke-width="6" stroke-linecap="round"/><path d="M84 132 q16 10 32 0" fill="#e63946"/>
+  <circle cx="64" cy="116" r="9" fill="#e63946" opacity="0.5"/><circle cx="136" cy="116" r="9" fill="#e63946" opacity="0.5"/>
+</svg>

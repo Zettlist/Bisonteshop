@@ -1,77 +1,86 @@
+/* Mis Pedidos — estética zine/manga */
+
 .container {
     max-width: 900px;
 }
 
 .header {
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
 }
 
 .title {
-    font-family: var(--font-display);
-    font-size: 2.5rem;
-    color: var(--primary);
-    letter-spacing: 1px;
-    margin-bottom: 0.5rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.4rem, 5vw, 3.2rem);
+    letter-spacing: 3px;
+    color: #ffd60a;
+    line-height: 1;
+    margin-bottom: 0.35rem;
 }
 
 .subtitle {
-    color: var(--muted);
-    font-size: 1rem;
+    font-family: 'Caveat', cursive;
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.6);
+    transform: rotate(-1deg);
+    display: inline-block;
 }
 
+/* ── Tabs estilo sticker ── */
 .tabsContainer {
     display: flex;
-    gap: 1rem;
-    border-bottom: 1px solid var(--border);
+    gap: 0.75rem;
     margin-bottom: 2rem;
+    flex-wrap: wrap;
 }
 
 .tab {
-    background: transparent;
-    border: none;
-    color: var(--muted);
-    font-size: 1.1rem;
-    font-weight: 600;
-    padding: 1rem 1.5rem;
+    background: #141414;
+    border: 2.5px solid #000;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 1.5px;
+    padding: 0.55rem 1.2rem;
     cursor: pointer;
-    position: relative;
-    transition: color var(--transition);
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, color 0.15s ease;
 }
 
 .tab:hover {
-    color: var(--foreground);
+    color: #ffd60a;
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
 }
 
 .tab.active {
-    color: var(--foreground);
+    background: #e63946;
+    color: #fff;
+    transform: rotate(-1deg);
 }
 
-.tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: var(--primary);
-    border-radius: 3px 3px 0 0;
-}
+.tab.active::after { content: none; }
 
 .tabBadge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface-2);
-    color: var(--foreground);
-    border-radius: 12px;
+    background: #000;
+    color: #ffd60a;
+    border-radius: 6px;
     padding: 0.1rem 0.5rem;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     margin-left: 0.5rem;
 }
 
 .tab.active .tabBadge {
-    background: var(--primary);
-    color: white;
+    background: #000;
+    color: #fff;
+}
+
+.tabBadgeAlert {
+    background: #ffd60a !important;
+    color: #1a1a1a !important;
 }
 
 .orderList {
@@ -83,28 +92,34 @@
 .emptyState {
     text-align: center;
     padding: 4rem 2rem;
-    background: var(--surface);
-    border-radius: var(--radius);
-    border: 1px dashed var(--border);
-    color: var(--muted);
+    background: #141414;
+    border-radius: 16px;
+    border: 3px dashed rgba(255, 214, 10, 0.45);
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .emptyState p {
     margin-bottom: 1.5rem;
-    font-size: 1.1rem;
+    font-family: 'Caveat', cursive;
+    font-size: 1.35rem;
 }
 
 .shopBtn {
     display: inline-block;
-    background: var(--primary);
-    color: white;
+    background: #e63946;
+    color: #fff;
     text-decoration: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 4px;
-    font-weight: 600;
-    transition: background var(--transition);
+    padding: 0.7rem 1.5rem;
+    border: 2.5px solid #000;
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 2px;
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .shopBtn:hover {
-    background: var(--primary-dark);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
 }

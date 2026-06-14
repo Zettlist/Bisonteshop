@@ -7,15 +7,17 @@
 
 /* ── Accordion section ──────────────────────────────── */
 .section {
-    border: 1px solid var(--border);
+    border: 3px solid #000;
     border-radius: 14px;
     overflow: hidden;
-    background: var(--surface);
-    transition: border-color 0.2s;
+    background: #141414;
+    box-shadow: 4px 4px 0 #000;
+    transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .section:hover {
-    border-color: rgba(230, 57, 70, 0.2);
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 rgba(230, 57, 70, 0.55);
 }
 
 .sectionHeader {
@@ -47,11 +49,13 @@
 }
 
 .sectionIcon {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 8px;
-    background: rgba(230, 57, 70, 0.1);
-    color: var(--primary);
+    background: #e63946;
+    color: #fff;
+    border: 2px solid #000;
+    box-shadow: 2px 2px 0 #000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -59,8 +63,9 @@
 }
 
 .sectionTitle {
-    font-size: 0.95rem;
-    font-weight: 700;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 1.5px;
 }
 
 .chevron {
@@ -80,10 +85,11 @@
 
 /* ── Hint text ──────────────────────────────────────── */
 .hint {
-    font-size: 0.84rem;
-    color: var(--muted);
+    font-family: 'Caveat', cursive;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.6);
     margin-bottom: 1.25rem;
-    line-height: 1.5;
+    line-height: 1.4;
 }
 
 /* ── Avatar category tabs ───────────────────────────── */
@@ -95,27 +101,29 @@
 }
 
 .categoryTab {
-    padding: 0.4rem 1rem;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--muted);
-    font-size: 0.82rem;
-    font-weight: 600;
+    padding: 0.35rem 1rem;
+    border-radius: 8px;
+    border: 2px solid #000;
+    background: #1d1d1d;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 1.5px;
     cursor: pointer;
-    font-family: var(--font-sans);
-    transition: all 0.18s;
+    box-shadow: 2px 2px 0 #000;
+    transition: all 0.15s ease;
 }
 
 .categoryTab:hover {
-    border-color: rgba(230, 57, 70, 0.3);
-    color: var(--foreground);
+    color: #ffd60a;
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 #000;
 }
 
 .categoryTabActive {
-    background: rgba(230, 57, 70, 0.1);
-    border-color: var(--primary);
-    color: var(--primary);
+    background: #e63946;
+    color: #fff;
+    transform: rotate(-1deg);
 }
 
 /* ── Avatar grid ────────────────────────────────────── */
@@ -189,22 +197,23 @@
 }
 
 .label {
-    font-size: 0.75rem;
-    color: var(--muted);
-    font-weight: 700;
-    letter-spacing: 0.8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    letter-spacing: 1.5px;
     text-transform: uppercase;
 }
 
 .input {
-    padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border);
-    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    background: #1d1d1d;
+    border: 2.5px solid #000;
+    border-radius: 8px;
     color: var(--foreground);
     font-size: 0.95rem;
     font-family: var(--font-sans);
     width: 100%;
+    box-shadow: 3px 3px 0 #000;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -214,8 +223,8 @@
 
 .input:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.12);
+    border-color: #e63946;
+    box-shadow: 3px 3px 0 rgba(230, 57, 70, 0.6);
 }
 
 .input:disabled {
@@ -232,25 +241,121 @@ select.input {
     padding-right: 2.5rem;
 }
 
+/* ── Custom Select ──────────────────────────────────── */
+.customSelect {
+    position: relative;
+    width: 100%;
+}
+
+.customSelectTrigger {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-family: var(--font-sans);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    text-align: left;
+    gap: 0.5rem;
+}
+
+[data-theme='light'] .customSelectTrigger {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.customSelectTrigger:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.12);
+}
+
+.customSelectValue {
+    color: var(--foreground);
+    flex: 1;
+}
+
+.customSelectPlaceholder {
+    color: var(--muted);
+    flex: 1;
+}
+
+.customSelectChevron {
+    color: var(--muted);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.customSelectChevronOpen {
+    transform: rotate(180deg);
+}
+
+.customSelectDropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    z-index: 50;
+    overflow-y: auto;
+    max-height: 240px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.customSelectOption {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: transparent;
+    border: none;
+    color: var(--foreground);
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background 0.15s;
+}
+
+.customSelectOption:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='light'] .customSelectOption:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.customSelectOptionActive {
+    color: var(--primary);
+    background: rgba(230, 57, 70, 0.07);
+}
+
 /* ── Primary button ─────────────────────────────────── */
 .btnPrimary {
-    background: var(--primary);
+    background: #e63946;
     color: white;
-    border: none;
-    padding: 0.7rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.88rem;
+    border: 2.5px solid #000;
+    padding: 0.65rem 1.5rem;
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 2px;
     cursor: pointer;
-    transition: all 0.2s;
-    font-family: var(--font-sans);
-    letter-spacing: 0.5px;
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .btnPrimary:hover:not(:disabled) {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px var(--primary-glow);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
 }
 
 .btnPrimary:disabled {
@@ -298,6 +403,80 @@ select.input {
     font-size: 0.84rem;
     max-width: 360px;
     line-height: 1.5;
+}
+
+/* ── Payment cards ──────────────────────────────────── */
+.cardList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.cardItem {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    background: rgba(255,255,255,0.02);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    transition: border-color 0.2s;
+}
+
+.cardItem:hover {
+    border-color: rgba(230,57,70,0.2);
+}
+
+.cardLeft {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.cardBrand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--foreground);
+    min-width: 52px;
+    text-align: center;
+}
+
+[data-theme='light'] .cardBrand {
+    background: rgba(0,0,0,0.05);
+}
+
+.cardBrandVisa    { color: #1a1f71; background: #e8eaf6; border-color: #9fa8da; }
+.cardBrandMaster  { color: #eb001b; background: #fff0f0; border-color: #f48fb1; }
+.cardBrandAmex    { color: #006fcf; background: #e3f0fb; border-color: #90caf9; }
+
+.cardInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.cardNumber {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--foreground);
+    letter-spacing: 1px;
+    font-family: monospace;
+}
+
+.cardExpiry {
+    font-size: 0.78rem;
+    color: var(--muted);
 }
 
 /* ── Toggle list ────────────────────────────────────── */
@@ -352,8 +531,8 @@ select.input {
 }
 
 .toggleOn {
-    background: var(--primary) !important;
-    border-color: var(--primary) !important;
+    background: #e63946 !important;
+    border-color: #000 !important;
 }
 
 .toggleThumb {
@@ -370,6 +549,143 @@ select.input {
 
 .toggleOn .toggleThumb {
     transform: translateX(20px);
+}
+
+/* ── Address cards ──────────────────────────────────── */
+.addressList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.addressCard {
+    border: 2.5px solid #000;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    background: #1d1d1d;
+    box-shadow: 3px 3px 0 #000;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.addressCard:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 rgba(230, 57, 70, 0.55);
+}
+
+.addressCardDefault {
+    box-shadow: 3px 3px 0 rgba(255, 214, 10, 0.5) !important;
+    background: rgba(255, 214, 10, 0.05) !important;
+}
+
+.addressCardBody {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.addressCardBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--primary);
+    background: rgba(230,57,70,0.1);
+    border: 1px solid rgba(230,57,70,0.25);
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    margin-bottom: 0.35rem;
+    width: fit-content;
+}
+
+.addressCardLine {
+    font-size: 0.9rem;
+    color: var(--foreground);
+    font-weight: 600;
+    margin: 0;
+}
+
+.addressCardSub {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin: 0;
+}
+
+.addressCardActions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.addressActionBtn {
+    padding: 0.35rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.addressActionBtn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: rgba(230,57,70,0.06);
+}
+
+.addressActionBtnDanger:hover {
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+    background: rgba(239,68,68,0.06) !important;
+}
+
+.addAddressBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 10px;
+    border: 2.5px dashed rgba(255, 214, 10, 0.5);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: all 0.18s;
+    margin-bottom: 1.25rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.addAddressBtn:hover {
+    border-color: #ffd60a;
+    color: #ffd60a;
+    background: rgba(255, 214, 10, 0.06);
+}
+
+.addressFormTitle {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin: 0 0 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
 }
 
 /* ── Responsive ─────────────────────────────────────── */

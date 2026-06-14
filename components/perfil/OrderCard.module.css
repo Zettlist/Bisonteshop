@@ -1,7 +1,8 @@
 .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    background: #141414;
+    border: 3px solid #000;
+    border-radius: 16px;
+    box-shadow: 5px 5px 0 #000;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
@@ -10,23 +11,23 @@
 }
 
 .card:hover {
-    border-color: rgba(255, 255, 255, 0.15);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transform: translate(-2px, -2px);
+    box-shadow: 7px 7px 0 rgba(230, 57, 70, 0.55);
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 2px dashed rgba(255, 255, 255, 0.12);
     padding-bottom: 1rem;
 }
 
 .orderId {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--primary);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 1.5px;
+    color: #ffd60a;
 }
 
 .date {
@@ -36,11 +37,14 @@
 
 .statusBadge {
     padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
+    border-radius: 6px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    border: 2px solid #000 !important;
+    box-shadow: 2px 2px 0 #000;
+    transform: rotate(-1deg);
 }
 
 /* Status colors map */
@@ -60,6 +64,12 @@
     background: rgba(239, 68, 68, 0.15);
     color: #ef4444;
     border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status_reclamo {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+    border: 1px solid rgba(249, 115, 22, 0.3);
 }
 
 .status_produccion {
@@ -548,6 +558,201 @@
     width: 22px;
     border-radius: 4px;
     background: var(--primary);
+}
+
+/* ── Tracking ───────────────────────────────────────────── */
+.trackingCard {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.trackingBox {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+}
+
+.trackingLabel {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.trackingNumber {
+    font-size: 1.1rem;
+    font-weight: 900;
+    font-family: monospace;
+    color: var(--foreground);
+    letter-spacing: 1px;
+    word-break: break-all;
+}
+
+.trackingBtn {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    text-decoration: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    transition: opacity 0.2s;
+    margin-top: 4px;
+}
+.trackingBtn:hover { opacity: 0.85; }
+
+.trackingHint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+/* ── Reclamo ───────────────────────────────────────────── */
+.claimSection {
+    margin-top: 4px;
+}
+
+.claimBtn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    background: transparent;
+    border: 1px dashed rgba(249,115,22,0.4);
+    color: #f97316;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.claimBtn:hover {
+    background: rgba(249,115,22,0.08);
+    border-color: #f97316;
+}
+
+.claimForm {
+    background: var(--surface);
+    border: 1px solid rgba(249,115,22,0.3);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.claimFormTitle {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #f97316;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.claimSelect {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--foreground);
+    font-size: 0.82rem;
+    padding: 8px 10px;
+    cursor: pointer;
+    outline: none;
+}
+.claimSelect:focus { border-color: #f97316; }
+
+.claimTextarea {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--foreground);
+    font-size: 0.82rem;
+    padding: 8px 10px;
+    resize: vertical;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.claimTextarea:focus { border-color: #f97316; }
+
+.claimError {
+    font-size: 0.78rem;
+    color: #ef4444;
+    margin: 0;
+}
+
+.claimActions {
+    display: flex;
+    gap: 8px;
+}
+
+.claimSubmitBtn {
+    flex: 1;
+    background: #f97316;
+    color: white;
+    border: none;
+    padding: 9px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.claimSubmitBtn:hover:not(:disabled) { opacity: 0.85; }
+.claimSubmitBtn:disabled { opacity: 0.5; cursor: default; }
+
+.claimCancelBtn {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 9px 14px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.claimCancelBtn:hover { background: var(--surface-2); }
+
+.claimActive {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(249,115,22,0.08);
+    border: 1px solid rgba(249,115,22,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #f97316;
+}
+
+.claimResolved {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(34,197,94,0.08);
+    border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #16a34a;
 }
 
 @media (max-width: 600px) {

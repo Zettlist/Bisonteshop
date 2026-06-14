@@ -1,0 +1,716 @@
+/* ===========================
+   Landing — estética zine/manga
+   (fusión landing + nosotros)
+=========================== */
+
+.pageWrapper {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    /* Transparente: el fondo vive en .bgLayer (z -1); un bg aquí lo taparía */
+    background: transparent;
+    /* clip, NO hidden: hidden convierte el wrapper en contenedor de scroll
+       anidado (doble scrollbar y scroll en dos tiempos) */
+    overflow-x: clip;
+    padding-top: 10px;
+}
+
+/* ---- FONDO GLOBAL ---- */
+.bgLayer {
+    position: fixed;
+    inset: 0;
+    /* z -1: detrás de TODO el contenido, incluido el footer (que es estático) */
+    z-index: -1;
+    pointer-events: none;
+    background: #0a0a0a;
+}
+
+.bgImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    filter: brightness(0.7) saturate(1.05);
+}
+
+.bgOverlay {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to bottom, rgba(10, 10, 10, 0.55) 0%, rgba(10, 10, 10, 0.2) 45%, rgba(10, 10, 10, 0.65) 100%);
+}
+
+/* Todo el contenido por encima del fondo */
+.pageWrapper > *:not(.bgLayer) {
+    position: relative;
+    z-index: 1;
+}
+
+/* Secciones reutilizadas (Categorías / Novedades) dejan ver el fondo */
+.seeThrough section {
+    background: transparent !important;
+    background-color: transparent !important;
+    padding-top: clamp(2.25rem, 4.5vw, 4rem) !important;
+    padding-bottom: clamp(2.25rem, 4.5vw, 4rem) !important;
+}
+
+/* ---- MARQUEE ---- */
+.marqueeStrip {
+    background: #e63946;
+    transform: rotate(-1.2deg) scale(1.02);
+    padding: 0.55rem 0;
+    overflow: hidden;
+    white-space: nowrap;
+    border-top: 3px solid #000;
+    border-bottom: 3px solid #000;
+    box-shadow: 0 4px 24px rgba(230, 57, 70, 0.35);
+}
+
+.marqueeBottom {
+    transform: rotate(1.2deg) scale(1.02);
+    background: #ffd60a;
+}
+
+.marqueeTrack {
+    display: inline-block;
+    animation: marquee 84s linear infinite;
+}
+
+.marqueeTrack span {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.25rem;
+    letter-spacing: 3px;
+    color: #fff;
+}
+
+.marqueeBottom .marqueeTrack span {
+    color: #000;
+}
+
+.marqueeReverse {
+    animation-direction: reverse;
+}
+
+@keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+/* ---- HERO ---- */
+.hero {
+    position: relative;
+    padding: clamp(3.25rem, 8vw, 5.5rem) 1.5rem 3.75rem;
+    text-align: center;
+    overflow: hidden;
+}
+
+.halftone {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    pointer-events: none;
+}
+
+.heroInner {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.heroLogo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.8rem;
+}
+
+.heroLogo img {
+    width: clamp(140px, 20vw, 210px);
+    height: auto;
+    filter: drop-shadow(0 6px 24px rgba(230, 57, 70, 0.45));
+    transform: rotate(-4deg);
+}
+
+.heroTextStrong {
+    color: #ffd60a;
+    font-weight: 700;
+}
+
+.handNote {
+    display: inline-block;
+    font-family: 'Caveat', cursive;
+    font-size: clamp(1.3rem, 3vw, 1.7rem);
+    color: #ffd60a;
+    transform: rotate(-3deg);
+    margin-bottom: 0.5rem;
+}
+
+.heroTitle {
+    display: flex;
+    flex-direction: column;
+    line-height: 0.92;
+    margin: 0.5rem 0 1.8rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-weight: 400;
+}
+
+.titleLine {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    color: #fff;
+    letter-spacing: 12px;
+}
+
+.titleBig {
+    font-size: clamp(4.5rem, 14vw, 11rem);
+    color: #e63946;
+    text-shadow: 4px 4px 0 #000, 8px 8px 0 rgba(255, 214, 10, 0.55);
+    transform: rotate(-1.5deg);
+}
+
+.titleOutline {
+    font-size: clamp(3.5rem, 11vw, 8.5rem);
+    color: transparent;
+    -webkit-text-stroke: 2.5px #fff;
+    transform: rotate(0.8deg);
+    letter-spacing: 6px;
+}
+
+.heroBadges {
+    display: flex;
+    justify-content: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.8rem;
+}
+
+.sticker {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 2px;
+    padding: 0.45rem 1.1rem;
+    border: 2.5px solid #000;
+    border-radius: 6px;
+    box-shadow: 3px 3px 0 #000;
+    display: inline-block;
+}
+
+.stickerRed { background: #e63946; color: #fff; transform: rotate(-3deg); }
+.stickerYellow { background: #ffd60a; color: #000; transform: rotate(2deg); }
+.stickerWhite { background: #fff; color: #000; transform: rotate(-1deg); }
+
+.heroText {
+    font-size: clamp(1.05rem, 2.3vw, 1.3rem);
+    color: rgba(255, 255, 255, 0.95);
+    max-width: 560px;
+    margin: 0 auto;
+    line-height: 1.65;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 0 3px rgba(0, 0, 0, 0.9);
+}
+
+/* ---- BOTONES DOODLE DE REDES (adaptado de Uiverse.io by mamyapro123) ---- */
+.doodleWrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.8rem;
+}
+
+.doodleContainer {
+    list-style: none;
+    margin: 0;
+    padding: 10px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    filter: url(#pencil-texture);
+}
+
+.doodleIconContent {
+    margin: 0;
+    position: relative;
+    font-family: 'Caveat', 'Comic Sans MS', cursive;
+}
+
+.doodleLink {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 49px;
+    height: 50px;
+    text-decoration: none;
+    border: 4px solid #1e1e24;
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+    box-shadow: 3px 4px 0px #1e1e24;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.linkFb { background-color: #a0c4ff; }
+.linkIg { background-color: #ffc4d9; }
+.linkTw { background-color: #caffbf; }
+.linkMail { background-color: #fdffb6; }
+
+.doodleSvg {
+    width: 28px;
+    height: 28px;
+    fill: #1e1e24;
+    transform: rotate(-5deg);
+    transition: all 0.3s ease;
+}
+
+.doodleLink:hover {
+    transform: translateY(-8px) scale(1.1);
+    box-shadow: 6px 10px 0px #1e1e24;
+    animation: childWiggle 0.3s ease-in-out infinite alternate;
+}
+
+.linkFb:hover {
+    background-color: #00bbf9;
+    border-radius: 60% 40% 40% 60% / 50% 50% 40% 60%;
+}
+.linkIg:hover {
+    background-color: #ff0a54;
+    border-radius: 50% 50% 60% 40% / 40% 60% 50% 50%;
+}
+.linkTw:hover {
+    background-color: #00f5d4;
+    border-radius: 40% 60% 50% 50% / 60% 40% 60% 40%;
+}
+.linkMail:hover {
+    background-color: #fcd22a;
+    border-radius: 70% 30% 50% 50% / 40% 60% 40% 60%;
+}
+
+.doodleLink:hover .doodleSvg {
+    fill: #ffffff;
+    filter: drop-shadow(2px 2px 0px #1e1e24) drop-shadow(-1px -1px 0px #1e1e24);
+    transform: rotate(15deg) scale(1.2);
+}
+
+@keyframes childWiggle {
+    0% { transform: translateY(-8px) scale(1.1) rotate(-4deg); }
+    100% { transform: translateY(-8px) scale(1.1) rotate(4deg); }
+}
+
+.doodleTooltip {
+    position: absolute;
+    top: 0px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-5deg);
+    padding: 8px 16px;
+    color: #1e1e24;
+    border: 4px solid #1e1e24;
+    border-radius: 255px 25px 225px 25px / 25px 225px 25px 255px;
+    box-shadow: 4px 6px 0px #1e1e24;
+    opacity: 0;
+    visibility: hidden;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: none;
+    z-index: 10;
+}
+
+.doodleTooltip::after {
+    content: '';
+    position: absolute;
+    bottom: -11px;
+    left: 50%;
+    transform: translateX(-50%) rotate(15deg) skewX(25deg);
+    width: 16px;
+    height: 16px;
+    border-bottom: 4px solid #1e1e24;
+    border-right: 4px solid #1e1e24;
+}
+
+.tooltipFb { background-color: #00bbf9; }
+.tooltipFb::after { background-color: #00bbf9; }
+.tooltipIg {
+    background-color: #ff0a54;
+    color: #ffffff;
+    text-shadow: 2px 2px 0px #1e1e24;
+}
+.tooltipIg::after { background-color: #ff0a54; }
+.tooltipTw { background-color: #00f5d4; }
+.tooltipTw::after { background-color: #00f5d4; }
+.tooltipMail { background-color: #fcd22a; }
+.tooltipMail::after { background-color: #fcd22a; }
+
+.doodleIconContent:hover .doodleTooltip {
+    opacity: 1;
+    visibility: visible;
+    top: -75px;
+    transform: translateX(-50%) rotate(3deg);
+}
+
+/* onomatopeyas */
+.sfx {
+    position: absolute;
+    font-family: 'Permanent Marker', cursive;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgba(255, 214, 10, 0.5);
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    pointer-events: none;
+    user-select: none;
+    line-height: 1;
+}
+
+.sfxLeft {
+    left: 4%;
+    top: 22%;
+    transform: rotate(-14deg);
+}
+
+.sfxRight {
+    right: 5%;
+    bottom: 14%;
+    transform: rotate(10deg);
+    -webkit-text-stroke-color: rgba(230, 57, 70, 0.55);
+}
+
+/* ---- STORY ---- */
+.story {
+    display: grid;
+    grid-template-columns: minmax(280px, 420px) 1fr;
+    gap: clamp(2rem, 5vw, 4.5rem);
+    align-items: center;
+    max-width: 1050px;
+    margin: 0 auto;
+    padding: 3.75rem 1.5rem;
+}
+
+.polaroid {
+    position: relative;
+    background: #f5f0e8;
+    padding: 0.9rem 0.9rem 0.6rem;
+    border-radius: 4px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+    /* Acotado para que el formato vertical 9:16 no crezca de más */
+    max-width: 330px;
+    justify-self: center;
+}
+
+.polaroid img {
+    width: 100%;
+    display: block;
+    border-radius: 2px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+/* Carrusel de videos dentro del polaroid */
+.carouselBox {
+    position: relative;
+}
+
+.carouselVideo {
+    width: 100%;
+    display: block;
+    border-radius: 2px;
+    /* Videos de convención grabados en vertical (9:16) */
+    aspect-ratio: 9 / 16;
+    object-fit: cover;
+    background: #111;
+}
+
+.carouselDots {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 7px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid #000;
+    background: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.dot:hover { transform: scale(1.25); }
+
+.dotActive {
+    background: #e63946;
+}
+
+.tape {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-4deg);
+    width: 110px;
+    height: 30px;
+    background: rgba(255, 214, 10, 0.75);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.polaroidCaption {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: 1.35rem;
+    color: #1a1a1a;
+    text-align: center;
+    padding: 0.5rem 0 0.3rem;
+    transform: rotate(-1deg);
+}
+
+.storyText h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 7vw, 5rem);
+    color: #fff;
+    margin: 0 0 1.2rem;
+    line-height: 1;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9);
+}
+
+.dot { color: #e63946; }
+
+.storyText p {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 1.08rem;
+    line-height: 1.75;
+    margin: 0 0 1.1rem;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 0 3px rgba(0, 0, 0, 0.9);
+}
+
+.storyText em {
+    color: #ffd60a;
+    font-style: normal;
+    font-weight: 600;
+}
+
+.storyHand {
+    font-family: 'Caveat', cursive;
+    font-size: 1.5rem !important;
+    color: #e63946 !important;
+    transform: rotate(-2deg);
+    display: inline-block;
+}
+
+/* ---- STATS ---- */
+.statsRow {
+    display: flex;
+    justify-content: center;
+    gap: clamp(3rem, 9vw, 8rem);
+    flex-wrap: wrap;
+    padding: 2.75rem 1.5rem 4.25rem;
+}
+
+.statBlock {
+    text-align: center;
+    transform: rotate(var(--r, -1deg));
+}
+
+.statBlock:nth-child(2) { --r: 1.5deg; }
+.statBlock:nth-child(3) { --r: -2deg; }
+
+.statValue {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(6rem, 14vw, 11rem);
+    line-height: 1;
+    color: #e63946;
+    text-shadow: 4px 4px 0 #000, 9px 9px 0 rgba(255, 255, 255, 0.18);
+}
+
+.statLabel {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.6rem, 3vw, 2.3rem);
+    letter-spacing: 4px;
+    color: #fff;
+    margin-top: 0.5rem;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+.statNote {
+    display: block;
+    font-family: 'Caveat', cursive;
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    color: rgba(255, 214, 10, 0.95);
+    transform: rotate(-2deg);
+    margin-top: 0.2rem;
+}
+
+/* ---- STICKER WALL ---- */
+.stickerWall {
+    max-width: 1050px;
+    margin: 0 auto;
+    padding: 2.25rem 1.5rem 3.75rem;
+    text-align: center;
+}
+
+.wallTitle {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    color: #fff;
+    margin: 0;
+    letter-spacing: 2px;
+    text-shadow: 3px 3px 0 rgba(230, 57, 70, 0.6);
+}
+
+.wallSub {
+    display: inline-block;
+    font-family: 'Caveat', cursive;
+    font-size: 1.4rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0.4rem 0 2.5rem;
+    transform: rotate(-1deg);
+}
+
+.stickerGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.8rem;
+}
+
+.stickerCard {
+    background: #141414;
+    border: 2.5px solid #2e2e2e;
+    border-radius: 18px;
+    padding: 1.8rem 1.6rem;
+    text-align: left;
+    transform: rotate(var(--rot, 0deg));
+    transition: border-color 0.25s ease;
+    box-shadow: 5px 5px 0 rgba(230, 57, 70, 0.25);
+    position: relative;
+}
+
+.stickerCard:hover {
+    border-color: #e63946;
+    box-shadow: 7px 7px 0 rgba(255, 214, 10, 0.35);
+}
+
+.stickerEmoji {
+    font-size: 2.2rem;
+    display: inline-block;
+    transform: rotate(-6deg);
+    margin-bottom: 0.6rem;
+}
+
+.stickerCard h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.55rem;
+    letter-spacing: 1px;
+    color: #ffd60a;
+    margin: 0 0 0.5rem;
+}
+
+.stickerCard p {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.98rem;
+    line-height: 1.65;
+    margin: 0;
+}
+
+/* ---- CTA ---- */
+.ctaSection {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 1.5rem 4.5rem;
+}
+
+.speechBubble {
+    position: relative;
+    background: #fff;
+    border: 3px solid #000;
+    border-radius: 24px;
+    padding: 2.2rem 2.5rem;
+    max-width: 480px;
+    text-align: center;
+    box-shadow: 8px 8px 0 #e63946;
+}
+
+.speechBubble::after {
+    content: '';
+    position: absolute;
+    bottom: -22px;
+    left: 18%;
+    width: 0;
+    height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 24px solid #000;
+}
+
+.speechBubble::before {
+    content: '';
+    position: absolute;
+    bottom: -16px;
+    left: calc(18% + 3px);
+    width: 0;
+    height: 0;
+    border-left: 11px solid transparent;
+    border-right: 11px solid transparent;
+    border-top: 20px solid #fff;
+    z-index: 1;
+}
+
+.speechBubble p {
+    color: #111;
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 1.4rem;
+    line-height: 1.5;
+}
+
+.ctaButton {
+    display: inline-block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.35rem;
+    letter-spacing: 2px;
+    background: #e63946;
+    color: #fff;
+    padding: 0.75rem 2rem;
+    border: 3px solid #000;
+    border-radius: 10px;
+    box-shadow: 4px 4px 0 #000;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ctaButton:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 #000;
+}
+
+.ctaButton:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #000;
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 860px) {
+    .story {
+        grid-template-columns: 1fr;
+        padding: 2.75rem 1.5rem;
+    }
+
+    .polaroid {
+        max-width: 380px;
+        margin: 0 auto;
+    }
+
+    .stickerGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .sfx {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .marqueeTrack {
+        animation: none;
+    }
+}

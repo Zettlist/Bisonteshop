@@ -2,6 +2,8 @@ import pool from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { NextResponse } from 'next/server';
+import { rateLimit, rateLimitReset } from '@/lib/rateLimit';
+import { isValidEmail } from '@/lib/validate';
 
 const getJwtSecretKey = () => {
     const secret = process.env.JWT_SECRET;
@@ -10,11 +12,31 @@ const getJwtSecretKey = () => {
 
 export async function POST(req) {
     try {
+        // Freno anti-fuerza bruta: 5 intentos por minuto por IP.
+        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+            || req.headers.get('x-real-ip')
+            || 'unknown';
+        const limitKey = `login:${ip}`;
+        const { allowed, retryAfter } = rateLimit(limitKey, 5, 60_000);
+        if (!allowed) {
+            return NextResponse.json(
+                { success: false, error: `Demasiados intentos. Espera ${retryAfter} segundos e intenta de nuevo.` },
+                { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+            );
+        }
+
         const { email, password } = await req.json();
 
         if (!email || !password) {
             return NextResponse.json(
                 { success: false, error: 'Por favor, ingresa correo y contraseña.' },
+                { status: 400 }
+            );
+        }
+
+        if (!isValidEmail(email.toLowerCase())) {
+            return NextResponse.json(
+                { success: false, error: 'Correo inválido.' },
                 { status: 400 }
             );
         }
@@ -62,7 +84,12 @@ export async function POST(req) {
             nombre: user.nombre,
             apellido: user.apellido,
             email: user.email,
-            client_code: user.client_code
+            client_code: user.client_code,
+            avatar: user.avatar || null,
+            telefono: user.telefono || null,
+            contacto_preferido: user.contacto_preferido || 'email',
+            fecha_nac: user.fecha_nac ? user.fecha_nac.toISOString().split('T')[0] : null,
+            sv: user.session_version ?? 1,
         };
 
         const token = await new SignJWT(tokenPayload)
@@ -70,6 +97,9 @@ export async function POST(req) {
             .setIssuedAt()
             .setExpirationTime('7d') // 1 week
             .sign(getJwtSecretKey());
+
+        // Login exitoso: limpiar el contador de intentos de esta IP.
+        rateLimitReset(limitKey);
 
         // Create response and set cookie
         const response = NextResponse.json({

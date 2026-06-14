@@ -2,27 +2,23 @@
 
 import { motion } from 'framer-motion';
 
+// Solo opacidad: transform/filter en este wrapper rompen position:fixed
+// de los hijos (fondo del landing) y causan glitch de zoom al cargar.
 const pageVariants = {
     hidden: {
         opacity: 0,
-        y: 18,
-        filter: 'blur(4px)',
     },
     visible: {
         opacity: 1,
-        y: 0,
-        filter: 'blur(0px)',
         transition: {
-            duration: 0.45,
+            duration: 0.4,
             ease: [0.22, 1, 0.36, 1],
         },
     },
     exit: {
         opacity: 0,
-        y: -12,
-        filter: 'blur(4px)',
         transition: {
-            duration: 0.25,
+            duration: 0.2,
             ease: 'easeIn',
         },
     },

@@ -99,10 +99,6 @@ export default function Hero() {
                 </motion.div>
             </div>
 
-            <div className={styles.scrollIndicator}>
-                <span>↓</span>
-                <span>Scroll</span>
-            </div>
         </section>
     );
 }

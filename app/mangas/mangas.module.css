@@ -6,7 +6,7 @@
 }
 
 .container {
-    max-width: 78%;
+    max-width: 96%;
     margin: 0 auto;
     padding: 0;
 }
@@ -69,82 +69,128 @@
 }
 
 .sidebar {
-    width: 200px;
+    width: 240px;
     flex-shrink: 0;
     position: sticky;
     top: calc(var(--navbar-height, 70px) + 46px);
     align-self: flex-start;
     max-height: calc(100vh - var(--navbar-height, 70px) - 46px);
     overflow-y: auto;
-    border-right: 1px solid var(--border);
-    padding: 1rem 1rem 1rem 0;
+    padding: 0.75rem 0.75rem 1rem 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
 }
 
 .filterGroup {
     margin-bottom: 0;
     background: transparent;
-    padding: 0.75rem 0;
+    padding: 0;
     border-radius: 0;
     border: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
+/* Título principal "FILTROS" */
 .filterTitle {
-    font-weight: 700;
-    font-size: 0.9rem;
+    font-weight: 800;
+    font-size: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 2.5px;
     color: var(--foreground);
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    padding: 0 0.5rem;
+}
+
+/* Sección individual — tarjeta con fondo */
+.filterSection {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 0.75rem 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Label de sección (CATEGORÍA, IDIOMA...) */
+.filterSectionLabel {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 0.15rem;
 }
 
 .filterList {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    max-height: 250px;
+    gap: 0.15rem;
+    max-height: 220px;
     overflow-y: auto;
-    padding-right: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.08) transparent;
 }
 
 .filterBtn {
     text-align: left;
     background: transparent;
     border: none;
-    color: var(--muted);
-    font-size: 0.95rem;
-    padding: 0.5rem;
-    border-radius: 4px;
+    border-left: 2px solid transparent;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.88rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 0 6px 6px 0;
     cursor: pointer;
-    transition: all var(--transition);
+    transition: all 0.18s ease;
+    width: 100%;
 }
 
 .filterBtn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--foreground);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.85);
+    border-left-color: rgba(255, 255, 255, 0.2);
 }
 
 .filterBtn[data-active="true"] {
     color: var(--primary);
-    background: rgba(230, 57, 70, 0.1);
+    background: rgba(230, 57, 70, 0.12);
+    border-left-color: var(--primary);
     font-weight: 600;
 }
 
 .select {
     width: 100%;
-    padding: 0.8rem;
-    background: var(--background);
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    padding: 0.6rem 0.75rem;
+    background: #1a1a2e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 7px;
+    color-scheme: dark;
     color: var(--foreground);
+    font-size: 0.88rem;
     cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.select:focus {
+    border-color: rgba(255, 255, 255, 0.25);
+    outline: none;
+}
+
+.select option {
+    background: #1a1a2e;
+    color: #e0e0e0;
 }
 
 .content {
     flex: 1;
-    padding: 0.75rem 0.75rem 2rem 1rem;
+    padding: 0.75rem 0 2rem 1rem;
     min-width: 0;
 }
 
@@ -174,10 +220,7 @@
 }
 
 .sectionDivider {
-    width: 100%;
-    height: 1px;
-    background: var(--border);
-    margin: 1.5rem 0;
+    display: none;
 }
 
 .tagChips {
@@ -214,12 +257,38 @@
     border-color: var(--primary);
 }
 
+@keyframes filterBarIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+        max-height: 0;
+        margin-bottom: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 200px;
+        margin-bottom: 1.25rem;
+        padding-top: 0.6rem;
+        padding-bottom: 0.6rem;
+    }
+}
+
 .activeFiltersBar {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+    margin-top: 0.25rem;
     align-items: center;
+    padding: 0.6rem 0.75rem;
+    background: rgba(230, 57, 70, 0.06);
+    border: 1px solid rgba(230, 57, 70, 0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    animation: filterBarIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .activeFilterChip {
@@ -227,6 +296,7 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.3rem 0.7rem;
+    animation: filterBarIn 0.25s ease forwards;
     border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 600;
@@ -350,7 +420,190 @@
     animation-delay: 0.65s;
 }
 
-/* Toggle Switch Styles */
+/* ── Botón "Filtros" — solo visible en mobile ── */
+.filterToggleBtn {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.filterBadge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    position: absolute;
+    top: 6px;
+    right: 6px;
+}
+
+/* ── Header sidebar mobile (X cerrar) ── */
+.sidebarMobileHeader {
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem 0.75rem 0;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebarCloseBtn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.3rem;
+    display: flex;
+    align-items: center;
+}
+
+.filterTitleDesktop {
+    /* visible en desktop */
+}
+
+/* ── Animaciones sheet ── */
+@keyframes sheetSlideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+
+@keyframes sheetSlideDown {
+    from { transform: translateY(0); }
+    to   { transform: translateY(100%); }
+}
+
+@keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes overlayFadeOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+/* ── Overlay filtros mobile ── */
+.filterOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 1100;
+    animation: overlayFadeIn 0.22s ease forwards;
+}
+
+/* ── Mobile filter bottom sheet ── */
+.mobileSheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-height: 200px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: #1a1a1a;
+    background: var(--surface, #1a1a1a);
+    border-top: 1px solid var(--border, #333);
+    border-radius: 16px 16px 0 0;
+    padding: 0 1rem 2rem;
+    z-index: 1200;
+    animation: sheetSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.mobileSheetOut {
+    animation: sheetSlideDown 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.filterOverlayOut {
+    animation: overlayFadeOut 0.28s ease forwards;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+
+    .header {
+        padding: 0.6rem 1rem;
+        gap: 0.6rem;
+    }
+
+    .searchBox {
+        max-width: 100%;
+        flex: 1;
+    }
+
+    .filterToggleBtn {
+        display: flex;
+    }
+
+    .layout {
+        flex-direction: column;
+    }
+
+    /* Sidebar desktop → oculto (usa mobileSheet) */
+    .sidebar {
+        display: none;
+    }
+
+    .sidebarMobileHeader {
+        display: flex;
+        position: sticky;
+        top: 0;
+        background: var(--surface);
+        z-index: 1;
+        padding-top: 1rem;
+    }
+
+    .content {
+        padding: 0.75rem 1rem 2rem;
+    }
+
+    /* Tablet: 3 columnas */
+    .grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+
+    .activeFiltersBar {
+        padding: 0 1rem;
+        margin-bottom: 0.75rem;
+    }
+}
+
+@media (max-width: 640px) {
+    /* Mobile: 2 columnas */
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .grid {
+        gap: 0.5rem;
+    }
+
+    .header {
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* ── Minecraft Switch ── */
 .switchContainer {
     display: flex;
     align-items: center;
@@ -360,10 +613,15 @@
 }
 
 .switch {
+    font-size: 14px;
     position: relative;
     display: inline-block;
-    width: 36px;
-    height: 20px;
+    width: 4.2em;
+    height: 2.2em;
+    flex-shrink: 0;
+    border-radius: 5px;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    overflow: hidden;
 }
 
 .switchInput {
@@ -373,45 +631,61 @@
     position: absolute;
 }
 
+/* Full background fill — no longer a thin line */
 .slider {
     position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--surface-2);
-    transition: .3s;
-    border-radius: 34px;
-    border: 1px solid var(--border);
+    inset: 0;
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: background-color 0.35s, box-shadow 0.35s;
 }
 
-.slider:before {
+.switchInput:checked + .slider {
+    background-color: rgba(199, 0, 57, 0.18);
+    box-shadow: inset 0 0 8px rgba(199, 0, 57, 0.25);
+}
+
+/* Sliding block images — centered vertically */
+.switchOff {
     position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 2px;
-    bottom: 2px;
-    background-color: var(--muted);
-    transition: .3s;
-    border-radius: 50%;
+    height: 1.75em;
+    width: 1.75em;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%) translateX(0.18em);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+    image-rendering: pixelated;
+    opacity: 1;
+    border-radius: 3px;
 }
 
-.switchInput:checked+.slider {
-    background-color: var(--primary);
-    border-color: var(--primary);
+.switchOn {
+    position: absolute;
+    height: 1.75em;
+    width: 1.75em;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%) translateX(0.18em);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+    image-rendering: pixelated;
+    opacity: 0;
+    border-radius: 3px;
 }
 
-.switchInput:checked+.slider:before {
-    transform: translateX(16px);
-    background-color: #fff;
+.switchInput:checked ~ .switchOff {
+    transform: translateY(-50%) translateX(2.2em);
+    opacity: 0;
+}
+
+.switchInput:checked ~ .switchOn {
+    transform: translateY(-50%) translateX(2.2em);
+    opacity: 1;
 }
 
 .switchLabel {
     font-size: 0.85rem;
     color: var(--foreground);
     font-weight: 500;
+    white-space: nowrap;
 }
 
 /* Custom Logo Loader */

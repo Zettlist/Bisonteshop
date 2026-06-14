@@ -66,6 +66,24 @@
     white-space: nowrap;
 }
 
+.curInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+}
+
+.curCode {
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: inherit;
+}
+
+.curLabel {
+    font-size: 0.68rem;
+    color: var(--muted);
+    opacity: 0.7;
+}
+
 .dropdownItem:hover {
     background: rgba(255, 255, 255, 0.05);
     color: var(--foreground);

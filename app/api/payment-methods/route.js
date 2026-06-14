@@ -1,22 +1,19 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
 import pool from '@/lib/db';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 const getStripe = () => new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
-const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET);
 
 async function getCliente() {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('bisonte_session')?.value;
-    if (!token) return null;
-    try {
-        const { payload } = await jwtVerify(token, getJwtSecretKey());
-        const [rows] = await pool.query('SELECT id, nombre, apellido, email, stripe_customer_id FROM clientes WHERE id = ? LIMIT 1', [payload.id]);
-        return rows[0] || null;
-    } catch { return null; }
+    const session = await getSession();
+    if (!session?.id) return null;
+    const [rows] = await pool.query(
+        'SELECT id, nombre, apellido, email, stripe_customer_id FROM clientes WHERE id = ? LIMIT 1',
+        [session.id]
+    );
+    return rows[0] || null;
 }
 
 // GET — obtener métodos de pago guardados
@@ -64,10 +61,28 @@ export async function POST() {
     return NextResponse.json({ success: true, customerId });
 }
 
-// DELETE — eliminar método de pago guardado
+// DELETE — eliminar método de pago guardado (solo si pertenece al cliente autenticado)
 export async function DELETE(request) {
+    const cliente = await getCliente();
+    if (!cliente) return NextResponse.json({ success: false, error: 'No autenticado' }, { status: 401 });
+    if (!cliente.stripe_customer_id) return NextResponse.json({ success: false, error: 'Sin métodos de pago' }, { status: 404 });
+
     const { paymentMethodId } = await request.json();
-    if (!paymentMethodId) return NextResponse.json({ success: false }, { status: 400 });
-    await getStripe().paymentMethods.detach(paymentMethodId);
+    if (!paymentMethodId) return NextResponse.json({ success: false, error: 'paymentMethodId requerido' }, { status: 400 });
+
+    const stripe = getStripe();
+
+    // Verificar que el método de pago realmente pertenece a este cliente antes de borrar.
+    let pm;
+    try {
+        pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+    } catch {
+        return NextResponse.json({ success: false, error: 'Método de pago no encontrado' }, { status: 404 });
+    }
+    if (pm.customer !== cliente.stripe_customer_id) {
+        return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 403 });
+    }
+
+    await stripe.paymentMethods.detach(paymentMethodId);
     return NextResponse.json({ success: true });
 }
