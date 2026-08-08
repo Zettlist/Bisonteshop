@@ -1,0 +1,13 @@
+{
+  "name": "bisonte-db-schema",
+  "private": true,
+  "type": "module",
+  "description": "Esquema de la base compartida (POS + tienda) y su suite de pruebas. Aislado del package.json de la app para que npm ci del Dockerfile no arrastre estas dependencias.",
+  "scripts": {
+    "test": "node tests/run.mjs"
+  },
+  "devDependencies": {
+    "mysql-memory-server": "^1.14.1",
+    "mysql2": "^3.18.1"
+  }
+}

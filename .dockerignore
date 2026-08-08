@@ -1,6 +1,9 @@
 node_modules
+**/node_modules
 .next
 .git
+# El esquema y su suite de pruebas no forman parte de la imagen de produccion
+db
 .gitignore
 Dockerfile
 README.md
