@@ -163,10 +163,36 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_category      (category),
     INDEX idx_isbn          (isbn),
     INDEX idx_barcode       (barcode),
+    -- FIX 17 — el codigo de barras es UNICO por empresa. Antes la unicidad se
+    -- confiaba a un SELECT-antes-de-INSERT en la ruta de alta, que no protege
+    -- de nada: entre la consulta y la insercion cabe otra peticion.
+    UNIQUE KEY uniq_empresa_barcode (empresa_id, barcode),
+    UNIQUE KEY uniq_empresa_sbin    (empresa_id, sbin_code),
     INDEX idx_empresa_name  (empresa_id, name),
-    INDEX idx_empresa_sbin  (empresa_id, sbin_code),
     INDEX idx_empresa_adult (empresa_id, is_adult),
     INDEX idx_supplier      (supplier_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- FIX 18 — contador real para los codigos de barra.
+--
+-- Antes la secuencia salia de `SELECT COUNT(*) FROM products WHERE ...` + 1.
+-- Un contador derivado de un COUNT se rompe de dos formas:
+--
+--   · Al borrar. Con 5 productos el siguiente es el 6; se borra uno, el COUNT
+--     baja a 4 y el siguiente vuelve a ser 5 — que ya existe.
+--   · En concurrencia. Dos altas simultaneas leen COUNT=5 y ambas generan la
+--     secuencia 6.
+--
+-- Esta tabla guarda el proximo valor y se incrementa de forma atomica con
+-- INSERT ... ON DUPLICATE KEY UPDATE next_seq = LAST_INSERT_ID(next_seq + 1),
+-- que en MySQL devuelve el valor reservado sin carrera posible. Un numero
+-- entregado no se reutiliza aunque el producto se borre despues.
+CREATE TABLE IF NOT EXISTS barcode_sequences (
+    empresa_id INT NOT NULL,
+    next_seq   INT UNSIGNED NOT NULL DEFAULT 1,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (empresa_id),
+    CONSTRAINT fk_bseq_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS cash_sessions (

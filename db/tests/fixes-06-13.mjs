@@ -291,7 +291,7 @@ const ESPERADAS = [
     'bisonte_orders', 'integration_outbox', 'coupons', 'coupon_redemptions', 'credit_history',
     'user_notifications', 'tags', 'product_tags', 'event_votes', 'event_results',
     'pre_orders', 'pre_order_batches', 'pre_order_payments',
-    'store_credits', 'store_credit_uses',
+    'store_credits', 'store_credit_uses', 'barcode_sequences',
 ];
 
 test(13, 'schema.sql crea todas las tablas de una sola pasada', async () => {
