@@ -6,7 +6,7 @@
 --  GRANTs por usuario (ver db/grants.sql), no separando bases: el POS escribe
 --  inventario y la tienda lo lee en la misma transaccion, sin sincronizacion.
 --
---  Reconstruido tras la perdida del proyecto GCP (jun 2026). Incorpora 13
+--  Reconstruido tras la perdida del proyecto GCP (jun 2026). Incorpora 22
 --  correcciones que en produccion habrian requerido migraciones con datos.
 -- =============================================================================
 
@@ -91,11 +91,30 @@ CREATE TABLE IF NOT EXISTS suppliers (
 
 -- Catalogos normalizados de categoria y editorial. Existian ya en
 -- migrations/add_category_publisher_tables.js.
+--
+-- FIX 20 — la categoria cuelga de una rama, y la rama es `is_adult`.
+--
+-- Antes el corte Regular/Adultos estaba codificado dos veces: como bandera
+-- products.is_adult y ademas como el valor 'Adultos' del campo `category`,
+-- donde convivia con Shonen, Seinen y Doujinshi. Nada impedia la contradiccion
+-- (category='Shonen', is_adult=1) ni el hueco (category='Adultos', is_adult=0),
+-- y la tienda filtra por is_adult mientras el POS mostraba por category: el
+-- mismo producto podia salir en la seccion equivocada de un lado y no del otro.
+--
+-- Ahora la rama es un atributo de la categoria y `is_adult` del producto tiene
+-- que coincidir con la de su categoria — lo impone la clave foranea compuesta
+-- de abajo, no la aplicacion. 'Adultos' deja de ser una categoria: es la rama.
 CREATE TABLE IF NOT EXISTS categories (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     name       VARCHAR(100) NOT NULL,
+    is_adult   TINYINT(1) NOT NULL DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uniq_name (name)
+    UNIQUE KEY uniq_name (name),
+    -- Existe solo para que products pueda apuntar a (id, is_adult). Redundante
+    -- como restriccion (id ya es unico), obligatoria como indice destino de FK.
+    UNIQUE KEY uniq_id_adult (id, is_adult),
+    CONSTRAINT chk_categories_no_adultos CHECK (LOWER(name) <> 'adultos'),
+    INDEX idx_adult (is_adult, name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS publishers (
@@ -105,6 +124,36 @@ CREATE TABLE IF NOT EXISTS publishers (
     UNIQUE KEY uniq_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- FIX 21 — formatos de envio: medir una vez por edicion, no cada libro.
+--
+-- Largo, ancho, alto y peso solo se usan para cotizar envio con Envia.com, y
+-- dentro de una misma edicion son identicos entre tomos. Medir cada libro es
+-- trabajo repetido sobre un dato ya conocido, y el resultado se guardaba en
+-- products.dimensions como texto libre ('18x12.8x1.5', '18 x 12,8 x 1.5 cm',
+-- '18cm'), imposible de usar para cotizar sin adivinar el formato.
+--
+-- Aqui las medidas son numeros, en centimetros y gramos, con una fila por
+-- edicion. products.dimensions y products.weight se conservan para el producto
+-- que no encaja en ningun formato (una figura suelta, un articulo importado).
+CREATE TABLE IF NOT EXISTS product_formats (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id  INT NOT NULL,
+    name        VARCHAR(120) NOT NULL,
+    length_cm   DECIMAL(6,2) NOT NULL,
+    width_cm    DECIMAL(6,2) NOT NULL,
+    height_cm   DECIMAL(6,2) NOT NULL,
+    weight_g    INT NOT NULL,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_formats_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    -- Envia.com rechaza un paquete de cero, y un cero aqui se propaga a todas
+    -- las cotizaciones de esa edicion sin que nadie lo note hasta el envio.
+    CONSTRAINT chk_formats_length CHECK (length_cm > 0),
+    CONSTRAINT chk_formats_width  CHECK (width_cm  > 0),
+    CONSTRAINT chk_formats_height CHECK (height_cm > 0),
+    CONSTRAINT chk_formats_weight CHECK (weight_g  > 0),
+    UNIQUE KEY uniq_empresa_name (empresa_id, name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- FIX 6 — se elimina la columna `price`. La migracion 006 la dejo "por
 -- retrocompatibilidad" y quedo ambigua frente a sale_price durante un anio.
 -- Fuente de verdad: cost_price (compra) y sale_price (venta).
@@ -112,6 +161,17 @@ CREATE TABLE IF NOT EXISTS products (
     id               INT AUTO_INCREMENT PRIMARY KEY,
     empresa_id       INT NOT NULL,
     name             VARCHAR(255) NOT NULL,
+    -- FIX 22 — serie y tomo, como datos y no dentro del nombre.
+    --
+    -- Hasta ahora el tomo vivia enterrado en `name` ('Berserk, Vol. 7'), asi
+    -- que agrupar una serie o saber cual es el siguiente tomo pasaba por
+    -- adivinar el formato del titulo — y en el catalogo conviven 'Vol. 7',
+    -- 'Tomo 7', '#7' y '07'. Separarlos es lo que hace posible «continuar
+    -- serie» en el alta y ordenar la ficha de serie en la tienda.
+    --
+    -- Ambos NULL para lo que no es serie: figuras, mercancia, tomo unico.
+    series           VARCHAR(255) NULL,
+    volume           SMALLINT UNSIGNED NULL,
     cost_price       DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     sale_price       DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     -- FIX 14 — stock fisico y stock comprometido, separados y materializados.
@@ -124,8 +184,19 @@ CREATE TABLE IF NOT EXISTS products (
     stock_disponible INT AS (stock - stock_reservado) VIRTUAL,
     category         VARCHAR(100) NULL,
     barcode          VARCHAR(100) NULL,
-    sbin_code        VARCHAR(100) NULL,
-    isbn             VARCHAR(20)  NULL,
+    -- FIX 19 — un solo identificador de editor.
+    --
+    -- `sbin_code` e `isbn` guardaban el mismo dato con dos nombres. El codigo
+    -- ya los trataba como intercambiables (`WHERE sbin_code = ? OR barcode = ?
+    -- OR isbn = ?`) y la etiqueta imprimia `isbn || sbin_code || barcode`, asi
+    -- que cual de las dos columnas tenia el valor dependia de por donde se
+    -- hubiera dado de alta el producto. Dos columnas, dos UNIQUE, un dato.
+    --
+    -- Queda `isbn`, con el nombre correcto y el ancho de la que se elimina: lo
+    -- que vivia en sbin_code eran codigos internos de articulos sin ISBN real
+    -- (doujinshi, figuras, mercancia) y algunos pasaban de 20 caracteres.
+    -- El campo significa "identificador del editor, o interno si no lo tiene".
+    isbn             VARCHAR(100) NULL,
     extras           TEXT NULL,
     publication_date VARCHAR(50)  NULL,
     publisher        VARCHAR(255) NULL,
@@ -134,6 +205,9 @@ CREATE TABLE IF NOT EXISTS products (
     weight           DECIMAL(8,2) NULL,
     page_color       VARCHAR(50)  NULL,
     language         VARCHAR(10)  NULL,
+    -- FIX 21 — formato de envio. Si esta puesto, las medidas salen de ahi y
+    -- `dimensions`/`weight` se ignoran para cotizar.
+    format_id        INT NULL,
     -- Consignacion: un proveedor por producto y lo que cobra por unidad.
     supplier_id      INT NULL,
     supplier_price   DECIMAL(10,2) NULL,
@@ -146,6 +220,10 @@ CREATE TABLE IF NOT EXISTS products (
     is_adult         TINYINT(1) NOT NULL DEFAULT 0,
     image_url        VARCHAR(500) NULL,
     sinopsis         TEXT NULL,
+    -- De donde se copio la sinopsis. NULL = la escribio una persona. Se guarda
+    -- para poder atribuir el texto y para saber que revisar si la fuente cambia
+    -- de licencia; no participa en ninguna consulta de catalogo.
+    sinopsis_fuente  VARCHAR(500) NULL,
     artist           VARCHAR(255) NULL,
     gender           VARCHAR(50)  NULL,
     group_name       VARCHAR(255) NULL,
@@ -153,8 +231,24 @@ CREATE TABLE IF NOT EXISTS products (
     created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_products_empresa   FOREIGN KEY (empresa_id)   REFERENCES empresas(id)   ON DELETE CASCADE,
     CONSTRAINT fk_products_supplier  FOREIGN KEY (supplier_id)  REFERENCES suppliers(id)  ON DELETE SET NULL,
-    CONSTRAINT fk_products_category  FOREIGN KEY (category_id)  REFERENCES categories(id) ON DELETE SET NULL,
+    -- FIX 20 — la coherencia rama/categoria la impone la base.
+    --
+    -- La foranea es compuesta: (category_id, is_adult) tiene que existir tal
+    -- cual en categories. Poner un producto en Shonen con is_adult=1 falla con
+    -- ER_NO_REFERENCED_ROW, igual que ponerlo en Doujinshi con is_adult=0.
+    --
+    -- InnoDB no comprueba la foranea si alguna de sus columnas es NULL, asi que
+    -- un producto sin categoria (figura, mercancia) sigue pudiendo ser de
+    -- cualquier rama. Es exactamente lo que hace falta: category_id es opcional.
+    --
+    -- ON DELETE SET NULL no cabe aqui — anularia is_adult, que es NOT NULL. Al
+    -- borrar una categoria con productos, la base lo impide y hay que
+    -- reasignarlos primero, que es la respuesta correcta: un producto sin rama
+    -- no se puede colocar en la tienda.
+    CONSTRAINT fk_products_category  FOREIGN KEY (category_id, is_adult)
+        REFERENCES categories(id, is_adult) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT fk_products_publisher FOREIGN KEY (publisher_id) REFERENCES publishers(id) ON DELETE SET NULL,
+    CONSTRAINT fk_products_format    FOREIGN KEY (format_id)    REFERENCES product_formats(id) ON DELETE SET NULL,
     CONSTRAINT chk_products_stock     CHECK (stock >= 0),
     CONSTRAINT chk_products_reservado CHECK (stock_reservado >= 0),
     -- No se puede comprometer mas de lo que hay: la base rechaza la sobreventa.
@@ -167,10 +261,14 @@ CREATE TABLE IF NOT EXISTS products (
     -- confiaba a un SELECT-antes-de-INSERT en la ruta de alta, que no protege
     -- de nada: entre la consulta y la insercion cabe otra peticion.
     UNIQUE KEY uniq_empresa_barcode (empresa_id, barcode),
-    UNIQUE KEY uniq_empresa_sbin    (empresa_id, sbin_code),
+    UNIQUE KEY uniq_empresa_isbn    (empresa_id, isbn),
     INDEX idx_empresa_name  (empresa_id, name),
     INDEX idx_empresa_adult (empresa_id, is_adult),
-    INDEX idx_supplier      (supplier_id)
+    INDEX idx_supplier      (supplier_id),
+    INDEX idx_format        (format_id),
+    -- FIX 22 — «continuar serie». Es la consulta que prellena el alta y la que
+    -- ordena la ficha de serie en la tienda; sin indice recorre el catalogo.
+    INDEX idx_empresa_serie (empresa_id, series, volume)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- FIX 18 — contador real para los codigos de barra.

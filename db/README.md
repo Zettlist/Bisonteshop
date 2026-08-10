@@ -4,9 +4,9 @@ Esquema de la base compartida entre **Bisonte Shop** (Next.js) y **Torlan POS** 
 
 | Archivo | Qué es |
 |---|---|
-| `schema.sql` | Las 29 tablas. Única fuente de verdad. Idempotente. |
+| `schema.sql` | Las 37 tablas. Única fuente de verdad. Idempotente. |
 | `grants.sql` | Usuarios MySQL con permisos acotados por dominio. |
-| `tests/` | 80 pruebas contra un MySQL 8 efímero. |
+| `tests/` | 112 pruebas contra un MySQL 8 efímero. |
 | `DEPLOY.md` | Plan de despliegue a Aiven + Cloud Run. |
 
 ## Correr las pruebas
@@ -71,7 +71,7 @@ Las llamadas HTTP entre las dos apps pasan por `integration_outbox`: la
 intención se escribe en la misma transacción que cambia el estado, y un worker
 la reintenta. Un fallo queda visible en vez de perderse en un `catch` vacío.
 
-## Las 16 correcciones
+## Las 22 correcciones
 
 Se aplicaron durante la reconstrucción de jun-ago 2026. Con datos en producción
 cada una habría requerido su propia migración; sin datos costaron cero.
@@ -94,5 +94,11 @@ cada una habría requerido su propia migración; sin datos costaron cero.
 | 14 | Lo reservado se recalculaba sumando la cola: 1 subquery por item, O(n²) al cancelar en cascada, sin bloqueo → sobreventa | `stock_reservado` + `stock_disponible` generada + CHECK |
 | 15 | Estado partido entre `sales.web_status` y `bisonte_orders.status`, sincronizados por HTTP | Los dos ejes en `bisonte_orders` |
 | 16 | `try { await callBisonteCapture(id,'cancel') } catch { }` — cancelaba en el POS aunque Stripe no se enterara | `integration_outbox` con reintento |
+| 17 | La unicidad del código de barras la cuidaba un `SELECT` antes del `INSERT` | UNIQUE `(empresa_id, barcode)` y `(empresa_id, isbn)` |
+| 18 | La secuencia del código salía de `COUNT(*) + 1`: al borrar retrocedía, y dos altas simultáneas daban el mismo número | `barcode_sequences` con contador atómico |
+| 19 | `sbin_code` e `isbn` guardaban el mismo dato con dos nombres, y cuál tenía el valor dependía de por dónde se dio de alta el producto | `isbn`, una sola columna |
+| 20 | El corte Regular/Adultos vivía como bandera `is_adult` **y** como valor `'Adultos'` de `category`: nada impedía `category='Shonen', is_adult=1` | `categories.is_adult` + FK compuesta `(category_id, is_adult)` |
+| 21 | Medidas y peso se capturaban libro por libro en `dimensions`, texto libre (`18x12.8x1.5`, `18 x 12,8 cm`, `18cm`) | `product_formats`: se mide una vez por edición |
+| 22 | El tomo vivía enterrado en el título (`Vol. 7`, `Tomo 7`, `#7`, `07`) | `series` + `volume` |
 
 Todos piden cambio de código además del esquema. Ver `DEPLOY.md`, fase 0.

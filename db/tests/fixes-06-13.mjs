@@ -285,7 +285,7 @@ test(12, 'el ganador es obligatorio', async () => {
 // ── FIX 13 ─ el esquema completo vive en schema.sql, no en las rutas ────────
 const ESPERADAS = [
     'empresas', 'users', 'features', 'user_features', 'suppliers', 'categories', 'publishers',
-    'products',
+    'product_formats', 'products',
     'cash_sessions', 'sales', 'sale_items', 'sales_goals', 'business_settings', 'global_changes_log',
     'anticipos', 'anticipo_items', 'clientes', 'user_addresses', 'carts', 'cart_items',
     'bisonte_orders', 'integration_outbox', 'coupons', 'coupon_redemptions', 'credit_history',

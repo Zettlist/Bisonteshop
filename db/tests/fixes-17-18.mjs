@@ -35,12 +35,12 @@ test(17, 'varios productos sin codigo conviven (NULL no colisiona)', async () =>
     assertEqual(r[0].n, Number(base.n) + 3, 'NULL no cuenta para el UNIQUE');
 });
 
-test(17, 'el codigo SBIN tambien es unico por empresa', async () => {
+test(17, 'el ISBN tambien es unico por empresa', async () => {
     const f = await seed();
-    await sql(`UPDATE products SET sbin_code = 'SB-001' WHERE id = ?`, [f.productId]);
+    await sql(`UPDATE products SET isbn = '9788498147087' WHERE id = ?`, [f.productId]);
     await expectError(
-        () => sql(`INSERT INTO products (empresa_id, name, cost_price, sale_price, stock, sbin_code)
-                   VALUES (?,?,?,?,?,?)`, [f.empresaId, 'Duplicado SBIN', 90, 150, 5, 'SB-001']),
+        () => sql(`INSERT INTO products (empresa_id, name, cost_price, sale_price, stock, isbn)
+                   VALUES (?,?,?,?,?,?)`, [f.empresaId, 'Duplicado ISBN', 90, 150, 5, '9788498147087']),
         'ER_DUP_ENTRY');
 });
 
