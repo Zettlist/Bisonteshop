@@ -36,10 +36,10 @@ test(1, 'venta web guarda envio y reclamo en la misma fila', async () => {
     await sql(
         `INSERT INTO bisonte_orders (sale_id, payment_intent_id, estado, tracking_number, claim_status)
          VALUES (?,?,?,?,?)`,
-        [saleId, 'pi_envio', 'enviado', 'EN123456MX', 'abierto']);
+        [saleId, 'pi_envio', 'envio', 'EN123456MX', 'abierto']);
     const [r] = await sql(
         `SELECT estado, tracking_number, claim_status FROM bisonte_orders WHERE sale_id = ?`, [saleId]);
-    assertEqual(r[0].estado, 'enviado');
+    assertEqual(r[0].estado, 'envio');
     assertEqual(r[0].tracking_number, 'EN123456MX');
     assertEqual(r[0].claim_status, 'abierto');
 });

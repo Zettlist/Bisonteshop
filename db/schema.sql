@@ -406,8 +406,9 @@ CREATE TABLE IF NOT EXISTS bisonte_orders (
                               NOT NULL DEFAULT 'autorizado',
     refund_id             VARCHAR(255) NULL,
 
-    -- Eje entrega (operacion)
-    estado                ENUM('pendiente','confirmado','preparando','enviado','entregado','cancelado')
+    -- Eje entrega (operacion). Los valores son los que ya usa el POS en
+    -- VALID_STATUSES; `reclamo` es un estado del pedido, no una bandera aparte.
+    estado                ENUM('pendiente','confirmado','envio','entregado','reclamo','cancelado')
                               NOT NULL DEFAULT 'pendiente',
     process_type          ENUM('auto','manual') NULL,
     stock_deducted        TINYINT(1) NOT NULL DEFAULT 0,
@@ -415,7 +416,8 @@ CREATE TABLE IF NOT EXISTS bisonte_orders (
     -- Envio. Un solo nombre por dato: el POS escribia envia_label_data y la
     -- tienda label_data para lo mismo.
     shipping_method       VARCHAR(100) NULL,
-    shipping_status       VARCHAR(50)  NULL,
+    -- Sub-estado dentro de `envio`: la guia existe pero aun no sale del local.
+    shipping_status       ENUM('en_espera','despachado') NULL,
     tracking_number       VARCHAR(150) NULL,
     shipping_address_json JSON NULL,
     envia_quote_data      JSON NULL,
