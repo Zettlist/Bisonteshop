@@ -604,6 +604,108 @@ CREATE TABLE IF NOT EXISTS event_results (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- =============================================================================
+--  MODULOS DEL POS QUE VIVIAN EN MIGRACIONES EN RUNTIME
+--
+--  Estas tablas las creaba el backend al arrancar (routes/preventas.js,
+--  routes/storeCredits.js). Aparecieron al levantar el POS contra el esquema
+--  reconstruido: sin ellas, Preventas y Creditos de Tienda responden 500.
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS pre_order_batches (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id   INT NOT NULL,
+    name         VARCHAR(255) NULL,
+    total_orders INT DEFAULT 0,
+    total_value  DECIMAL(10,2) DEFAULT 0,
+    closed_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_pob_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    INDEX idx_empresa (empresa_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS pre_orders (
+    id                     INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id             INT NOT NULL,
+    batch_id               INT NULL,
+    order_number           VARCHAR(50) NOT NULL,
+    client_number          VARCHAR(50) NULL,
+    client_name            VARCHAR(255) NULL,
+    client_phone           VARCHAR(50) NULL,
+    client_email           VARCHAR(255) NULL,
+    client_address         TEXT NULL,
+    title                  VARCHAR(255) NULL,
+    artist                 VARCHAR(255) NULL,
+    group_name             VARCHAR(255) NULL,
+    language               VARCHAR(50) NULL,
+    category               TEXT NULL,
+    photo_url              LONGTEXT NULL,
+    total_price            DECIMAL(10,2) NOT NULL DEFAULT 0,
+    deposit                DECIMAL(10,2) NOT NULL DEFAULT 0,
+    total_paid             DECIMAL(10,2) NOT NULL DEFAULT 0,
+    balance                DECIMAL(10,2) NOT NULL DEFAULT 0,
+    status                 ENUM('pending','paid','cancelled','delivered') DEFAULT 'pending',
+    is_paid_in_full        TINYINT(1) DEFAULT 0,
+    last_payment_date      DATE NULL,
+    international_order    TINYINT(1) DEFAULT 0,
+    international_country  VARCHAR(50) NULL,
+    created_at             DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at             DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_po_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    CONSTRAINT fk_po_batch   FOREIGN KEY (batch_id)   REFERENCES pre_order_batches(id) ON DELETE SET NULL,
+    UNIQUE KEY uniq_order_empresa (empresa_id, order_number),
+    INDEX idx_empresa (empresa_id),
+    INDEX idx_batch   (batch_id),
+    INDEX idx_status  (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS pre_order_payments (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    pre_order_id   INT NOT NULL,
+    amount         DECIMAL(10,2) NOT NULL,
+    payment_date   DATE NULL,
+    payment_number INT NOT NULL,
+    notes          TEXT NULL,
+    created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_pop_order FOREIGN KEY (pre_order_id) REFERENCES pre_orders(id) ON DELETE CASCADE,
+    INDEX idx_pre_order (pre_order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Vale de tienda con codigo, emitido en el POS. Distinto de clientes.store_credit,
+-- que es el saldo a favor de una cuenta de la tienda web: aquel va ligado a la
+-- persona, este al codigo y puede canjearlo quien lo traiga.
+CREATE TABLE IF NOT EXISTS store_credits (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id       INT NOT NULL,
+    cliente_id       INT NULL,
+    code             VARCHAR(50) NOT NULL,
+    balance          DECIMAL(10,2) NOT NULL DEFAULT 0,
+    original_balance DECIMAL(10,2) NOT NULL DEFAULT 0,
+    expiration_date  DATE NULL,
+    notes            TEXT NULL,
+    created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at       DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_sc_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    CONSTRAINT fk_sc_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
+    CONSTRAINT chk_sc_balance CHECK (balance >= 0),
+    UNIQUE KEY uniq_code (code),
+    INDEX idx_empresa (empresa_id),
+    INDEX idx_cliente (cliente_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS store_credit_uses (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    credit_id      INT NOT NULL,
+    sale_id        INT NULL,
+    amount_used    DECIMAL(10,2) NOT NULL,
+    balance_before DECIMAL(10,2) NOT NULL,
+    balance_after  DECIMAL(10,2) NOT NULL,
+    used_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_scu_credit FOREIGN KEY (credit_id) REFERENCES store_credits(id) ON DELETE CASCADE,
+    CONSTRAINT fk_scu_sale   FOREIGN KEY (sale_id)   REFERENCES sales(id) ON DELETE SET NULL,
+    INDEX idx_credit_used (credit_id, used_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Semilla de feature flags del POS
