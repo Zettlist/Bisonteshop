@@ -1,45 +1,56 @@
 import { test, sql, expectError, assert, assertEqual, seed, makeSale } from './harness.mjs';
 
-// ── FIX 1 ─ sales sin columnas de envio; bisonte_shipments las aloja ────────
-test(1, 'sales ya no tiene las 8 columnas de envio', async () => {
+// ── FIX 1 ─ las 16 columnas del pedido web salen de sales ───────────────────
+const COLS_WEB = ['web_status', 'web_process_type', 'stock_deducted', 'tracking_number',
+    'envia_label_data', 'envia_quote_data', 'shipping_method', 'shipping_address_json',
+    'shipping_status', 'claim_status', 'claim_notes', 'claim_type',
+    'delivered_at', 'shipped_at', 'refund_id', 'cliente_id'];
+
+test(1, 'sales ya no tiene ninguna de las 16 columnas del pedido web', async () => {
     const [cols] = await sql(`SHOW COLUMNS FROM sales`);
     const names = cols.map(c => c.Field);
-    for (const c of ['web_status', 'claim_status', 'tracking_number', 'envia_quote_data',
-        'label_data', 'shipping_address_json', 'shipping_method', 'shipping_status']) {
-        assert(!names.includes(c), `sales todavia carga la columna ${c}`);
-    }
+    for (const c of COLS_WEB) assert(!names.includes(c), `sales todavia carga ${c}`);
 });
 
-test(1, 'venta de mostrador no crea fila de envio', async () => {
+test(1, 'las 16 viven ahora en bisonte_orders', async () => {
+    const [cols] = await sql(`SHOW COLUMNS FROM bisonte_orders`);
+    const names = cols.map(c => c.Field);
+    // web_status y cliente_id se renombraron a estado y cliente_id; el resto igual.
+    for (const c of COLS_WEB.filter(x => x !== 'web_status' && x !== 'web_process_type')) {
+        assert(names.includes(c), `bisonte_orders deberia tener ${c}`);
+    }
+    assert(names.includes('estado'), 'falta estado (antes web_status)');
+    assert(names.includes('process_type'), 'falta process_type (antes web_process_type)');
+});
+
+test(1, 'venta de mostrador no genera pedido web', async () => {
     const f = await seed();
     const saleId = await makeSale(f, 'pos');
-    const [r] = await sql(`SELECT COUNT(*) n FROM bisonte_shipments WHERE sale_id = ?`, [saleId]);
-    assertEqual(r[0].n, 0, 'una venta en efectivo no debe generar envio');
+    const [r] = await sql(`SELECT COUNT(*) n FROM bisonte_orders WHERE sale_id = ?`, [saleId]);
+    assertEqual(r[0].n, 0, 'una venta en efectivo no debe generar pedido web');
 });
 
-test(1, 'venta web guarda envio en su propia tabla', async () => {
+test(1, 'venta web guarda envio y reclamo en la misma fila', async () => {
     const f = await seed();
     const saleId = await makeSale(f, 'web');
-    await sql(`INSERT INTO bisonte_shipments (sale_id, web_status, tracking_number) VALUES (?,?,?)`,
-        [saleId, 'enviado', 'EN123456MX']);
-    const [r] = await sql(`SELECT web_status, tracking_number FROM bisonte_shipments WHERE sale_id = ?`, [saleId]);
-    assertEqual(r[0].web_status, 'enviado');
+    await sql(
+        `INSERT INTO bisonte_orders (sale_id, payment_intent_id, estado, tracking_number, claim_status)
+         VALUES (?,?,?,?,?)`,
+        [saleId, 'pi_envio', 'enviado', 'EN123456MX', 'abierto']);
+    const [r] = await sql(
+        `SELECT estado, tracking_number, claim_status FROM bisonte_orders WHERE sale_id = ?`, [saleId]);
+    assertEqual(r[0].estado, 'enviado');
     assertEqual(r[0].tracking_number, 'EN123456MX');
+    assertEqual(r[0].claim_status, 'abierto');
 });
 
-test(1, 'un envio por venta (UNIQUE sale_id)', async () => {
+test(1, 'un pedido web por venta (UNIQUE sale_id)', async () => {
     const f = await seed();
     const saleId = await makeSale(f);
-    await sql(`INSERT INTO bisonte_shipments (sale_id) VALUES (?)`, [saleId]);
+    await sql(`INSERT INTO bisonte_orders (sale_id, payment_intent_id) VALUES (?,?)`, [saleId, 'pi_u1']);
     await expectError(
-        () => sql(`INSERT INTO bisonte_shipments (sale_id) VALUES (?)`, [saleId]),
+        () => sql(`INSERT INTO bisonte_orders (sale_id, payment_intent_id) VALUES (?,?)`, [saleId, 'pi_u2']),
         'ER_DUP_ENTRY');
-});
-
-test(1, 'envio sin venta valida es rechazado', async () => {
-    await expectError(
-        () => sql(`INSERT INTO bisonte_shipments (sale_id) VALUES (999999)`),
-        'ER_NO_REFERENCED_ROW_2');
 });
 
 // ── FIX 2 ─ foreign keys reales en bisonte_orders ───────────────────────────

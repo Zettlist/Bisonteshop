@@ -268,7 +268,7 @@ const ESPERADAS = [
     'empresas', 'users', 'features', 'user_features', 'suppliers', 'products', 'product_suppliers',
     'cash_sessions', 'sales', 'sale_items', 'sales_goals', 'business_settings', 'global_changes_log',
     'anticipos', 'anticipo_items', 'clientes', 'user_addresses', 'carts', 'cart_items',
-    'bisonte_orders', 'bisonte_shipments', 'coupons', 'coupon_redemptions', 'credit_history',
+    'bisonte_orders', 'integration_outbox', 'coupons', 'coupon_redemptions', 'credit_history',
     'user_notifications', 'tags', 'product_tags', 'event_votes', 'event_results',
 ];
 

@@ -17,14 +17,21 @@ pedido. Medido sobre el repo:
 | Cambio | Tienda | POS |
 |---|---|---|
 | `items_json` → `sale_items` | 3 archivos | — |
-| Columnas de envío → `bisonte_shipments` | 6 archivos | 2 archivos, 81 refs |
+| Las 16 columnas web de `sales` → `bisonte_orders` | 6 archivos | 2 archivos, 81 refs |
 | `products.price` → `sale_price` | — | 12 archivos, 30 refs |
 | `damian`/`bernat` → `product_suppliers` | — | 1 archivo |
 | Quitar `ensureTable()` | 6 rutas | — |
+| `checkFifoStock` → `stock_disponible` | — | `webOrders.js` |
+| Llamadas HTTP → `integration_outbox` + worker | 1 ruta | `webOrders.js` |
 | `lib/db.js` socket → TCP+TLS | 1 archivo | 1 archivo |
 
-El grueso está en el POS, no en la tienda. `web_status` y `shipping_*` suman 81
-referencias en 2 archivos — probablemente el módulo de pedidos web.
+El grueso está en el POS, y casi todo se concentra en `routes/webOrders.js`
+(985 líneas). Es el archivo que hay que reescribir: hoy mezcla la cola FIFO, el
+descuento de stock, las llamadas a la tienda y la integración con Envia.com.
+
+Los dos últimos renglones son los que cambian comportamiento, no solo nombres:
+`checkFifoStock` desaparece (la disponibilidad ya está materializada) y las
+llamadas a la tienda pasan por la bandeja de salida.
 
 Orden sugerido: POS primero (es quien más rompe), tienda después, y recién
 entonces desplegar. Las 65 pruebas de `db/tests/` sirven de red: corren sin

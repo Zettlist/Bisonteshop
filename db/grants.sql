@@ -18,7 +18,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.user_addresses      TO 'bison
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.carts               TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.cart_items          TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.bisonte_orders      TO 'bisonte_app'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.bisonte_shipments   TO 'bisonte_app'@'%';
+GRANT SELECT, INSERT, UPDATE          ON torlan_pos.integration_outbox TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.coupon_redemptions  TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.credit_history      TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.user_notifications  TO 'bisonte_app'@'%';
@@ -35,6 +35,12 @@ GRANT SELECT, UPDATE                  ON torlan_pos.coupons            TO 'bison
 -- Inventario y catalogo: SOLO LECTURA. La tienda no puede corromper el stock
 -- ni por bug ni por accidente; ese dominio es del POS.
 GRANT SELECT ON torlan_pos.products          TO 'bisonte_app'@'%';
+
+-- Unica excepcion, a nivel de columna: la tienda reserva al confirmar el
+-- checkout, porque ahi es donde se compromete la mercancia. Puede tocar
+-- stock_reservado y NADA mas de products -- ni el stock fisico ni el precio.
+-- El CHECK (stock_reservado <= stock) impide que reserve de mas.
+GRANT UPDATE (stock_reservado) ON torlan_pos.products TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.product_suppliers TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.suppliers         TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.empresas          TO 'bisonte_app'@'%';

@@ -92,7 +92,14 @@ CREATE TABLE IF NOT EXISTS products (
     name             VARCHAR(255) NOT NULL,
     cost_price       DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     sale_price       DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    -- FIX 14 — stock fisico y stock comprometido, separados y materializados.
+    -- Antes lo reservado se recalculaba en cada consulta sumando toda la cola de
+    -- pedidos pendientes (una subquery por item, y cascadeCancelLaterOrders la
+    -- llamaba por cada pedido posterior: O(n^2) y sin bloqueo, o sea sobreventa
+    -- cuando dos confirmaciones corrian a la vez).
     stock            INT NOT NULL DEFAULT 0,
+    stock_reservado  INT NOT NULL DEFAULT 0,
+    stock_disponible INT AS (stock - stock_reservado) VIRTUAL,
     category         VARCHAR(100) NULL,
     barcode          VARCHAR(100) NULL,
     sbin_code        VARCHAR(100) NULL,
@@ -114,7 +121,10 @@ CREATE TABLE IF NOT EXISTS products (
     group_name       VARCHAR(150) NULL,
     created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_products_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
-    CONSTRAINT chk_products_stock  CHECK (stock >= 0),
+    CONSTRAINT chk_products_stock     CHECK (stock >= 0),
+    CONSTRAINT chk_products_reservado CHECK (stock_reservado >= 0),
+    -- No se puede comprometer mas de lo que hay: la base rechaza la sobreventa.
+    CONSTRAINT chk_products_disponible CHECK (stock_reservado <= stock),
     INDEX idx_empresa       (empresa_id),
     INDEX idx_category      (category),
     INDEX idx_isbn          (isbn),
@@ -360,50 +370,107 @@ CREATE TABLE IF NOT EXISTS cart_items (
     INDEX idx_product (product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- FIX 2 — foreign keys reales a sales y clientes. Antes eran INT sueltos: nada
--- impedia un pedido huerfano en la tabla que une Stripe con el inventario.
--- FIX 3 — UNIQUE en payment_intent_id. Es la llave de idempotencia contra
--- Stripe; un webhook reintentado ahora lo rechaza la base, no el codigo.
--- FIX 4 — sin items_json. Los renglones viven en sale_items, que ya existia
--- normalizado. Antes /api/orders hacia JSON.parse dentro de un loop y no se
--- podia preguntar "cuantas unidades del producto X se vendieron por web".
+-- FIX 1 — las 16 columnas del pedido web que vivian en `sales`:
+--   web_status, web_process_type, stock_deducted, tracking_number,
+--   envia_label_data, envia_quote_data, shipping_method, shipping_address_json,
+--   shipping_status, claim_status, claim_notes, claim_type, delivered_at,
+--   shipped_at, refund_id, cliente_id.
+-- Quedaban NULL en cada venta de mostrador y obligaban a ALTER TABLE sobre la
+-- ruta mas caliente del POS cada vez que cambiaba la tienda.
+--
+-- FIX 2 — foreign keys reales. Antes eran INT sueltos en la tabla que une
+-- Stripe con el inventario: nada impedia un pedido huerfano.
+--
+-- FIX 3 — UNIQUE en payment_intent_id: la idempotencia contra Stripe la impone
+-- la base, no el codigo.
+--
+-- FIX 4 — sin items_json. Los renglones viven en sale_items, ya normalizado.
+--
+-- FIX 15 — UNA SOLA tabla dueña del pedido web, con las dos maquinas de estado
+-- juntas. Antes el estado vivia partido en `sales.web_status` (POS) y
+-- `bisonte_orders.status` (tienda), sincronizados por HTTP: si la llamada
+-- fallaba, el POS marcaba cancelado y la tienda seguia en pending, dejando
+-- dinero autorizado que nadie liberaba.
+--
+-- Son dos ejes distintos y honestos -- el cobro y la entrega avanzan por
+-- separado -- pero al vivir en la misma fila una sola transaccion los mueve y
+-- ya no pueden divergir.
 CREATE TABLE IF NOT EXISTS bisonte_orders (
-    id                INT AUTO_INCREMENT PRIMARY KEY,
-    sale_id           INT NOT NULL,
-    cliente_id        INT NULL,
-    payment_intent_id VARCHAR(255) NOT NULL,
-    status            ENUM('pending','captured','cancelled','refunded') NOT NULL DEFAULT 'pending',
-    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_bo_sale    FOREIGN KEY (sale_id)    REFERENCES sales(id)    ON DELETE CASCADE,
-    CONSTRAINT fk_bo_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
-    UNIQUE KEY uniq_payment_intent (payment_intent_id),
-    INDEX idx_sale           (sale_id),
-    INDEX idx_status         (status),
-    INDEX idx_cliente_status (cliente_id, status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- FIX 1 — las 8 columnas de envio que vivian en `sales`. Solo existe fila
--- cuando hay pedido web, asi que las ventas de mostrador dejan de cargar NULLs
--- y la tienda ya no necesita ALTER TABLE sobre la tabla del POS.
-CREATE TABLE IF NOT EXISTS bisonte_shipments (
     id                    INT AUTO_INCREMENT PRIMARY KEY,
     sale_id               INT NOT NULL,
-    web_status            ENUM('pendiente','pagado','preparando','enviado','entregado','cancelado')
+    cliente_id            INT NULL,
+
+    -- Eje cobro (Stripe)
+    payment_intent_id     VARCHAR(255) NOT NULL,
+    pago_estado           ENUM('autorizado','capturado','cancelado','reembolsado')
+                              NOT NULL DEFAULT 'autorizado',
+    refund_id             VARCHAR(255) NULL,
+
+    -- Eje entrega (operacion)
+    estado                ENUM('pendiente','confirmado','preparando','enviado','entregado','cancelado')
                               NOT NULL DEFAULT 'pendiente',
-    shipping_status       VARCHAR(50)  NULL,
-    claim_status          VARCHAR(50)  NULL,
+    process_type          ENUM('auto','manual') NULL,
+    stock_deducted        TINYINT(1) NOT NULL DEFAULT 0,
+
+    -- Envio. Un solo nombre por dato: el POS escribia envia_label_data y la
+    -- tienda label_data para lo mismo.
     shipping_method       VARCHAR(100) NULL,
+    shipping_status       VARCHAR(50)  NULL,
     tracking_number       VARCHAR(150) NULL,
     shipping_address_json JSON NULL,
     envia_quote_data      JSON NULL,
-    label_data            JSON NULL,
+    envia_label_data      JSON NULL,
+
+    -- Reclamos
+    claim_status          VARCHAR(50)  NULL,
+    claim_type            VARCHAR(50)  NULL,
+    claim_notes           TEXT NULL,
+
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    confirmed_at          DATETIME NULL,
+    shipped_at            DATETIME NULL,
+    delivered_at          DATETIME NULL,
+    cancelled_at          DATETIME NULL,
     updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_bs_sale FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
-    UNIQUE KEY uniq_sale (sale_id),
-    INDEX idx_web_status (web_status),
-    INDEX idx_tracking   (tracking_number)
+
+    CONSTRAINT fk_bo_sale    FOREIGN KEY (sale_id)    REFERENCES sales(id)    ON DELETE CASCADE,
+    CONSTRAINT fk_bo_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
+    UNIQUE KEY uniq_payment_intent (payment_intent_id),
+    UNIQUE KEY uniq_sale           (sale_id),
+    INDEX idx_estado         (estado),
+    INDEX idx_pago_estado    (pago_estado),
+    INDEX idx_cliente_estado (cliente_id, estado),
+    INDEX idx_tracking       (tracking_number),
+    INDEX idx_cola           (estado, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- FIX 16 — bandeja de salida para las llamadas entre las dos apps.
+--
+-- El POS llama por HTTP a la tienda para capturar o cancelar en Stripe (la
+-- llave vive alla). Ese salto no es transaccional, y en
+-- cascadeCancelLaterOrders el error se tragaba en silencio:
+--
+--     try { await callBisonteCapture(id, 'cancel'); } catch { }
+--     UPDATE sales SET web_status = 'cancelado' ...
+--
+-- El POS daba por cancelado un pedido cuya autorizacion seguia viva en la
+-- tarjeta del cliente. Ahora la intencion se escribe aqui dentro de la misma
+-- transaccion que cambia el estado, y un worker la reintenta hasta confirmarla.
+-- Si algo queda sin procesar, se ve: no se pierde en un catch vacio.
+CREATE TABLE IF NOT EXISTS integration_outbox (
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    tipo         ENUM('capture','cancel','refund') NOT NULL,
+    sale_id      INT NOT NULL,
+    payload      JSON NULL,
+    estado       ENUM('pendiente','procesando','ok','fallido') NOT NULL DEFAULT 'pendiente',
+    intentos     INT NOT NULL DEFAULT 0,
+    ultimo_error TEXT NULL,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at DATETIME NULL,
+    CONSTRAINT fk_outbox_sale FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+    -- Una intencion viva por tipo y venta: reencolar no duplica el cobro.
+    UNIQUE KEY uniq_sale_tipo (sale_id, tipo),
+    INDEX idx_pendientes (estado, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS coupons (

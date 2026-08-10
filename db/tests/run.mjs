@@ -6,6 +6,7 @@ console.log('Arrancando MySQL efimero y cargando db/schema.sql...');
 await setup();
 await import('./fixes-01-05.mjs');
 await import('./fixes-06-13.mjs');
+await import('./fixes-14-16.mjs');
 
 const fallos = await runAll();
 await teardown();
