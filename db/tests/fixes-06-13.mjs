@@ -43,44 +43,63 @@ test(7, 'products ya no tiene columnas con nombre de persona', async () => {
 
 test(7, 'un proveedor nuevo no requiere ALTER TABLE', async () => {
     const f = await seed();
-    const [s] = await sql(`INSERT INTO suppliers (empresa_id, nombre) VALUES (?,?)`, [f.empresaId, 'Panini']);
-    await sql(`INSERT INTO product_suppliers (product_id, supplier_id, qty) VALUES (?,?,?)`,
-        [f.productId, s.insertId, 12]);
-    const [r] = await sql(`SELECT qty FROM product_suppliers WHERE product_id = ? AND supplier_id = ?`,
-        [f.productId, s.insertId]);
-    assertEqual(r[0].qty, 12);
+    const [s] = await sql(`INSERT INTO suppliers (empresa_id, name) VALUES (?,?)`, [f.empresaId, 'Panini']);
+    await sql(`UPDATE products SET supplier_id = ?, supplier_price = ? WHERE id = ?`,
+        [s.insertId, 120.00, f.productId]);
+    const [r] = await sql(
+        `SELECT sp.name, p.supplier_price
+           FROM products p JOIN suppliers sp ON sp.id = p.supplier_id
+          WHERE p.id = ?`, [f.productId]);
+    assertEqual(r[0].name, 'Panini');
+    assertEqual(r[0].supplier_price, '120.00');
 });
 
-test(7, 'varios proveedores surten el mismo producto', async () => {
+test(7, 'la deuda con el proveedor sale del precio historico, no del actual', async () => {
     const f = await seed();
-    const [a] = await sql(`INSERT INTO suppliers (empresa_id, nombre) VALUES (?,?)`, [f.empresaId, 'Damian']);
-    const [b] = await sql(`INSERT INTO suppliers (empresa_id, nombre) VALUES (?,?)`, [f.empresaId, 'Bernat']);
-    const [c] = await sql(`INSERT INTO suppliers (empresa_id, nombre) VALUES (?,?)`, [f.empresaId, 'Kamite']);
-    for (const s of [a, b, c]) {
-        await sql(`INSERT INTO product_suppliers (product_id, supplier_id, qty) VALUES (?,?,5)`,
-            [f.productId, s.insertId]);
-    }
-    const [r] = await sql(`SELECT SUM(qty) total FROM product_suppliers WHERE product_id = ?`, [f.productId]);
-    assertEqual(r[0].total, 15);
+    const [s] = await sql(`INSERT INTO suppliers (empresa_id, name) VALUES (?,?)`, [f.empresaId, 'Kamite']);
+    await sql(`UPDATE products SET supplier_id = ?, supplier_price = 100 WHERE id = ?`,
+        [s.insertId, f.productId]);
+    const saleId = await makeSale(f, 'pos');
+    await sql(`UPDATE sale_items SET quantity = 3, supplier_price_at_sale = 100 WHERE sale_id = ?`, [saleId]);
+    // El proveedor sube su precio despues de la venta.
+    await sql(`UPDATE products SET supplier_price = 140 WHERE id = ?`, [f.productId]);
+    const [r] = await sql(
+        `SELECT SUM(si.quantity * si.supplier_price_at_sale) deuda
+           FROM sale_items si WHERE si.sale_id = ?`, [saleId]);
+    assertEqual(r[0].deuda, '300.00', 'la deuda debe quedar fijada al precio de la venta');
 });
 
-test(7, 'el mismo proveedor no se repite en un producto', async () => {
+test(7, 'borrar el proveedor no borra sus productos', async () => {
     const f = await seed();
-    const [s] = await sql(`INSERT INTO suppliers (empresa_id, nombre) VALUES (?,?)`, [f.empresaId, 'Ivrea']);
-    await sql(`INSERT INTO product_suppliers (product_id, supplier_id, qty) VALUES (?,?,1)`,
-        [f.productId, s.insertId]);
+    const [s] = await sql(`INSERT INTO suppliers (empresa_id, name) VALUES (?,?)`, [f.empresaId, 'Ivrea']);
+    await sql(`UPDATE products SET supplier_id = ? WHERE id = ?`, [s.insertId, f.productId]);
+    await sql(`DELETE FROM suppliers WHERE id = ?`, [s.insertId]);
+    const [r] = await sql(`SELECT id, supplier_id FROM products WHERE id = ?`, [f.productId]);
+    assertEqual(r.length, 1, 'el producto debe sobrevivir');
+    assert(r[0].supplier_id === null, 'supplier_id debio quedar NULL');
+});
+
+test(7, 'un proveedor inexistente es rechazado', async () => {
+    const f = await seed();
     await expectError(
-        () => sql(`INSERT INTO product_suppliers (product_id, supplier_id, qty) VALUES (?,?,1)`,
-            [f.productId, s.insertId]),
-        'ER_DUP_ENTRY');
+        () => sql(`UPDATE products SET supplier_id = 999999 WHERE id = ?`, [f.productId]),
+        'ER_NO_REFERENCED_ROW_2');
 });
 
-test(7, 'dos empresas pueden tener un proveedor del mismo nombre', async () => {
-    const f1 = await seed();
-    const f2 = await seed();
-    await sql(`INSERT INTO suppliers (empresa_id, nombre) VALUES (?,?)`, [f1.empresaId, 'Norma']);
-    const [r] = await sql(`INSERT INTO suppliers (empresa_id, nombre) VALUES (?,?)`, [f2.empresaId, 'Norma']);
-    assert(r.insertId > 0, 'el UNIQUE debe ser por empresa, no global');
+test(7, 'categoria y editorial estan normalizadas', async () => {
+    const f = await seed();
+    const [c] = await sql(`INSERT INTO categories (name) VALUES ('Shonen')`);
+    const [p] = await sql(`INSERT INTO publishers (name) VALUES ('Panini Manga')`);
+    await sql(`UPDATE products SET category_id = ?, publisher_id = ? WHERE id = ?`,
+        [c.insertId, p.insertId, f.productId]);
+    const [r] = await sql(`
+        SELECT c.name AS categoria, pb.name AS editorial
+          FROM products pr
+          JOIN categories c  ON c.id  = pr.category_id
+          JOIN publishers pb ON pb.id = pr.publisher_id
+         WHERE pr.id = ?`, [f.productId]);
+    assertEqual(r[0].categoria, 'Shonen');
+    assertEqual(r[0].editorial, 'Panini Manga');
 });
 
 // ── FIX 8 ─ integridad referencial del carrito ──────────────────────────────
@@ -265,14 +284,15 @@ test(12, 'el ganador es obligatorio', async () => {
 
 // ── FIX 13 ─ el esquema completo vive en schema.sql, no en las rutas ────────
 const ESPERADAS = [
-    'empresas', 'users', 'features', 'user_features', 'suppliers', 'products', 'product_suppliers',
+    'empresas', 'users', 'features', 'user_features', 'suppliers', 'categories', 'publishers',
+    'products',
     'cash_sessions', 'sales', 'sale_items', 'sales_goals', 'business_settings', 'global_changes_log',
     'anticipos', 'anticipo_items', 'clientes', 'user_addresses', 'carts', 'cart_items',
     'bisonte_orders', 'integration_outbox', 'coupons', 'coupon_redemptions', 'credit_history',
     'user_notifications', 'tags', 'product_tags', 'event_votes', 'event_results',
 ];
 
-test(13, 'schema.sql crea las 29 tablas de una sola pasada', async () => {
+test(13, 'schema.sql crea todas las tablas de una sola pasada', async () => {
     const [rows] = await sql(`SHOW TABLES`);
     const found = rows.map(r => Object.values(r)[0]);
     for (const t of ESPERADAS) assert(found.includes(t), `falta la tabla ${t}`);

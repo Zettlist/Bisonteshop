@@ -84,7 +84,7 @@ cada una habría requerido su propia migración; sin datos costaron cero.
 | 4 | `items_json` duplicaba `sale_items`; `/api/orders` hacía `JSON.parse` en loop | `sale_items` + `sales.origen` |
 | 5 | El mismo producto entraba dos veces al carrito | UNIQUE `(cart_id, product_id)` |
 | 6 | `price`, `cost_price` y `sale_price` conviviendo | `price` eliminada |
-| 7 | `products.damian` y `products.bernat` | `suppliers` + `product_suppliers` |
+| 7 | `products.damian` y `products.bernat` — nombres de persona como columnas | `products.supplier_id` → `suppliers` (el modelo de consignación que el POS ya tenía) |
 | 8 | `cart_items.product_id` sin FK | FK a `products` |
 | 9 | `cliente_id >= 900001` marcaba votos de prueba | `event_votes.is_demo` |
 | 10 | `clientes` sin índices en las 4 búsquedas reales | 4 índices |

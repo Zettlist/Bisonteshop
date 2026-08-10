@@ -36,6 +36,8 @@ CREATE TABLE IF NOT EXISTS empresas (
 CREATE TABLE IF NOT EXISTS users (
     id                   INT AUTO_INCREMENT PRIMARY KEY,
     username             VARCHAR(100) UNIQUE NOT NULL,
+    -- El staff entra con username O numero de empleado (routes/auth.js).
+    employee_number      VARCHAR(20) NULL,
     password_hash        VARCHAR(255) NOT NULL,
     empresa_id           INT NULL,
     role                 ENUM('global_admin','empresa_admin','employee') NOT NULL DEFAULT 'employee',
@@ -45,6 +47,7 @@ CREATE TABLE IF NOT EXISTS users (
     onboarding_completed TINYINT(1) DEFAULT 0,
     created_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_users_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE SET NULL,
+    UNIQUE KEY uniq_employee_number (employee_number),
     INDEX idx_empresa  (empresa_id),
     INDEX idx_role     (role),
     INDEX idx_username (username)
@@ -68,19 +71,38 @@ CREATE TABLE IF NOT EXISTS user_features (
     UNIQUE KEY uniq_user_feature (user_id, feature_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- FIX 7 — reemplaza products.damian / products.bernat.
--- Antes, cada proveedor nuevo exigia un ALTER TABLE sobre products.
+-- FIX 7 — reemplaza products.damian / products.bernat, que eran nombres de
+-- persona como columnas: un proveedor nuevo exigia ALTER TABLE.
+--
+-- El modelo NO es muchos-a-muchos. El POS ya tenia resuelto el dominio y es de
+-- consignacion: un proveedor por producto, con su precio, y `sale_items`
+-- guardando el precio del proveedor al momento de la venta para que los
+-- reportes calculen la deuda (SUM(quantity * supplier_price_at_sale)).
+-- Esta definicion respeta la que ya existia en migrations/20260201_supplier_system.js.
 CREATE TABLE IF NOT EXISTS suppliers (
-    id         INT AUTO_INCREMENT PRIMARY KEY,
-    empresa_id INT NOT NULL,
-    nombre     VARCHAR(150) NOT NULL,
-    contacto   VARCHAR(150) NULL,
-    telefono   VARCHAR(30)  NULL,
-    activo     TINYINT(1) NOT NULL DEFAULT 1,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id   INT NOT NULL,
+    name         VARCHAR(255) NOT NULL,
+    contact_info TEXT NULL,
+    created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_suppliers_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
-    UNIQUE KEY uniq_empresa_nombre (empresa_id, nombre),
     INDEX idx_empresa (empresa_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Catalogos normalizados de categoria y editorial. Existian ya en
+-- migrations/add_category_publisher_tables.js.
+CREATE TABLE IF NOT EXISTS categories (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS publishers (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(255) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- FIX 6 — se elimina la columna `price`. La migracion 006 la dejo "por
@@ -112,15 +134,27 @@ CREATE TABLE IF NOT EXISTS products (
     weight           DECIMAL(8,2) NULL,
     page_color       VARCHAR(50)  NULL,
     language         VARCHAR(10)  NULL,
-    -- Campos de catalogo web (antes agregados sueltos con ALTER en runtime)
+    -- Consignacion: un proveedor por producto y lo que cobra por unidad.
+    supplier_id      INT NULL,
+    supplier_price   DECIMAL(10,2) NULL,
+    -- Catalogos normalizados. `category` y `publisher` siguen como texto libre
+    -- porque el POS aun escribe ambos; los _id son la version normalizada.
+    category_id      INT NULL,
+    publisher_id     INT NULL,
+    -- Campos de catalogo web (antes agregados sueltos con ALTER en runtime,
+    -- via GET /api/products/migrate-schema con addColIfMissing)
     is_adult         TINYINT(1) NOT NULL DEFAULT 0,
     image_url        VARCHAR(500) NULL,
     sinopsis         TEXT NULL,
     artist           VARCHAR(255) NULL,
-    gender           VARCHAR(100) NULL,
-    group_name       VARCHAR(150) NULL,
+    gender           VARCHAR(50)  NULL,
+    group_name       VARCHAR(255) NULL,
+    events           JSON NULL,
     created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_products_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    CONSTRAINT fk_products_empresa   FOREIGN KEY (empresa_id)   REFERENCES empresas(id)   ON DELETE CASCADE,
+    CONSTRAINT fk_products_supplier  FOREIGN KEY (supplier_id)  REFERENCES suppliers(id)  ON DELETE SET NULL,
+    CONSTRAINT fk_products_category  FOREIGN KEY (category_id)  REFERENCES categories(id) ON DELETE SET NULL,
+    CONSTRAINT fk_products_publisher FOREIGN KEY (publisher_id) REFERENCES publishers(id) ON DELETE SET NULL,
     CONSTRAINT chk_products_stock     CHECK (stock >= 0),
     CONSTRAINT chk_products_reservado CHECK (stock_reservado >= 0),
     -- No se puede comprometer mas de lo que hay: la base rechaza la sobreventa.
@@ -131,18 +165,8 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_barcode       (barcode),
     INDEX idx_empresa_name  (empresa_id, name),
     INDEX idx_empresa_sbin  (empresa_id, sbin_code),
-    INDEX idx_empresa_adult (empresa_id, is_adult)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS product_suppliers (
-    product_id  INT NOT NULL,
-    supplier_id INT NOT NULL,
-    qty         INT NOT NULL DEFAULT 0,
-    updated_at  DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (product_id, supplier_id),
-    CONSTRAINT fk_ps_product  FOREIGN KEY (product_id)  REFERENCES products(id)  ON DELETE CASCADE,
-    CONSTRAINT fk_ps_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
-    INDEX idx_supplier (supplier_id)
+    INDEX idx_empresa_adult (empresa_id, is_adult),
+    INDEX idx_supplier      (supplier_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS cash_sessions (
@@ -204,6 +228,10 @@ CREATE TABLE IF NOT EXISTS sale_items (
     product_id INT NOT NULL,
     quantity   INT NOT NULL,
     price      DECIMAL(10,2) NOT NULL,
+    -- Foto del precio del proveedor al vender. No se lee de products porque ese
+    -- valor cambia; los reportes calculan la deuda con este historico:
+    -- SUM(quantity * supplier_price_at_sale).
+    supplier_price_at_sale DECIMAL(10,2) NULL,
     CONSTRAINT fk_si_sale    FOREIGN KEY (sale_id)    REFERENCES sales(id) ON DELETE CASCADE,
     CONSTRAINT fk_si_product FOREIGN KEY (product_id) REFERENCES products(id),
     CONSTRAINT chk_si_qty    CHECK (quantity > 0),
@@ -468,11 +496,15 @@ CREATE TABLE IF NOT EXISTS integration_outbox (
     intentos     INT NOT NULL DEFAULT 0,
     ultimo_error TEXT NULL,
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Cuando volver a intentar. Se recalcula en cada fallo con retroceso
+    -- exponencial; NULL significa "ahora". No sirve derivarlo de created_at:
+    -- esa fecha no avanza con los reintentos.
+    next_retry_at DATETIME NULL,
     processed_at DATETIME NULL,
     CONSTRAINT fk_outbox_sale FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
     -- Una intencion viva por tipo y venta: reencolar no duplica el cobro.
     UNIQUE KEY uniq_sale_tipo (sale_id, tipo),
-    INDEX idx_pendientes (estado, created_at)
+    INDEX idx_pendientes (estado, next_retry_at, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS coupons (

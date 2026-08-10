@@ -19,7 +19,7 @@ pedido. Medido sobre el repo:
 | `items_json` → `sale_items` | 3 archivos | — |
 | Las 16 columnas web de `sales` → `bisonte_orders` | 6 archivos | 2 archivos, 81 refs |
 | `products.price` → `sale_price` | — | 12 archivos, 30 refs |
-| `damian`/`bernat` → `product_suppliers` | — | 1 archivo |
+| `damian`/`bernat` → `products.supplier_id` | — | 1 archivo |
 | Quitar `ensureTable()` | 6 rutas | — |
 | `checkFifoStock` → `stock_disponible` | — | `webOrders.js` |
 | Llamadas HTTP → `integration_outbox` + worker | 1 ruta | `webOrders.js` |

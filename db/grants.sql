@@ -34,14 +34,16 @@ GRANT SELECT, UPDATE                  ON torlan_pos.coupons            TO 'bison
 
 -- Inventario y catalogo: SOLO LECTURA. La tienda no puede corromper el stock
 -- ni por bug ni por accidente; ese dominio es del POS.
-GRANT SELECT ON torlan_pos.products          TO 'bisonte_app'@'%';
+GRANT SELECT ON torlan_pos.products   TO 'bisonte_app'@'%';
+GRANT SELECT ON torlan_pos.categories TO 'bisonte_app'@'%';
+GRANT SELECT ON torlan_pos.publishers TO 'bisonte_app'@'%';
 
 -- Unica excepcion, a nivel de columna: la tienda reserva al confirmar el
 -- checkout, porque ahi es donde se compromete la mercancia. Puede tocar
 -- stock_reservado y NADA mas de products -- ni el stock fisico ni el precio.
 -- El CHECK (stock_reservado <= stock) impide que reserve de mas.
 GRANT UPDATE (stock_reservado) ON torlan_pos.products TO 'bisonte_app'@'%';
-GRANT SELECT ON torlan_pos.product_suppliers TO 'bisonte_app'@'%';
+
 GRANT SELECT ON torlan_pos.suppliers         TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.empresas          TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.tags              TO 'bisonte_app'@'%';
@@ -56,7 +58,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.features           TO 'pos_ap
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.user_features      TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.suppliers          TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.products           TO 'pos_app'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.product_suppliers  TO 'pos_app'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.categories        TO 'pos_app'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.publishers         TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.sales              TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.sale_items         TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.cash_sessions      TO 'pos_app'@'%';
@@ -70,12 +73,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.tags               TO 'pos_ap
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.product_tags       TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.event_results      TO 'pos_app'@'%';
 
--- El POS captura el pago y marca el envio, por eso escribe estas dos.
-GRANT SELECT, UPDATE ON torlan_pos.bisonte_orders    TO 'pos_app'@'%';
-GRANT SELECT, UPDATE ON torlan_pos.bisonte_shipments TO 'pos_app'@'%';
+-- El POS mueve el pedido web por sus estados y encola los cobros hacia la
+-- tienda, pero no lo crea: eso nace en el checkout.
+GRANT SELECT, UPDATE                 ON torlan_pos.bisonte_orders     TO 'pos_app'@'%';
+GRANT SELECT, INSERT, UPDATE         ON torlan_pos.integration_outbox TO 'pos_app'@'%';
 
 -- Datos personales de compradores: solo lectura para atencion a clientes.
-GRANT SELECT ON torlan_pos.clientes       TO 'bisonte_app'@'%';
+GRANT SELECT ON torlan_pos.clientes       TO 'pos_app'@'%';
 GRANT SELECT ON torlan_pos.user_addresses TO 'pos_app'@'%';
 
 FLUSH PRIVILEGES;

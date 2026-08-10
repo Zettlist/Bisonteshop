@@ -141,14 +141,18 @@ test(16, 'un fallo queda visible, no se pierde en silencio', async () => {
     const saleId = await webOrder(f, 'pi_fallo');
     await sql(`INSERT INTO integration_outbox (tipo, sale_id) VALUES ('cancel', ?)`, [saleId]);
     await sql(
-        `UPDATE integration_outbox SET intentos = intentos + 1, ultimo_error = ?
+        `UPDATE integration_outbox
+            SET intentos = intentos + 1, ultimo_error = ?,
+                next_retry_at = NOW() + INTERVAL 2 MINUTE
           WHERE sale_id = ? AND tipo = 'cancel'`,
         ['ECONNREFUSED tienda no responde', saleId]);
     const [r] = await sql(
-        `SELECT estado, intentos, ultimo_error FROM integration_outbox WHERE sale_id = ?`, [saleId]);
+        `SELECT estado, intentos, ultimo_error, next_retry_at > NOW() AS espera
+           FROM integration_outbox WHERE sale_id = ?`, [saleId]);
     assertEqual(r[0].estado, 'pendiente', 'sigue pendiente hasta confirmarse');
     assertEqual(r[0].intentos, 1);
     assert(r[0].ultimo_error.includes('ECONNREFUSED'), 'el error debe quedar guardado');
+    assertEqual(r[0].espera, 1, 'el reintento debe quedar agendado a futuro');
 });
 
 test(16, 'el worker toma las pendientes mas viejas primero', async () => {
