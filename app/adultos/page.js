@@ -6,8 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import MangaCard from '@/components/MangaCard';
 import MangaModal from '@/components/MangaModal';
+import { useSearchStore } from '@/store/searchStore';
 import LandingZineAdultos from '@/components/LandingZineAdultos';
-import { Search, ShieldAlert, SlidersHorizontal, AlertTriangle, ArrowLeft, Tag, X } from 'lucide-react';
+import { ShieldAlert, SlidersHorizontal, AlertTriangle, ArrowLeft, Tag, X } from 'lucide-react';
 import styles from './adultos.module.css';
 
 const ADULT_TAGS = [
@@ -35,7 +36,8 @@ function AdultosPageInner() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
+    // La busqueda vive en la barra de navegacion (store global).
+    const searchTerm = useSearchStore((st) => st.term);
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedTags, setSelectedTags] = useState([]);
     const [selectedStock, setSelectedStock] = useState('all');
@@ -77,26 +79,37 @@ function AdultosPageInner() {
     };
     const handleDeclineTerms = () => router.push('/');
 
+    // Abrir el catalogo es navegar, no solo cambiar estado: antes showCatalog
+    // era estado suelto y la URL se quedaba en /adultos, asi que el logo de la
+    // barra (que apunta ahi) no hacia nada y el boton Atras del navegador
+    // tampoco salia del catalogo. Ahora la URL manda.
     const handleOpenCatalog = useCallback((tag = '', event = '', cat = '') => {
-        if (tag) setSelectedTags([tag]);
-        if (event) setSelectedEvent(event);
-        if (cat) setSelectedCategory(cat);
-        setShowCatalog(true);
-        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
-    }, []);
+        const q = new URLSearchParams({ open: '1' });
+        if (cat) q.set('cat', cat);
+        if (tag) q.set('tag', tag);
+        if (event) q.set('ev', event);
+        router.push(`/adultos?${q.toString()}`);
+    }, [router]);
 
-    // Auto-open catalog when navigated with ?open=1 (from navbar adultos links).
-    // Refleja la URL siempre: limpia filtros previos al cambiar de enlace
-    // (p.ej. Figuras -> Mangas) para no quedar "lock" en una categoría vieja.
+    const handleCloseCatalog = useCallback(() => router.push('/adultos'), [router]);
+
+    // Unico lugar que decide si se ve el catalogo o el landing, y con que
+    // filtros. Al leerse todo de la URL los enlaces quedan compartibles y
+    // no hay filtro viejo "pegado" al cambiar de enlace (p.ej. Figuras -> Mangas).
     useEffect(() => {
-        if (searchParams?.get('open') === '1') {
-            const cat = searchParams.get('cat') || '';
-            setSelectedCategory(cat);
+        const abierto = searchParams?.get('open') === '1';
+        setShowCatalog(abierto);
+
+        if (abierto) {
+            const tag = searchParams.get('tag');
+            setSelectedCategory(searchParams.get('cat') || '');
+            setSelectedTags(tag ? [tag] : []);
+            setSelectedEvent(searchParams.get('ev') || '');
+        } else {
             setSelectedTags([]);
             setSelectedEvent('');
-            setShowCatalog(true);
-            setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
         }
+        setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50);
     }, [searchParams]);
 
     useEffect(() => {
@@ -212,8 +225,6 @@ function AdultosPageInner() {
                 ══════════════════════════════════════════ */}
                 {showCatalog && (
                     <div ref={catalogRef} className={styles.catalogWrapper}>
-                        {/* topBar rendered via portal — avoids framer-motion filter:blur(0px) containing block */}
-
                         <div className={styles.layout}>
                             {/* Sidebar */}
                             <aside className={styles.sidebar}>
@@ -287,6 +298,23 @@ function AdultosPageInner() {
 
                             {/* Content */}
                             <main className={styles.content}>
+                                {/* Controles que vivian en la barra fija de arriba */}
+                                <div className={styles.contentHeader}>
+                                    <button className={styles.backBtn} onClick={handleCloseCatalog}>
+                                        <ArrowLeft size={16} /> Inicio
+                                    </button>
+                                    <span className={styles.adultLabel}>
+                                        <ShieldAlert size={16} className={styles.adultIcon} />
+                                        Contenido para adultos +18
+                                    </span>
+                                    <button className={styles.filterToggleBtn} onClick={() => setFiltersOpen(true)}>
+                                        <SlidersHorizontal size={15} />
+                                        Filtros
+                                        {(selectedCategory || selectedTags.length > 0 || selectedEvent || selectedStock !== 'all') && (
+                                            <span className={styles.filterBadge} />
+                                        )}
+                                    </button>
+                                </div>
                                 <p className={styles.count}>
                                     Mostrando <strong>{filtered.length}</strong> de <strong>{products.length}</strong> artículos
                                     {selectedEvent && <span className={styles.eventBadge}>{selectedEvent === 'novedad' ? '🆕 Novedades' : '🏷️ Liquidación'}</span>}
@@ -320,30 +348,6 @@ function AdultosPageInner() {
                 {selectedProduct && <MangaModal manga={selectedProduct} onClose={() => setSelectedProduct(null)} />}
             </div>
 
-            {/* ── TopBar portal — escapes framer-motion filter:blur(0px) containing block ── */}
-            {mounted && showCatalog && createPortal(
-                <div className={styles.topBar}>
-                    <div className={styles.topBarLeft}>
-                        <button className={styles.backBtn} onClick={() => { setShowCatalog(false); setSelectedTags([]); setSelectedEvent(''); }}>
-                            <ArrowLeft size={16} /> Inicio
-                        </button>
-                        <ShieldAlert size={18} className={styles.adultIcon} />
-                        <span className={styles.adultLabel}>Contenido para adultos +18</span>
-                    </div>
-                    <div className={styles.searchBox}>
-                        <Search size={16} className={styles.searchIcon} />
-                        <input type="text" placeholder="Buscar..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className={styles.searchInput} />
-                    </div>
-                    <button className={styles.filterToggleBtn} onClick={() => setFiltersOpen(true)}>
-                        <SlidersHorizontal size={15} />
-                        Filtros
-                        {(selectedCategory || selectedTags.length > 0 || selectedEvent || selectedStock !== 'all') && (
-                            <span className={styles.filterBadge} />
-                        )}
-                    </button>
-                </div>,
-                document.body
-            )}
 
             {/* ── Mobile Filter Sheet (portal) ── */}
             {mounted && (filtersOpen || filtersClosing) && createPortal(

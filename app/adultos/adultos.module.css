@@ -1,15 +1,22 @@
+/* La barra flotante es sticky y YA reserva --navbar-height en el flujo:
+   repetirla aqui metia ~100px muertos entre la barra y la cinta. Solo
+   queda el aire necesario para que la cinta girada no toque la pastilla. */
 .wrapper {
-    padding-top: var(--navbar-height, 70px);
+    padding-top: 2rem;
     min-height: 100vh;
     background:
         linear-gradient(rgba(5, 0, 20, 0.88), rgba(5, 0, 20, 0.88)),
-        url('/adultos-bg.jpg') center center / cover fixed;
+        url('/adultos-wallpaper.jpg') center center / cover fixed;
     transition: background 0.4s ease, color 0.4s ease;
 }
 
-/* En modo catálogo: navbar + topBar manejados por catalogWrapper */
+/* En modo catalogo el fondo del landing (.bgLayer, que es fixed) no existe,
+   asi que la franja que reserva la barra flotante se quedaba en negro: era
+   el body pelado. Se sube el wrapper bajo la barra para que su propio fondo
+   pinte esa franja; el hueco lo vuelve a poner catalogWrapper. */
 .wrapperCatalog {
     padding-top: 0;
+    margin-top: calc(-1 * var(--navbar-height, 70px));
 }
 
 /* ── Mural Banner ── */
@@ -91,29 +98,6 @@
 }
 
 /* ── Top Bar ── */
-.topBar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.55rem 2rem;
-    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
-    background: rgba(5, 0, 20, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    position: fixed;
-    top: var(--navbar-height, 70px);
-    left: 0;
-    right: 0;
-    z-index: 99;
-    gap: 1rem;
-}
-
-.topBarLeft {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
 .adultIcon {
     color: var(--primary);
 }
@@ -126,39 +110,9 @@
     color: var(--primary);
 }
 
-.searchBox {
-    position: relative;
-    width: 100%;
-    max-width: 360px;
-}
-
-.searchInput {
-    width: 100%;
-    padding: 0.5rem 1rem 0.5rem 2.2rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--foreground);
-    font-size: 0.88rem;
-    transition: border-color var(--transition);
-}
-
-.searchInput:focus {
-    outline: none;
-    border-color: var(--primary);
-}
-
-.searchIcon {
-    position: absolute;
-    left: 0.7rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-}
-
-/* Empuja contenido debajo de navbar(fixed) + topBar(fixed) */
+/* Empuja contenido debajo de la barra flotante */
 .catalogWrapper {
-    padding-top: calc(var(--navbar-height, 70px) + 42px);
+    padding-top: var(--navbar-height, 70px);
 }
 
 /* ── Layout ── */
@@ -174,9 +128,9 @@
     width: 240px;
     flex-shrink: 0;
     position: sticky;
-    top: calc(var(--navbar-height, 70px) + 46px);
+    top: var(--navbar-height, 70px);
     align-self: flex-start;
-    max-height: calc(100vh - var(--navbar-height, 70px) - 46px);
+    max-height: calc(100vh - var(--navbar-height, 70px));
     overflow-y: auto;
     scrollbar-width: thin;
     padding: 0.75rem 0.75rem 1rem 0;
@@ -1406,10 +1360,6 @@
         display: flex;
     }
 
-    .topBar {
-        padding: 0.6rem 1rem;
-    }
-
     .content {
         padding: 0.75rem 1rem 2rem;
     }
@@ -1454,8 +1404,19 @@
     .grid {
         gap: 0.5rem;
     }
+}
 
-    .topBar {
-        padding: 0.5rem 0.75rem;
-    }
+/* ── Cabecera del catalogo ────────────────────────────────────────────────
+   Reemplaza la barra fija que iba pegada bajo la barra de navegacion: los
+   mismos controles, pero dentro del contenido y sin robar alto en pantalla.
+   ─────────────────────────────────────────────────────────────────────── */
+.contentHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-bottom: 0.85rem;
+    margin-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
 }

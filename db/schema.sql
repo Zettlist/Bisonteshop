@@ -830,6 +830,30 @@ CREATE TABLE IF NOT EXISTS store_credit_uses (
     INDEX idx_credit_used (credit_id, used_at DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ─── ERP · Pedidos (rentabilidad por pedido) ────────────────────────────────
+-- Modulo ERP integrado al POS. Cada pedido a proveedor lleva sus costos y
+-- piezas; las metricas (inversion, precio de venta, ganancia real) se calculan
+-- en la app a partir de estos campos. Multi-tenant por empresa_id.
+CREATE TABLE IF NOT EXISTS erp_pedidos (
+    id                  INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id          INT NOT NULL,
+    proveedor           VARCHAR(120) NOT NULL,
+    fecha_pedido        DATE NOT NULL,
+    costo_producto      DECIMAL(18,2) NOT NULL DEFAULT 0,
+    costo_envio         DECIMAL(18,2) NOT NULL DEFAULT 0,
+    impuestos           DECIMAL(18,2) NOT NULL DEFAULT 0,
+    imprevistos         DECIMAL(18,2) NOT NULL DEFAULT 0,
+    total_piezas        INT NOT NULL DEFAULT 0,
+    piezas_vendidas     INT NOT NULL DEFAULT 0,
+    porcentaje_ganancia DECIMAL(8,2) NOT NULL DEFAULT 0,
+    status              ENUM('EN_RUTA','PROBLEMA_ADUANAS','EN_VENTA','LIQUIDANDO') NOT NULL DEFAULT 'EN_RUTA',
+    notas               TEXT NULL,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_erp_pedidos_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    INDEX idx_erp_pedidos_empresa (empresa_id, fecha_pedido)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- Semilla de feature flags del POS

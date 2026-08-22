@@ -27,7 +27,14 @@ export async function GET() {
         p.is_adult,
         p.events,
         p.sinopsis,
-        GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ',') as tags
+        GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ',') as tags,
+        -- Subconsulta, no JOIN: la query ya multiplica filas por cada tag y
+        -- un SUM() aqui contaria cada venta una vez por etiqueta.
+        (SELECT COALESCE(SUM(si.quantity), 0)
+           FROM sale_items si
+           JOIN sales s ON s.id = si.sale_id
+          WHERE si.product_id = p.id
+            AND s.empresa_id = p.empresa_id) AS vendidos
       FROM products p
       LEFT JOIN product_tags pt ON p.id = pt.product_id
       LEFT JOIN tags t ON pt.tag_id = t.id
@@ -40,6 +47,7 @@ export async function GET() {
     const products = rows.map(p => ({
       ...p,
       tags: p.tags ? p.tags.split(',') : [],
+      vendidos: Number(p.vendidos) || 0,
       events: p.events ? (typeof p.events === 'string' ? JSON.parse(p.events) : p.events) : null,
     }));
 

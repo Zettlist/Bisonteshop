@@ -19,8 +19,12 @@
 .bgLayer {
     position: fixed;
     inset: 0;
-    /* z -1: detrás de TODO el contenido, incluido el footer (que es estático) */
-    z-index: -1;
+    /* z 0 (NO -1): el template usa framer-motion, que crea un stacking context
+       persistente en el wrapper. Un z-index negativo aqui quedaria atrapado
+       DETRAS del fondo negro del <body> y no se veria la imagen. El contenido
+       ya va en z-index:1 (regla .pageWrapper > *:not(.bgLayer)), asi que 0
+       deja el fondo detras del contenido pero delante del negro del body. */
+    z-index: 0;
     pointer-events: none;
     background: #0a0a0a;
 }
@@ -712,5 +716,105 @@
 @media (prefers-reduced-motion: reduce) {
     .marqueeTrack {
         animation: none;
+    }
+}
+
+/* ── AVISOS "PRÓXIMAMENTE" ────────────────────────────────────────────────
+   Viajes a Japón y Preventas salieron de la barra superior (no son
+   navegables todavía). Van debajo de los botones de redes, con separación
+   clara para que no se lean como un botón mas de la fila de arriba.
+   ─────────────────────────────────────────────────────────────────────── */
+.avisos {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2.4rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed rgba(255, 255, 255, 0.22);
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.avisoCard {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.85rem;
+    background: rgba(16, 16, 20, 0.82);
+    border: 2px solid #1e1e24;
+    border-left: 6px solid var(--aviso-color, #ffd60a);
+    border-radius: 10px;
+    box-shadow: 3px 4px 0 #1e1e24;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    text-align: left;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+
+.avisoCard:hover {
+    transform: translateY(-3px) rotate(-0.6deg);
+    box-shadow: 5px 7px 0 #1e1e24;
+}
+
+.avisoIcon {
+    font-size: 1.35rem;
+    line-height: 1;
+    flex-shrink: 0;
+    /* La campanita se mueve sola: es un aviso, tiene que llamar un poco. */
+    animation: avisoTilt 3.6s ease-in-out infinite;
+}
+
+@keyframes avisoTilt {
+    0%, 88%, 100% { transform: rotate(0deg); }
+    91% { transform: rotate(-12deg); }
+    94% { transform: rotate(10deg); }
+    97% { transform: rotate(-5deg); }
+}
+
+.avisoTexto {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.avisoTitulo {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #fff;
+    letter-spacing: 0.2px;
+    line-height: 1.2;
+}
+
+.avisoDesc {
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.62);
+    line-height: 1.3;
+}
+
+.avisoBadge {
+    font-size: 0.56rem;
+    font-weight: 900;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #1e1e24;
+    background: var(--aviso-color, #ffd60a);
+    padding: 0.2rem 0.45rem;
+    border-radius: 3px;
+    line-height: 1;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transform: rotate(-6deg);
+    box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.55);
+}
+
+@media (max-width: 560px) {
+    .avisos {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: 340px;
     }
 }

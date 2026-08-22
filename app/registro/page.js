@@ -126,8 +126,8 @@ export default function RegistroPage() {
                             Enviamos un enlace de verificación a <strong>{success.email}</strong>.<br />
                             Revisa tu bandeja de entrada y activa tu cuenta para iniciar sesión.
                         </p>
-                        <Link href="/login" className={styles.submitBtn} style={{ textDecoration: 'none', textAlign: 'center', marginTop: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
-                            Ir al inicio de sesión
+                        <Link href="/" className={styles.submitBtn} style={{ textDecoration: 'none', textAlign: 'center', marginTop: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                            Ir a la tienda
                         </Link>
                     </motion.div>
                 ) : (
@@ -319,8 +319,15 @@ export default function RegistroPage() {
                             <span />
                         </div>
 
-                        <Link href="/login" className={styles.loginBtn}>
+                        <Link href="/?login=1" className={styles.loginBtn}>
                             Iniciar sesión
+                        </Link>
+
+                        {/* Alta con Google: manda al inicio con el modal abierto,
+                            que es donde vive el flujo completo (incluido el paso
+                            de la fecha de nacimiento). */}
+                        <Link href="/?login=1" className={styles.loginBtn} style={{ marginTop: '0.6rem' }}>
+                            Continuar con Google
                         </Link>
 
                         <p className={styles.back}>

@@ -1,23 +1,70 @@
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0 var(--container-pad);
-    height: var(--navbar-height, 70px);
+/* ── Barra flotante ────────────────────────────────────────────────────────
+   El shell es el que reserva el alto en el flujo (--navbar-height, que otras
+   paginas usan para sus offsets sticky) y viaja con el scroll. La barra real
+   es la pastilla de adentro: despegada del borde, con aire a los lados. Los
+   huecos del shell no bloquean clics (pointer-events), asi el contenido de
+   abajo sigue siendo alcanzable.
+   ───────────────────────────────────────────────────────────────────────── */
+.navShell {
     position: sticky;
     top: 0;
     z-index: 1000;
+    height: var(--navbar-height, 64px);
+    display: flex;
+    align-items: center;
+    padding: 0 var(--container-pad);
+    pointer-events: none;
+    background: transparent;
+}
+
+.navbar {
+    pointer-events: auto;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    height: 72px;
+    padding: 0 0.85rem 0 1.4rem;
+    border-radius: 999px;
     background: var(--navbar-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    transition: background var(--transition), border-color var(--transition);
+    border: 1px solid var(--border);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.28);
+    transition: height 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.28s ease,
+                background var(--transition),
+                border-color var(--transition);
+}
+
+/* Con scroll: se encoge y se cierra un poco hacia el centro. Sigue siendo
+   claramente mas baja que la barra en reposo, pero ya no queda raquitica. */
+.navbarScrolled {
+    height: 62px;
+    /* No baja mas: el logo completo mide ~265px y durante la transicion
+       (ancho + swap a siglas) rozaria los links centrados. */
+    max-width: 800px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='light'] .navbar {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='light'] .navbarScrolled {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
 }
 
 .logoGroup {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.6rem;
+    min-width: 0;
 }
 
 /* ── Neon Sign ── */
@@ -28,8 +75,8 @@
 }
 
 .neonSwitch {
-    width: 34px;
-    height: 19px;
+    width: 30px;
+    height: 17px;
     border-radius: 999px;
     background: #1e1e1e;
     border: 1px solid #3a3a3a;
@@ -50,15 +97,15 @@
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 13px;
-    height: 13px;
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
     background: #555;
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s, box-shadow 0.3s;
 }
 
 .neonSwitchOn .neonSwitchThumb {
-    transform: translateX(15px);
+    transform: translateX(13px);
     background: #c084fc;
     box-shadow: 0 0 6px #c084fc, 0 0 12px rgba(192, 132, 252, 0.6);
 }
@@ -66,8 +113,8 @@
 /* Neon text — apagado */
 .neonLabel {
     font-family: var(--font-display);
-    font-size: 1.5rem;
-    letter-spacing: 3px;
+    font-size: 1rem;
+    letter-spacing: 2px;
     text-transform: uppercase;
     color: rgba(192, 132, 252, 0.22);
     text-decoration: none;
@@ -109,9 +156,18 @@
     font-family: var(--font-display);
     font-size: 1.8rem;
     color: var(--primary);
-    letter-spacing: 3px;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
     text-decoration: none;
+    line-height: 1;
+    white-space: nowrap;
+    position: relative;
+    /* Recorta lo que sobra: al abreviarse, las letras que salen quedan fuera
+       de flujo en su sitio viejo (popLayout) y sin este recorte se ven
+       encimadas sobre el switch mientras se van. */
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
     transition: color var(--transition);
 }
 
@@ -119,21 +175,56 @@
     color: var(--foreground);
 }
 
+/* Contenedor de las letras del logo. */
+.logoLetras {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+}
+
+/* Cajita que RECORTA. Hace dos cosas al animarse: cierra su ancho (con lo que
+   el hueco se cierra en flujo y las iniciales se juntan) y recorta a la letra
+   de adentro mientras esta se desliza. flex-shrink 0 para que en la barra no la
+   apachurren sus vecinas. */
+.logoLetra {
+    display: inline-block;
+    overflow: hidden;
+    white-space: pre;
+    flex-shrink: 0;
+    /* line-height holgado para que el recorte lateral no muerda acentos ni
+       el trazo alto de la tipografia display. */
+    line-height: 1.15;
+}
+
+/* Lee la variable que anima la cajita. `max-content` + flex-shrink 0: cuando la
+   cajita cierra su ancho la letra NO se comprime, se queda de su tamaño y la
+   cajita simplemente deja de mostrarla. */
+.logoLetraInner {
+    display: inline-block;
+    white-space: pre;
+    transform: translateX(var(--desliz, 0%));
+    will-change: transform;
+}
+
 .logoHentai {
     font-family: var(--font-display);
-    font-size: 1.8rem;
-    letter-spacing: 3px;
+    letter-spacing: inherit;
     text-transform: uppercase;
+}
+
+/* El degradado va por letra: con background-clip: text no se puede recortar
+   sobre los hijos desde el contenedor. Los morados estan lo bastante cerca
+   como para que se lea igual que la palabra completa. */
+.logoHentai .logoLetraInner {
     background: linear-gradient(135deg, #8b5cf6, #a855f7, #c084fc);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    display: inline-block;
 }
 
 .navLinks {
     display: flex;
-    gap: 2rem;
+    gap: 1.25rem;
     list-style: none;
     position: absolute;
     left: 50%;
@@ -409,7 +500,7 @@
 
 .actions {
     display: flex;
-    gap: 1rem;
+    gap: 0.55rem;
     align-items: center;
 }
 
@@ -419,7 +510,7 @@
     color: var(--muted);
     cursor: pointer;
     transition: color var(--transition), transform 0.2s;
-    padding: 0.4rem;
+    padding: 0.55rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -616,18 +707,17 @@
         display: flex;
     }
 
+    .navShell {
+        padding: 0 0.85rem;
+    }
+
     .navbar {
-        padding: 0 1.25rem;
+        padding: 0 0.5rem 0 0.9rem;
     }
 
     .logo {
-        font-size: 1.4rem;
-        letter-spacing: 2px;
-    }
-
-    .logoHentai {
-        font-size: 1.4rem;
-        letter-spacing: 2px;
+        font-size: 1.35rem;
+        letter-spacing: 1.5px;
     }
 
     .desktopOnly {
@@ -636,17 +726,17 @@
 }
 
 @media (max-width: 400px) {
-    .navbar {
-        padding: 0 1rem;
+    .navShell {
+        padding: 0 0.6rem;
     }
 
     .logo {
-        font-size: 1.2rem;
-        letter-spacing: 1.5px;
+        font-size: 1.15rem;
+        letter-spacing: 1px;
     }
 
-    .logoHentai {
-        font-size: 1.2rem;
+    .neonLabel {
+        font-size: 0.85rem;
         letter-spacing: 1.5px;
     }
 }
@@ -1062,4 +1152,114 @@
 .ageGateAccept:hover {
     background: #7c3aed;
     box-shadow: 0 0 28px rgba(139,92,246,0.6);
+}
+/* ── Buscador de la barra ──────────────────────────────────────────────────
+   Colapsado es solo la lupa: la pastilla es angosta y un input siempre
+   visible chocaria con los links del centro. Al abrirse crece hacia la
+   izquierda y los links se apagan para dejarle el espacio.
+   ────────────────────────────────────────────────────────────────────────── */
+.buscador {
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    position: relative;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    transition: border-color 0.25s ease, background 0.25s ease;
+}
+
+.buscadorAbierto {
+    border-color: var(--border);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme='light'] .buscadorAbierto {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.buscadorInput {
+    width: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--foreground);
+    font-size: 0.85rem;
+    font-family: inherit;
+    min-height: 0;
+    opacity: 0;
+    transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, padding 0.28s ease;
+}
+
+.buscadorAbierto .buscadorInput {
+    width: clamp(140px, 22vw, 230px);
+    padding: 0.3rem 0.2rem;
+    opacity: 1;
+}
+
+.buscadorInput::placeholder {
+    color: var(--muted);
+}
+
+/* La cruz nativa del type=search duplica el boton de limpiar. */
+.buscadorInput::-webkit-search-cancel-button {
+    display: none;
+}
+
+.buscadorLimpiar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    margin-right: 0.25rem;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 999px;
+    transition: color 0.2s ease;
+}
+
+.buscadorLimpiar:hover {
+    color: var(--foreground);
+}
+
+/* Con el buscador abierto los links estorban: se apagan sin mover el layout. */
+.navbar:has(.buscadorAbierto) .navLinks {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.navLinks {
+    transition: opacity 0.2s ease;
+}
+
+/* En pantallas chicas la pastilla no da para logo + input abierto: mientras se
+   busca, el logo cede el lugar (vuelve al cerrar). */
+@media (max-width: 640px) {
+    .navbar:has(.buscadorAbierto) .logoGroup {
+        opacity: 0;
+        pointer-events: none;
+        width: 0;
+        overflow: hidden;
+    }
+
+    .logoGroup {
+        transition: opacity 0.2s ease;
+    }
+
+    .buscadorAbierto .buscadorInput {
+        width: 100%;
+    }
+
+    .navbar:has(.buscadorAbierto) .buscador {
+        flex: 1;
+    }
+}
+
+/* Ancla del carrito: el popover se posiciona respecto a este bloque. */
+.carritoAncla {
+    position: relative;
+    display: flex;
+    align-items: center;
 }

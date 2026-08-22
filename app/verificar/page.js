@@ -44,7 +44,7 @@ function VerificarContent() {
     // Auto-redirect on success
     useEffect(() => {
         if (status === 'success') {
-            const timer = setTimeout(() => router.push('/login'), 3500);
+            const timer = setTimeout(() => router.push('/?login=1'), 3500);
             return () => clearTimeout(timer);
         }
     }, [status, router]);
@@ -74,7 +74,7 @@ function VerificarContent() {
                         </motion.div>
                         <h1 className={styles.title}>¡Cuenta verificada!</h1>
                         <p className={styles.subtitle}>Tu correo fue confirmado correctamente.<br />Serás redirigido al inicio de sesión.</p>
-                        <Link href="/login" className={styles.btn}>Iniciar sesión ahora</Link>
+                        <Link href="/?login=1" className={styles.btn}>Iniciar sesión ahora</Link>
                     </div>
                 )}
 
@@ -83,7 +83,7 @@ function VerificarContent() {
                         <CheckCircle className={styles.iconSuccess} size={56} />
                         <h1 className={styles.title}>Ya estás verificado</h1>
                         <p className={styles.subtitle}>Tu cuenta ya había sido confirmada anteriormente.</p>
-                        <Link href="/login" className={styles.btn}>Iniciar sesión</Link>
+                        <Link href="/?login=1" className={styles.btn}>Iniciar sesión</Link>
                     </div>
                 )}
 
@@ -92,7 +92,7 @@ function VerificarContent() {
                         <MailWarning className={styles.iconWarn} size={56} />
                         <h1 className={styles.title}>Enlace expirado</h1>
                         <p className={styles.subtitle}>El enlace de verificación caducó (válido 24 h).<br />Solicita uno nuevo desde la pantalla de inicio de sesión.</p>
-                        <Link href="/login" className={styles.btn}>Ir al login</Link>
+                        <Link href="/?login=1" className={styles.btn}>Ir al inicio</Link>
                     </div>
                 )}
 
@@ -101,7 +101,7 @@ function VerificarContent() {
                         <XCircle className={styles.iconError} size={56} />
                         <h1 className={styles.title}>Enlace inválido</h1>
                         <p className={styles.subtitle}>{errorMsg}</p>
-                        <Link href="/login" className={styles.btn}>Ir al login</Link>
+                        <Link href="/?login=1" className={styles.btn}>Ir al inicio</Link>
                     </div>
                 )}
             </motion.div>

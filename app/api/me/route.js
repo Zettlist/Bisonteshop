@@ -32,8 +32,26 @@ export async function PUT(req) {
         const body = await req.json();
         const { avatar, nombre, apellido, telefono, fecha_nac, contacto_preferido } = body;
 
-        if (!avatar && nombre === undefined && telefono === undefined) {
+        if (!avatar && nombre === undefined && telefono === undefined && fecha_nac === undefined) {
             return NextResponse.json({ success: false, error: 'Sin datos' }, { status: 400 });
+        }
+
+        // La tienda es 18+: la fecha se valida aqui tambien, no solo en el alta.
+        // Es la via por la que las cuentas de Google completan su perfil.
+        if (fecha_nac) {
+            const nac = new Date(fecha_nac);
+            if (Number.isNaN(nac.getTime())) {
+                return NextResponse.json({ success: false, error: 'Fecha de nacimiento inválida.' }, { status: 400 });
+            }
+            const hoy = new Date();
+            const edad = hoy.getFullYear() - nac.getFullYear()
+                - (hoy < new Date(hoy.getFullYear(), nac.getMonth(), nac.getDate()) ? 1 : 0);
+            if (edad < 18) {
+                return NextResponse.json(
+                    { success: false, error: 'Debes ser mayor de 18 años para comprar.' },
+                    { status: 400 }
+                );
+            }
         }
 
         // Ensure extra columns exist (IF NOT EXISTS not supported in older MySQL)

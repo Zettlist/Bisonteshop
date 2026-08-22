@@ -362,7 +362,7 @@ function CheckoutFlow() {
                     // Sesión expirada — limpiar estado y redirigir a login
                     if (res.status === 401) {
                         clearUser();
-                        router.replace('/login');
+                        router.replace('/?login=1');
                         return;
                     }
                     setPaymentError(data.error || 'Error al preparar el pago.');

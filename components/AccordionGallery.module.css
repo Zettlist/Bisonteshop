@@ -1,0 +1,192 @@
+/* Acordeon horizontal — el ancho de cada panel lo pone el JS via flex-basis. */
+
+.galeria {
+    display: flex;
+    gap: 0.6rem;
+    width: 100%;
+    margin: 0 auto;
+    /* Mismo rectangulo de antes (72rem x 54rem = 4:3) pero el modulo entero
+       encoge: 46rem -> 736 x 552 px, que cabe en pantalla al 100% de zoom.
+       Con aspect-ratio la proporcion se respeta sola al angostarse. */
+    max-width: 46rem;
+    aspect-ratio: 4 / 3;
+    height: auto;
+}
+
+.panel {
+    position: relative;
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-width: 0;
+    padding: 0;
+    border: 2.5px solid #3d1155;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #14081f;
+    cursor: pointer;
+    transition: flex-basis 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.3s ease,
+                box-shadow 0.3s ease;
+}
+
+.panelAbierto {
+    border-color: #e040fb;
+    box-shadow: 0 16px 40px rgba(224, 64, 251, 0.28);
+}
+
+.imagen {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Los paneles cerrados son tiras angostas: encuadrar arriba deja la
+       cara de la portada visible en vez de un recorte del centro. */
+    object-position: center top;
+    filter: grayscale(0.55) brightness(0.62);
+    transition: filter 0.45s ease, transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.panelAbierto .imagen {
+    filter: none;
+    transform: scale(1.02);
+}
+
+.sinImagen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 2.5rem;
+    opacity: 0.35;
+}
+
+.velo {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(8, 0, 14, 0.92) 0%, rgba(8, 0, 14, 0.15) 55%, transparent 100%);
+    pointer-events: none;
+}
+
+/* Etiqueta girada: solo mientras el panel esta cerrado. */
+.etiquetaVertical {
+    position: absolute;
+    left: 50%;
+    bottom: 1.1rem;
+    transform: translateX(-50%) rotate(180deg);
+    writing-mode: vertical-rl;
+    max-height: calc(100% - 2.5rem);
+    overflow: hidden;
+    /* Los titulos largos se cortaban a la mitad contra el borde de arriba. */
+    text-overflow: ellipsis;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.panelAbierto .etiquetaVertical {
+    opacity: 0;
+}
+
+/* Ficha completa: solo en el panel abierto. */
+.ficha {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1.1rem 1.2rem;
+    text-align: left;
+    opacity: 0;
+    transform: translateY(0.8rem);
+    transition: opacity 0.35s ease 0.12s, transform 0.35s ease 0.12s;
+    pointer-events: none;
+}
+
+.panelAbierto .ficha {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.fichaTitulo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.2rem, 2.2vw, 1.8rem);
+    letter-spacing: 1px;
+    line-height: 1.1;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+}
+
+.fichaMeta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.medalla {
+    position: absolute;
+    top: 0.7rem;
+    left: 0.7rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 4px;
+    background: #e040fb;
+    color: #14081f;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 1px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* En pantallas angostas el acordeon horizontal deja tiras de 20px que no
+   se leen: se vuelve vertical, con el panel abierto mas alto. */
+@media (max-width: 700px) {
+    .galeria {
+        flex-direction: column;
+        aspect-ratio: auto;
+        height: auto;
+        max-height: none;
+        gap: 0.5rem;
+    }
+
+    .panel {
+        flex-basis: auto !important;
+        height: 4.5rem;
+        flex-shrink: 0;
+        transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                    border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .panelAbierto {
+        height: 30rem;
+    }
+
+    .etiquetaVertical {
+        writing-mode: horizontal-tb;
+        transform: translateX(-50%);
+        left: 1rem;
+        bottom: 50%;
+        transform: translateY(50%);
+        max-height: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .panel,
+    .imagen,
+    .ficha {
+        transition: none;
+    }
+}

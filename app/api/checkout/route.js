@@ -15,6 +15,17 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Debes iniciar sesión para comprar.' }, { status: 401 });
   }
 
+  // Perfil completo — la tienda es 18+ y las cuentas creadas con Google entran
+  // sin fecha de nacimiento. Este es el corte de verdad: el aviso de la interfaz
+  // se puede ignorar, esto no.
+  const [perfil] = await pool.query('SELECT fecha_nac FROM clientes WHERE id = ? LIMIT 1', [userId]);
+  if (!perfil.length || !perfil[0].fecha_nac) {
+    return NextResponse.json(
+      { success: false, needsProfile: true, error: 'Agrega tu fecha de nacimiento para poder comprar.' },
+      { status: 403 }
+    );
+  }
+
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   try {
     const body = await request.json();

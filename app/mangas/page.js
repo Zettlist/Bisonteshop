@@ -6,8 +6,9 @@ import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import MangaCard from '@/components/MangaCard';
+import { useSearchStore } from '@/store/searchStore';
 import MangaModal from '@/components/MangaModal';
-import { Search, Filter, PackageX, X } from 'lucide-react';
+import { Filter, PackageX, X } from 'lucide-react';
 import styles from './mangas.module.css';
 
 const cardVariants = {
@@ -26,7 +27,10 @@ function MangasPageInner() {
     const [error, setError] = useState(null);
 
     // Search y Filtros
-    const [searchTerm, setSearchTerm] = useState('');
+    // Mismo termino que el buscador de la barra de navegacion: escriban
+    // donde escriban, el catalogo filtra igual y ambos campos se ven iguales.
+    const searchTerm = useSearchStore((st) => st.term);
+    const setSearchTerm = useSearchStore((st) => st.setTerm);
     const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || '');
     const [selectedPublisher, setSelectedPublisher] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('');
@@ -195,6 +199,7 @@ function MangasPageInner() {
     }, [mangas, searchTerm, selectedCategory, selectedPublisher, selectedLanguage, selectedTags, sortBy, selectedStock]);
 
     const resetAllFilters = () => {
+        setSearchTerm('');
         setSelectedCategory('');
         setSelectedPublisher('');
         setSelectedLanguage('');
@@ -208,18 +213,9 @@ function MangasPageInner() {
         <div className={`${styles.pageWrapper} ${styles.pageTransition}`}>
             <div className={styles.container}>
 
-                {/* Top Bar: búsqueda + botón filtros (mobile) */}
+                {/* Cabecera: solo el boton de filtros — la busqueda vive en la
+                    barra de navegacion, este campo la duplicaba. */}
                 <div className={styles.header}>
-                    <div className={styles.searchBox}>
-                        <Search size={18} className={styles.searchIcon} />
-                        <input
-                            type="text"
-                            placeholder="Buscar por título, ISBN, autor..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className={styles.searchInput}
-                        />
-                    </div>
                     <button
                         className={styles.filterToggleBtn}
                         onClick={() => setFiltersOpen(true)}

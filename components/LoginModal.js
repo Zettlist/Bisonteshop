@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, LogIn, X, MailWarning, MailCheck, RefreshCw, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import GoogleAuthButton from './GoogleAuthButton';
 import m from './LoginModal.module.css';
 
 const REGISTRO_INICIAL = {
@@ -30,8 +31,39 @@ export default function LoginModal({ isOpen, onClose }) {
     const [regError, setRegError] = useState(null);
     const [regSuccess, setRegSuccess] = useState(null); // email registrado
 
+    // Google: entra (o se da de alta) de una. La fecha de nacimiento que Google
+    // no comparte se pide despues, con el aviso de cuenta incompleta.
+    const [googleLoading, setGoogleLoading] = useState(false);
+    const [googleError, setGoogleError] = useState(null);
+
     const router = useRouter();
     const setUser = useAuthStore(state => state.setUser);
+
+    const entrarConGoogle = async (credential) => {
+        if (!credential) return;
+        setGoogleError(null);
+        setGoogleLoading(true);
+        try {
+            const res = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ credential }),
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                setUser(data.user);
+                onClose();
+                router.refresh();
+                return;
+            }
+            setGoogleError(data.error || 'No se pudo entrar con Google.');
+        } catch {
+            setGoogleError('Error de conexión. Intenta más tarde.');
+        } finally {
+            setGoogleLoading(false);
+        }
+    };
 
     const handleRegChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -143,11 +175,22 @@ export default function LoginModal({ isOpen, onClose }) {
         setUnverifiedEmail(null);
         setResendStatus(null);
         setVista('login');
+        setGoogleError(null);
         setReg(REGISTRO_INICIAL);
         setRegError(null);
         setRegSuccess(null);
         onClose();
     };
+
+    // Lo que dice Bisa cambia con la vista. Vive aqui y no dentro del
+    // AnimatePresence porque la columna del arte no se recambia.
+    const dialogoBisa = regSuccess
+        ? '¡Listo! Ahora revisa tu correo para activarla.'
+        : unverifiedEmail
+            ? 'Te mandamos un correo. Ábrelo y ya entras.'
+            : vista === 'registro'
+                ? 'Crea tu cuenta y te guardo tus pedidos.'
+                : '¡Hola! Bienvenido a Bisonte Manga.';
 
     const handleBackToLogin = () => {
         setUnverifiedEmail(null);
@@ -167,20 +210,25 @@ export default function LoginModal({ isOpen, onClose }) {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
                         onClick={handleClose}
-                    />
+                    >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/bisonta-fullbody.png" alt="" className={m.backdropArte} aria-hidden="true" />
+                        <div className={m.backdropVelo} />
+                    </motion.div>
 
                     {/* Popup zine */}
                     <motion.div
                         className={m.panel}
-                        initial={{ scale: 0.85, opacity: 0, y: 24, rotate: -2 }}
-                        animate={{ scale: 1, opacity: 1, y: 0, rotate: 0 }}
-                        exit={{ scale: 0.9, opacity: 0, y: 16 }}
-                        transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                        initial={{ scale: 0.985, opacity: 0, y: 22 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        exit={{ scale: 0.985, opacity: 0, y: 14 }}
+                        transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
                     >
                         <button className={m.closeBtn} onClick={handleClose} aria-label="Cerrar">
                             <X size={20} />
                         </button>
 
+                        <div className={m.columnaForma}>
                         <AnimatePresence mode="wait">
                             {regSuccess ? (
                                 <motion.div
@@ -214,9 +262,13 @@ export default function LoginModal({ isOpen, onClose }) {
                                     transition={{ duration: 0.3 }}
                                 >
                                     <div className={m.header}>
-                                        <span className={m.logoTag}>Bisonte Manga ✦</span>
-                                        <h1 className={m.title}>CREAR CUENTA</h1>
-                                        <span className={m.subtitle}>únete a la banda manga ✌️</span>
+                                        <div className={m.headerTexto}>
+                                            <span className={m.logoTag}>Bisonte Manga</span>
+                                            <h1 className={m.title}>Crear cuenta</h1>
+                                            <span className={m.subtitle}>Guarda direcciones y sigue tus envíos.</span>
+                                        </div>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src="/logo.png" alt="Bisonte Manga" className={m.headerLogo} />
                                     </div>
 
                                     <form className={m.form} onSubmit={handleRegistro}>
@@ -314,19 +366,19 @@ export default function LoginModal({ isOpen, onClose }) {
                                             {regLoading ? (
                                                 <span className={m.spinner} />
                                             ) : (
-                                                <><UserPlus size={18} /> CREAR CUENTA</>
+                                                <><UserPlus size={18} /> Crear cuenta</>
                                             )}
                                         </motion.button>
                                     </form>
 
                                     <div className={m.divider}>
                                         <span />
-                                        <p>¿ya tienes cuenta?</p>
+                                        <p>¿Ya tienes cuenta?</p>
                                         <span />
                                     </div>
 
                                     <button className={m.registerBtn} onClick={() => setVista('login')}>
-                                        INICIAR SESIÓN
+                                        Iniciar sesión
                                     </button>
                                 </motion.div>
                             ) : unverifiedEmail ? (
@@ -381,9 +433,13 @@ export default function LoginModal({ isOpen, onClose }) {
                                     transition={{ duration: 0.3 }}
                                 >
                                     <div className={m.header}>
-                                        <span className={m.logoTag}>Bisonte Manga ✦</span>
-                                        <h1 className={m.title}>BIENVENIDO</h1>
-                                        <span className={m.subtitle}>inicia sesión en tu cuenta</span>
+                                        <div className={m.headerTexto}>
+                                            <span className={m.logoTag}>Bisonte Manga</span>
+                                            <h1 className={m.title}>Bienvenido</h1>
+                                            <span className={m.subtitle}>Entra a tu cuenta para ver tus pedidos.</span>
+                                        </div>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src="/logo.png" alt="Bisonte Manga" className={m.headerLogo} />
                                     </div>
 
                                     <form className={m.form} onSubmit={handleSubmit}>
@@ -431,7 +487,7 @@ export default function LoginModal({ isOpen, onClose }) {
 
                                         <div className={m.forgotRow}>
                                             <Link href="/recuperar" className={m.forgot} onClick={handleClose}>
-                                                ¿olvidaste tu contraseña?
+                                                ¿Olvidaste tu contraseña?
                                             </Link>
                                         </div>
 
@@ -456,7 +512,7 @@ export default function LoginModal({ isOpen, onClose }) {
                                             ) : (
                                                 <>
                                                     <LogIn size={18} />
-                                                    INICIAR SESIÓN
+                                                    Iniciar sesión
                                                 </>
                                             )}
                                         </motion.button>
@@ -464,16 +520,52 @@ export default function LoginModal({ isOpen, onClose }) {
 
                                     <div className={m.divider}>
                                         <span />
-                                        <p>¿no tienes cuenta?</p>
+                                        <p>¿No tienes cuenta?</p>
                                         <span />
                                     </div>
 
                                     <button className={m.registerBtn} onClick={() => setVista('registro')}>
-                                        CREAR CUENTA
+                                        Crear cuenta
                                     </button>
+
+                                    {/* Entrar o darse de alta con Google: el mismo
+                                        boton sirve para ambos, la cuenta se crea
+                                        sola si el correo no existe. */}
+                                    <GoogleAuthButton
+                                        onCredential={(cred) => entrarConGoogle(cred)}
+                                        texto="continue_with"
+                                        deshabilitado={googleLoading}
+                                    />
+                                    {googleError && (
+                                        <div className={m.errorMsg} style={{ marginTop: '0.6rem' }}>{googleError}</div>
+                                    )}
                                 </motion.div>
                             )}
                         </AnimatePresence>
+                        </div>
+
+                        {/* Fuera del AnimatePresence a proposito: al pasar de
+                            login a registro solo cambia la columna izquierda,
+                            Bisonta se queda quieta en su marco. */}
+                        <aside className={m.columnaArte}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/bisonta-fullbody.png" alt="" className={m.bisonta} aria-hidden="true" />
+
+                            <motion.p
+                                key={dialogoBisa}
+                                className={m.globo}
+                                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.25 }}
+                            >
+                                {dialogoBisa}
+                            </motion.p>
+                            <div className={m.arteBase} />
+                            <div className={m.firma}>
+                                <span className={m.firmaNombre}>Bisa</span>
+                                <span className={m.firmaNota}>Bisonte Manga</span>
+                            </div>
+                        </aside>
                     </motion.div>
                 </>
             )}

@@ -3,8 +3,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import MangaCard from '@/components/MangaCard';
+import { useSearchStore } from '@/store/searchStore';
 import MangaModal from '@/components/MangaModal';
-import { Search, Loader2, Filter, PackageX, X } from 'lucide-react';
+import { Loader2, Filter, PackageX, X } from 'lucide-react';
 import styles from './figuras.module.css';
 
 export default function FigurasPage() {
@@ -13,7 +14,10 @@ export default function FigurasPage() {
     const [error, setError] = useState(null);
 
     // Search y Filtros
-    const [searchTerm, setSearchTerm] = useState('');
+    // Mismo termino que el buscador de la barra de navegacion: escriban
+    // donde escriban, el catalogo filtra igual y ambos campos se ven iguales.
+    const searchTerm = useSearchStore((st) => st.term);
+    const setSearchTerm = useSearchStore((st) => st.setTerm);
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedPublisher, setSelectedPublisher] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('');
@@ -161,6 +165,7 @@ export default function FigurasPage() {
     }, [figuras, searchTerm, selectedCategory, selectedPublisher, selectedLanguage, selectedTags, sortBy, selectedStock]);
 
     const resetAllFilters = () => {
+        setSearchTerm('');
         setSelectedCategory('');
         setSelectedPublisher('');
         setSelectedLanguage('');
@@ -172,20 +177,6 @@ export default function FigurasPage() {
     return (
         <div className={`${styles.pageWrapper} ${styles.pageTransition}`}>
             <div className={styles.container}>
-
-                {/* Top Bar: solo búsqueda + conteo */}
-                <div className={styles.header}>
-                    <div className={styles.searchBox}>
-                        <Search size={18} className={styles.searchIcon} />
-                        <input
-                            type="text"
-                            placeholder="Buscar por título, ISBN, autor..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className={styles.searchInput}
-                        />
-                    </div>
-                </div>
 
                 {/* Layout Flex */}
                 <div className={styles.layout}>

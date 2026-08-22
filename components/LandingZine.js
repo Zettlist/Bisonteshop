@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import Categories from '@/components/Categories';
 import ProductGrid from '@/components/ProductGrid';
+import { useSplash } from '@/context/SplashContext';
 import styles from './LandingZine.module.css';
 
 const pop = {
@@ -34,6 +35,13 @@ const stickers = [
     { emoji: '🆕', title: 'Cada semana cae algo nuevo', desc: 'Estamos pegados a los lanzamientos de Japón. Lo que sale allá, lo cazamos para acá.', rotate: 1.5 },
     { emoji: '🤓', title: 'Somos tan frikis como tú', desc: 'No te atiende un call center. Te atiende alguien que también se desveló leyendo el último capítulo.', rotate: -1 },
     { emoji: '✈️', title: 'Importación directa', desc: 'Ediciones japonesas que no vas a encontrar en el centro comercial. De Tokio a tu casa.', rotate: 2 },
+];
+
+// Secciones anunciadas pero todavía apagadas: salieron de la barra de arriba
+// y se avisan aquí, bajo los botones de redes.
+const PROXIMAMENTE = [
+    { emoji: '✈️', titulo: 'Viajes a Japón', desc: 'Tours otaku con la banda de Bisonte.', badge: 'Pronto', color: '#ffd60a' },
+    { emoji: '🔔', titulo: 'Preventas', desc: 'Aparta tu tomo antes de que aterrice.', badge: 'Muy pronto', color: '#ff5d8f' },
 ];
 
 const VIDEOS_CONVENCION = [
@@ -89,6 +97,10 @@ const stats = [
 ];
 
 export default function LandingZine() {
+    // El hero no anima hasta que la pantalla de carga se retira: asi la entrada
+    // se ve completa en vez de correr escondida detras del splash.
+    const { listo } = useSplash();
+
     return (
         <div className={styles.pageWrapper}>
 
@@ -113,7 +125,7 @@ export default function LandingZine() {
                 <motion.div
                     className={styles.heroInner}
                     initial="hidden"
-                    animate="visible"
+                    animate={listo ? 'visible' : 'hidden'}
                 >
                     <motion.div className={styles.heroLogo} variants={pop} custom={0}>
                         <Image src="/logo.png" alt="Bisonte Manga" width={210} height={210} priority />
@@ -184,6 +196,22 @@ export default function LandingZine() {
                                 <div className={`${styles.doodleTooltip} ${styles.tooltipMail}`}>Mail</div>
                             </li>
                         </ul>
+                    </motion.div>
+
+                    {/* Avisos de secciones que aún no abren. Viven aquí (debajo
+                        de las redes, separados) en vez de ocupar lugar en la
+                        barra: no son navegables todavía. */}
+                    <motion.div className={styles.avisos} variants={fadeUp} custom={6}>
+                        {PROXIMAMENTE.map((a) => (
+                            <div key={a.titulo} className={styles.avisoCard} style={{ '--aviso-color': a.color }}>
+                                <span className={styles.avisoIcon} aria-hidden="true">{a.emoji}</span>
+                                <span className={styles.avisoTexto}>
+                                    <span className={styles.avisoTitulo}>{a.titulo}</span>
+                                    <span className={styles.avisoDesc}>{a.desc}</span>
+                                </span>
+                                <span className={styles.avisoBadge}>{a.badge}</span>
+                            </div>
+                        ))}
                     </motion.div>
                 </motion.div>
 

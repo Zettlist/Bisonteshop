@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Bebas+Neue&family=Permanent+Marker&family=Caveat:wght@600;700&display=swap');
+/* Las fuentes se cargan con <link> en app/layout.js, no aqui: Turbopack
+   descarta los @import externos al empaquetar el CSS y todas las familias
+   (Bebas Neue, Caveat, Permanent Marker, Fraunces) caian a la sans del
+   sistema sin que el navegador llegara a pedirlas. */
 
 /* ═══════════════════════════════════════════════════════════
    FLUID DESIGN TOKENS — escalan automáticamente 320px→1440px
@@ -31,8 +34,11 @@
   --container-pad:   clamp(1rem, 4vw, 2.5rem);
   --container-width: min(78%, 1280px);
 
-  /* ── Navbar height (referencia global) ── */
-  --navbar-height: clamp(56px, 5vw + 44px, 72px);
+  /* ── Navbar height (referencia global) ──
+     Es el alto del SHELL de la barra: incluye la pastilla flotante mas
+     el aire de arriba y abajo (pastilla 58px). Otras paginas lo usan para sus
+     offsets sticky. */
+  --navbar-height: clamp(92px, 2vw + 84px, 100px);
 }
 
 :root,

@@ -11,8 +11,10 @@
     padding: 0;
 }
 
+/* Solo sostiene el boton de Filtros (<=1024px). En escritorio no hay nada que
+   mostrar y una franja vacia con borde se veia como un rectangulo negro. */
 .header {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: flex-end;
     padding: 0.6rem 1.25rem;
@@ -30,36 +32,6 @@
 
 .subtitle {
     display: none;
-}
-
-.searchBox {
-    position: relative;
-    width: 100%;
-    max-width: 400px;
-}
-
-.searchInput {
-    width: 100%;
-    padding: 0.6rem 1rem 0.6rem 2.5rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--foreground);
-    font-size: 0.9rem;
-    transition: border-color var(--transition);
-}
-
-.searchInput:focus {
-    outline: none;
-    border-color: var(--primary);
-}
-
-.searchIcon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
 }
 
 .layout {
@@ -538,13 +510,9 @@
     }
 
     .header {
+        display: flex;
         padding: 0.6rem 1rem;
         gap: 0.6rem;
-    }
-
-    .searchBox {
-        max-width: 100%;
-        flex: 1;
     }
 
     .filterToggleBtn {

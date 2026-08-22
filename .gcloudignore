@@ -18,3 +18,6 @@ node_modules/
 README.md
 .dockerignore
 pencil-welcome.pen
+# Env local: NO subir al build (su NEXT_PUBLIC_BASE_URL=localhost pisaria a .env.production)
+.env.local
+.env*.local

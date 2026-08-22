@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import MangaCard from '@/components/MangaCard';
+import FanCards from '@/components/FanCards';
+import AccordionGallery from '@/components/AccordionGallery';
+import { useCurrency } from '@/context/CurrencyContext';
+import { useSplash } from '@/context/SplashContext';
 import styles from './LandingZineAdultos.module.css';
 
 const pop = {
@@ -26,7 +29,26 @@ const fadeUp = {
     })
 };
 
+// Entrada en conjunto del hero: las dos columnas arrancan a la vez, cada una
+// deslizandose desde su lado. Los hijos siguen usando pop/fadeUp — framer
+// propaga la etiqueta "visible" hacia abajo — asi que el modulo entra entero
+// mientras su contenido se acomoda.
+const RESORTE_ENTRADA = { type: 'spring', stiffness: 85, damping: 17, mass: 1 };
+
+const deslizaIzquierda = {
+    hidden: { opacity: 0, x: -110 },
+    visible: { opacity: 1, x: 0, transition: RESORTE_ENTRADA },
+};
+
+const deslizaDerecha = {
+    hidden: { opacity: 0, x: 110 },
+    visible: { opacity: 1, x: 0, transition: RESORTE_ENTRADA },
+};
+
 const marqueeText = 'BISONTE HENTAI ★ CONTENIDO EXCLUSIVO +18 ★ NUEVO CADA SEMANA ★ ENVÍOS DISCRETOS ★ ';
+
+// Los avisos "Viajes a Japon" y "Preventas" viven solo en la home normal:
+// en adultos estorbaban y no son secciones de esta zona.
 
 const stats = [
     { value: '+18', label: 'acceso exclusivo', note: 'sin preguntas' },
@@ -41,52 +63,24 @@ const stickers = [
     { emoji: '💜', title: 'Cero juicios', desc: 'Aquí no hay caras raras. Pides lo que te gusta y ya — para eso está la sección.', rotate: 2 },
 ];
 
-const SLOT_VISIBLE = 5;
-const SLOT_INTERVAL = 3200;
+const MIN_NOVEDADES = 5;
+const TOPE_ABANICO = 12;
+const TOPE_VENDIDOS = 5;
 
-function AdultProductGrid({ products, loading, onExplore, onSelectProduct }) {
-    const [offset, setOffset] = useState(0);
-    const [phase, setPhase] = useState('idle');
-
-    const novedadesRaw = useMemo(() =>
-        products.filter(p => p.events?.novedad?.active === true),
-        [products]
-    );
-
-    const fallback = useMemo(() =>
-        [...products].sort((a, b) => b.id - a.id).slice(0, 10),
-        [products]
-    );
-
-    const displayProducts = novedadesRaw.length >= SLOT_VISIBLE ? novedadesRaw : fallback;
-    const isFallback = novedadesRaw.length < SLOT_VISIBLE;
-    const hasMore = displayProducts.length > SLOT_VISIBLE;
-
-    const advance = useCallback(() => {
-        setPhase('exit');
-        setTimeout(() => {
-            setOffset(prev => (prev + SLOT_VISIBLE) % displayProducts.length);
-            setPhase('enter');
-            setTimeout(() => setPhase('idle'), 500);
-        }, 380);
-    }, [displayProducts.length]);
-
-    useEffect(() => {
-        if (!hasMore) return;
-        const timer = setInterval(advance, SLOT_INTERVAL);
-        return () => clearInterval(timer);
-    }, [hasMore, advance]);
-
-    const visible = useMemo(() =>
-        Array.from({ length: Math.min(SLOT_VISIBLE, displayProducts.length) }, (_, i) =>
-            displayProducts[(offset + i) % displayProducts.length]
-        ),
-        [displayProducts, offset]
-    );
-
-    const itemClass = phase === 'exit' ? styles.slotExit
-        : phase === 'enter' ? styles.slotEnter
-            : styles.slotIdle;
+// ── NOVEDADES: abanico de portadas ──────────────────────────────────────
+function Novedades({ products, loading, onExplore, onSelectProduct }) {
+    // Marcadas como novedad; si aun no hay suficientes, se rellena con las
+    // ultimas dadas de alta y se avisa con la insignia "Proximamente".
+    const { lista, esRelleno } = useMemo(() => {
+        const marcadas = products.filter(p => p.events?.novedad?.active === true);
+        if (marcadas.length >= MIN_NOVEDADES) {
+            return { lista: marcadas.slice(0, TOPE_ABANICO), esRelleno: false };
+        }
+        return {
+            lista: [...products].sort((a, b) => b.id - a.id).slice(0, TOPE_ABANICO),
+            esRelleno: true,
+        };
+    }, [products]);
 
     if (loading) return (
         <section id="novedades-adultos" className={styles.gridSection}>
@@ -96,15 +90,11 @@ function AdultProductGrid({ products, loading, onExplore, onSelectProduct }) {
                     <h2 className={styles.sectionTitle}>NOVEDADES</h2>
                 </div>
             </div>
-            <div className={styles.skeletonGrid}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className={styles.skeletonCard} />
-                ))}
-            </div>
+            <div className={styles.abanicoEsqueleto} />
         </section>
     );
 
-    if (displayProducts.length === 0) return null;
+    if (!lista.length) return null;
 
     return (
         <section id="novedades-adultos" className={styles.gridSection}>
@@ -113,43 +103,85 @@ function AdultProductGrid({ products, loading, onExplore, onSelectProduct }) {
                     <p className={styles.sectionEyebrow}>LO MÁS NUEVO</p>
                     <h2 className={styles.sectionTitle}>
                         NOVEDADES
-                        {isFallback && <span className={styles.fallbackBadge}>Próximamente</span>}
+                        {esRelleno && <span className={styles.fallbackBadge}>Próximamente</span>}
                     </h2>
                 </div>
                 <button className={styles.seeAll} onClick={onExplore}>Ver todo →</button>
             </div>
-            <div className={styles.slotGrid}>
-                {visible.map((p, i) => (
-                    <div
-                        key={`${p.id}-${offset}-${i}`}
-                        className={`${styles.slotItem} ${itemClass}`}
-                        style={{ animationDelay: phase === 'enter' ? `${i * 0.07}s` : '0s' }}
-                    >
-                        <MangaCard manga={p} onClick={onSelectProduct} />
-                    </div>
-                ))}
-            </div>
-            {hasMore && (
-                <div className={styles.slotIndicator}>
-                    {Array.from({ length: Math.ceil(displayProducts.length / SLOT_VISIBLE) }, (_, i) => (
-                        <span
-                            key={i}
-                            className={`${styles.slotDot} ${Math.floor(offset / SLOT_VISIBLE) === i ? styles.slotDotActive : ''}`}
-                        />
-                    ))}
+            <FanCards items={lista} onSelect={onSelectProduct} />
+        </section>
+    );
+}
+
+// ── LOS MÁS VENDIDOS: acordeón ──────────────────────────────────────────
+function MasVendidos({ products, loading, onExplore, onSelectProduct }) {
+    const { formatPrice } = useCurrency();
+
+    // `vendidos` viene de sale_items en /api/adultos. Mientras no haya
+    // ventas registradas todos valen 0 y el desempate manda: primero lo que
+    // menos stock queda (lo que mas se movio en tienda) y luego lo mas nuevo.
+    const { lista, hayVentasReales } = useMemo(() => {
+        const orden = [...products].sort((a, b) =>
+            (b.vendidos || 0) - (a.vendidos || 0) ||
+            (a.stock || 0) - (b.stock || 0) ||
+            b.id - a.id
+        );
+        return {
+            lista: orden.slice(0, TOPE_VENDIDOS),
+            hayVentasReales: products.some(p => (p.vendidos || 0) > 0),
+        };
+    }, [products]);
+
+    if (loading || !lista.length) return null;
+
+    const items = lista.map((p, i) => ({
+        ...p,
+        image: p.image_url,
+        label: p.title,
+        badge: hayVentasReales ? `#${i + 1}` : null,
+    }));
+
+    return (
+        <section id="mas-vendidos-adultos" className={`${styles.gridSection} ${styles.seccionAngosta}`}>
+            <div className={styles.gridHeader}>
+                <div>
+                    <p className={styles.sectionEyebrow}>LOS FAVORITOS</p>
+                    <h2 className={styles.sectionTitle}>
+                        LOS MÁS VENDIDOS
+                        {!hayVentasReales && <span className={styles.fallbackBadge}>Selección</span>}
+                    </h2>
                 </div>
-            )}
+                <button className={styles.seeAll} onClick={onExplore}>Ver todo →</button>
+            </div>
+            <AccordionGallery
+                items={items}
+                defaultIndex={2}
+                expandRatio={0.52}
+                trigger="hover"
+                onSelect={onSelectProduct}
+                renderMeta={(p) => (
+                    <>
+                        <strong className={styles.vendidoPrecio}>{formatPrice(p.price)}</strong>
+                        <span>{p.stock > 0 ? `${p.stock} disponibles` : 'Agotado'}</span>
+                        {(p.vendidos || 0) > 0 && <span>· {p.vendidos} vendidos</span>}
+                    </>
+                )}
+            />
         </section>
     );
 }
 
 export default function LandingZineAdultos({ products, loading, onExplore, onCategory, onSelectProduct }) {
+    // El hero no anima hasta que la pantalla de carga se retira: asi la entrada
+    // se ve completa en vez de correr escondida detras del splash.
+    const { listo } = useSplash();
+
     return (
         <div className={styles.pageWrapper}>
 
             {/* Fondo global del landing */}
             <div className={styles.bgLayer} aria-hidden="true">
-                <img src="/adultos-bg.jpg" alt="" className={styles.bgImage} />
+                <img src="/adultos-wallpaper.jpg" alt="" className={styles.bgImage} />
                 <div className={styles.bgOverlay} />
             </div>
 
@@ -160,14 +192,18 @@ export default function LandingZineAdultos({ products, loading, onExplore, onCat
                 </div>
             </div>
 
-            {/* HERO tipo póster */}
+            {/* HERO tipo póster — comparte fila con "Lo que buscabas" para
+                no gastar dos pantallas completas en la misma presentacion */}
             <section className={styles.hero}>
                 <div className={styles.halftone} aria-hidden="true" />
 
+                <div className={styles.heroSplit}>
+
                 <motion.div
                     className={styles.heroInner}
+                    variants={deslizaIzquierda}
                     initial="hidden"
-                    animate="visible"
+                    animate={listo ? 'visible' : 'hidden'}
                 >
                     <motion.div className={styles.heroLogo} variants={pop} custom={0}>
                         <Image src="/logo-hentai-sm.webp" alt="Bisonte Hentai" width={190} height={190} priority />
@@ -239,46 +275,44 @@ export default function LandingZineAdultos({ products, loading, onExplore, onCat
                             </li>
                         </ul>
                     </motion.div>
+
                 </motion.div>
+
+                {/* "Lo que buscabas" ya no es su propia seccion: viaja al lado
+                    del titulo, en la misma fila. */}
+                <motion.aside
+                    className={styles.storyAside}
+                    variants={deslizaDerecha}
+                    initial="hidden"
+                    animate={listo ? 'visible' : 'hidden'}
+                >
+                    <motion.div className={styles.storyArt} variants={pop} custom={1}>
+                        <img src="/hentai-logo-main.png" alt="Bisonte Hentai" />
+                    </motion.div>
+
+                    <div className={styles.storyText}>
+                        <motion.h2 variants={fadeUp} custom={2}>
+                            Lo que buscabas<span className={styles.dot}>, jeje</span>
+                        </motion.h2>
+                        <motion.p variants={fadeUp} custom={3}>
+                            Sí, abriste la sección correcta. Aquí está todo lo que en la tienda normal
+                            no podíamos poner: <em>doujinshis, yaoi, yuri, vanilla y mucho más</em>,
+                            sin censura y sin culpa.
+                        </motion.p>
+                        <motion.p variants={fadeUp} custom={4}>
+                            Mismo equipo, mismo cuidado en el empaque, mismo amor por el manga —
+                            solo que aquí nadie te va a juzgar por lo que pides.
+                        </motion.p>
+                        <motion.p className={styles.storyHand} variants={fadeUp} custom={5}>
+                            — el equipo Bisonte, sin pena 😏
+                        </motion.p>
+                    </div>
+                </motion.aside>
+
+                </div>
 
                 <span className={`${styles.sfx} ${styles.sfxLeft}`} aria-hidden="true">¡OH!</span>
                 <span className={`${styles.sfx} ${styles.sfxRight}`} aria-hidden="true">JEJE<br />JEJE</span>
-            </section>
-
-            {/* LO QUE BUSCABAS, JEJE — historia */}
-            <section className={styles.story}>
-                <motion.div
-                    className={styles.storyArt}
-                    initial={{ opacity: 0, rotate: -6, y: 40 }}
-                    whileInView={{ opacity: 1, rotate: 0, y: 0 }}
-                    viewport={{ once: true, amount: 0.3 }}
-                    transition={{ type: 'spring', stiffness: 120, damping: 14 }}
-                >
-                    <img src="/hentai-logo-main.png" alt="Bisonte Hentai" />
-                </motion.div>
-
-                <motion.div
-                    className={styles.storyText}
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true, amount: 0.3 }}
-                >
-                    <motion.h2 variants={fadeUp} custom={0}>
-                        Lo que buscabas<span className={styles.dot}>, jeje</span>
-                    </motion.h2>
-                    <motion.p variants={fadeUp} custom={1}>
-                        Sí, abriste la sección correcta. Aquí está todo lo que en la tienda normal
-                        no podíamos poner: <em>doujinshis, yaoi, yuri, vanilla y mucho más</em>,
-                        sin censura y sin culpa.
-                    </motion.p>
-                    <motion.p variants={fadeUp} custom={2}>
-                        Mismo equipo, mismo cuidado en el empaque, mismo amor por el manga —
-                        solo que aquí nadie te va a juzgar por lo que pides.
-                    </motion.p>
-                    <motion.p className={styles.storyHand} variants={fadeUp} custom={3}>
-                        — el equipo Bisonte, sin pena 😏
-                    </motion.p>
-                </motion.div>
             </section>
 
             {/* STATS estilo graffiti */}
@@ -301,7 +335,15 @@ export default function LandingZineAdultos({ products, loading, onExplore, onCat
             </section>
 
             {/* NOVEDADES */}
-            <AdultProductGrid
+            <Novedades
+                products={products}
+                loading={loading}
+                onExplore={onExplore}
+                onSelectProduct={onSelectProduct}
+            />
+
+            {/* LOS MÁS VENDIDOS */}
+            <MasVendidos
                 products={products}
                 loading={loading}
                 onExplore={onExplore}

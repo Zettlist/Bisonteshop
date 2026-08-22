@@ -16,7 +16,10 @@ export async function middleware(request) {
     if (!needsAuth) return NextResponse.next();
 
     const token = request.cookies.get('bisonte_session')?.value;
-    const loginUrl = new URL('/login', request.url);
+    // Ya no hay pagina /login: se entra por el modal de la barra. Se manda a la
+    // home con ?login=1 para que el modal se abra solo.
+    const loginUrl = new URL('/', request.url);
+    loginUrl.searchParams.set('login', '1');
     loginUrl.searchParams.set('redirect', pathname);
 
     if (!token) return NextResponse.redirect(loginUrl);

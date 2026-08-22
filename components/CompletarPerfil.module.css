@@ -1,0 +1,205 @@
+/* Barra fija abajo: presente pero sin tapar la tienda. */
+.barra {
+    position: fixed;
+    left: 50%;
+    bottom: 1rem;
+    transform: translateX(-50%);
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: min(620px, calc(100vw - 1.5rem));
+    padding: 0.7rem 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 5px solid #f59e0b;
+    border-radius: 12px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.42);
+}
+
+[data-theme='light'] .barra {
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+}
+
+.icono {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.16);
+    color: #f59e0b;
+}
+
+.texto {
+    flex: 1;
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    color: var(--foreground);
+}
+
+.completar {
+    flex-shrink: 0;
+    padding: 0.5rem 0.9rem;
+    border: none;
+    border-radius: 999px;
+    background: #f59e0b;
+    color: #1a1205;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+
+.completar:hover {
+    filter: brightness(1.08);
+}
+
+.posponer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.posponer:hover {
+    color: var(--foreground);
+}
+
+/* ── Ventana ── */
+.fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 950;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+.ventana {
+    position: fixed;
+    z-index: 960;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(420px, calc(100vw - 2rem));
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.cerrar {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.cerrar:hover {
+    color: var(--foreground);
+}
+
+.titulo {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+    color: var(--foreground);
+}
+
+.detalle {
+    margin: 0 0 1.1rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+.forma {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.etiqueta {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+}
+
+.campo {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--foreground);
+    font-size: 0.9rem;
+}
+
+.campo:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.campo::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+}
+
+.error {
+    margin: 0.2rem 0 0;
+    font-size: 0.78rem;
+    color: #ef4444;
+}
+
+.guardar {
+    margin-top: 0.8rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+
+.guardar:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.guardar:hover:not(:disabled) {
+    filter: brightness(1.08);
+}
+
+@media (max-width: 560px) {
+    .barra {
+        flex-wrap: wrap;
+    }
+
+    .texto {
+        flex-basis: 100%;
+        order: -1;
+    }
+}

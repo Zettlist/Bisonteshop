@@ -7,7 +7,7 @@ const CSP = [
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://api.stripe.com https://m.stripe.network",
+    "connect-src 'self' https://api.stripe.com https://m.stripe.network https://open.er-api.com",
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
     "object-src 'none'",
     "base-uri 'self'",

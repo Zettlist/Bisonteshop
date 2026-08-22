@@ -9,7 +9,7 @@
     min-height: 100vh;
     background: transparent;
     overflow-x: clip;
-    padding-top: 10px;
+    padding-top: 6px;
 }
 
 /* ---- FONDO GLOBAL ---- */
@@ -86,9 +86,20 @@
 /* ---- HERO ---- */
 .hero {
     position: relative;
-    padding: clamp(3.25rem, 8vw, 5.5rem) 1.5rem 3.75rem;
+    padding: clamp(2rem, 4.5vw, 3.25rem) 1.5rem 2.5rem;
     text-align: center;
     overflow: hidden;
+}
+
+/* El titulo y "Lo que buscabas" comparten fila: eran dos pantallas
+   completas diciendo lo mismo. En movil vuelven a apilarse. */
+.heroSplit {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    align-items: center;
+    max-width: 1240px;
+    margin: 0 auto;
 }
 
 .halftone {
@@ -104,18 +115,18 @@
 .heroInner {
     position: relative;
     z-index: 1;
-    max-width: 900px;
+    max-width: 640px;
     margin: 0 auto;
 }
 
 .heroLogo {
     display: flex;
     justify-content: center;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
 }
 
 .heroLogo img {
-    width: clamp(130px, 18vw, 190px);
+    width: clamp(100px, 11vw, 150px);
     height: auto;
     filter: drop-shadow(0 6px 24px rgba(155, 93, 229, 0.45));
     transform: rotate(-4deg);
@@ -139,26 +150,28 @@
     display: flex;
     flex-direction: column;
     line-height: 0.92;
-    margin: 0.5rem 0 1.8rem;
+    margin: 0.35rem 0 1.1rem;
     font-family: 'Bebas Neue', sans-serif;
     font-weight: 400;
 }
 
+/* Los tamanos bajaron: el titulo ya no ocupa el ancho entero de la pagina,
+   vive en media columna al lado de la historia. */
 .titleLine {
-    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-size: clamp(1.4rem, 2.4vw, 2.2rem);
     color: #fff;
-    letter-spacing: 12px;
+    letter-spacing: 8px;
 }
 
 .titleBig {
-    font-size: clamp(4.5rem, 14vw, 11rem);
+    font-size: clamp(3.2rem, 7vw, 6.6rem);
     color: #9b5de5;
     text-shadow: 4px 4px 0 #000, 8px 8px 0 rgba(224, 64, 251, 0.55);
     transform: rotate(-1.5deg);
 }
 
 .titleOutline {
-    font-size: clamp(3.5rem, 11vw, 8.5rem);
+    font-size: clamp(2.5rem, 5.4vw, 5.1rem);
     color: transparent;
     -webkit-text-stroke: 2.5px #fff;
     transform: rotate(0.8deg);
@@ -168,9 +181,9 @@
 .heroBadges {
     display: flex;
     justify-content: center;
-    gap: 0.9rem;
+    gap: 0.7rem;
     flex-wrap: wrap;
-    margin-bottom: 1.8rem;
+    margin-bottom: 1.1rem;
 }
 
 .sticker {
@@ -247,7 +260,7 @@
 .doodleWrap {
     display: flex;
     justify-content: center;
-    margin-top: 1.8rem;
+    margin-top: 1.2rem;
 }
 
 .doodleContainer {
@@ -500,21 +513,18 @@
     color: #e040fb;
 }
 
-/* ---- STORY ("Lo que buscabas, jeje") ---- */
-.story {
-    display: grid;
-    grid-template-columns: minmax(280px, 420px) 1fr;
-    gap: clamp(2rem, 5vw, 4.5rem);
-    align-items: center;
-    max-width: 1050px;
-    margin: 0 auto;
-    padding: 3.75rem 1.5rem;
+/* ---- STORY ("Lo que buscabas, jeje") ----
+   Ya no es una seccion aparte: es la columna derecha del hero. */
+.storyAside {
+    position: relative;
+    z-index: 1;
+    text-align: left;
 }
 
 .storyArt {
-    justify-self: center;
-    max-width: 420px;
+    max-width: 340px;
     width: 100%;
+    margin: 0 auto 1rem;
 }
 
 .storyArt img {
@@ -547,9 +557,9 @@
 
 .storyText h2 {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(3rem, 7vw, 5rem);
+    font-size: clamp(2.2rem, 4vw, 3.4rem);
     color: #fff;
-    margin: 0 0 1.2rem;
+    margin: 0 0 0.8rem;
     line-height: 1;
     text-shadow: 0 2px 16px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9);
 }
@@ -558,9 +568,9 @@
 
 .storyText p {
     color: rgba(255, 255, 255, 0.92);
-    font-size: 1.08rem;
-    line-height: 1.75;
-    margin: 0 0 1.1rem;
+    font-size: 1rem;
+    line-height: 1.65;
+    margin: 0 0 0.85rem;
     text-shadow: 0 1px 10px rgba(0, 0, 0, 0.95), 0 0 3px rgba(0, 0, 0, 0.9);
 }
 
@@ -584,7 +594,7 @@
     justify-content: center;
     gap: clamp(3rem, 9vw, 8rem);
     flex-wrap: wrap;
-    padding: 2.75rem 1.5rem 4.25rem;
+    padding: 2rem 1.5rem 3rem;
 }
 
 .statBlock {
@@ -625,9 +635,15 @@
 
 /* ---- NOVEDADES (grid de productos) ---- */
 .gridSection {
-    max-width: 1050px;
+    max-width: 1280px;
     margin: 0 auto;
     padding: clamp(2.25rem, 4.5vw, 4rem) 1.5rem;
+}
+
+/* "Los mas vendidos" usa un modulo angosto: si la seccion siguiera midiendo
+   1280px, el titulo y el "Ver todo" quedarian flotando lejos de la caja. */
+.seccionAngosta {
+    max-width: 800px;
 }
 
 .gridHeader {
@@ -685,134 +701,97 @@
 
 .seeAll:hover { color: #fff; }
 
-.slotGrid {
-    position: relative;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1.5rem;
-}
-
-.slotItem { will-change: transform, opacity; }
-.slotIdle { opacity: 1; transform: translateY(0); }
-
-@keyframes slotExitAnim {
-    0%   { transform: translateY(0);     opacity: 1; }
-    100% { transform: translateY(-48px); opacity: 0; }
-}
-
-@keyframes slotEnterAnim {
-    0%   { transform: translateY(48px); opacity: 0; }
-    100% { transform: translateY(0);    opacity: 1; }
-}
-
-.slotExit { animation: slotExitAnim 0.35s ease-in forwards; }
-.slotEnter { animation: slotEnterAnim 0.4s ease-out forwards; opacity: 0; }
-
-.slotIndicator {
-    grid-column: 1 / -1;
-    display: flex;
-    justify-content: center;
-    gap: 0.4rem;
-    margin-top: 0.25rem;
-}
-
-.slotDot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: rgba(155, 93, 229, 0.25);
-    transition: background 0.3s;
-}
-
-.slotDotActive { background: #e040fb; }
-
-.skeletonGrid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 1.5rem;
-}
-
-.skeletonCard {
-    height: 360px;
-    background: rgba(26, 0, 36, 0.6);
-    border-radius: 10px;
+/* Hueco del abanico mientras carga: mismo alto que FanCards.module.css. */
+.abanicoEsqueleto {
+    height: 38rem;
+    border-radius: 16px;
+    background: rgba(26, 0, 36, 0.55);
     border: 1px solid rgba(155, 93, 229, 0.18);
     animation: skeletonPulse 1.5s ease-in-out infinite;
 }
 
 @keyframes skeletonPulse {
     0%, 100% { opacity: 1; }
-    50%       { opacity: 0.4; }
+    50%      { opacity: 0.4; }
 }
 
-/* ---- STICKER WALL ---- */
+.vendidoPrecio {
+    color: #4ade80;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+/* ---- STICKER WALL ----
+   Version compacta: las 4 razones caben en una sola fila y la seccion
+   ocupa menos de la mitad del alto que tenia en dos columnas. */
 .stickerWall {
-    max-width: 1050px;
+    max-width: 1150px;
     margin: 0 auto;
-    padding: 2.25rem 1.5rem 3.75rem;
+    padding: 1.25rem 1.5rem 2.25rem;
     text-align: center;
 }
 
 .wallTitle {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(2.2rem, 6vw, 4rem);
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
     color: #fff;
     margin: 0;
     letter-spacing: 2px;
-    text-shadow: 3px 3px 0 rgba(155, 93, 229, 0.6);
+    text-shadow: 2px 2px 0 rgba(155, 93, 229, 0.6);
 }
 
 .wallSub {
     display: inline-block;
     font-family: 'Caveat', cursive;
-    font-size: 1.4rem;
+    font-size: 1.05rem;
     color: rgba(255, 255, 255, 0.6);
-    margin: 0.4rem 0 2.5rem;
+    margin: 0.15rem 0 1.1rem;
     transform: rotate(-1deg);
 }
 
 .stickerGrid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.8rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.85rem;
 }
 
 .stickerCard {
     background: #1a0024;
-    border: 2.5px solid #3d1155;
-    border-radius: 18px;
-    padding: 1.8rem 1.6rem;
+    border: 2px solid #3d1155;
+    border-radius: 12px;
+    padding: 0.85rem 0.9rem;
     text-align: left;
     transform: rotate(var(--rot, 0deg));
     transition: border-color 0.25s ease;
-    box-shadow: 5px 5px 0 rgba(155, 93, 229, 0.25);
+    box-shadow: 3px 3px 0 rgba(155, 93, 229, 0.25);
     position: relative;
 }
 
 .stickerCard:hover {
     border-color: #9b5de5;
-    box-shadow: 7px 7px 0 rgba(224, 64, 251, 0.35);
+    box-shadow: 5px 5px 0 rgba(224, 64, 251, 0.35);
 }
 
 .stickerEmoji {
-    font-size: 2.2rem;
+    font-size: 1.35rem;
     display: inline-block;
     transform: rotate(-6deg);
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.2rem;
 }
 
 .stickerCard h3 {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.55rem;
-    letter-spacing: 1px;
+    font-size: 1.05rem;
+    letter-spacing: 0.6px;
     color: #e040fb;
-    margin: 0 0 0.5rem;
+    margin: 0 0 0.25rem;
+    line-height: 1.15;
 }
 
 .stickerCard p {
     color: rgba(255, 255, 255, 0.72);
-    font-size: 0.98rem;
-    line-height: 1.65;
+    font-size: 0.78rem;
+    line-height: 1.45;
     margin: 0;
 }
 
@@ -893,33 +872,33 @@
 }
 
 /* ---- RESPONSIVE ---- */
-@media (max-width: 1200px) {
-    .slotGrid,
-    .skeletonGrid {
-        grid-template-columns: repeat(4, 1fr);
+@media (max-width: 1000px) {
+    .stickerGrid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
 @media (max-width: 900px) {
-    .story {
+    .heroSplit {
         grid-template-columns: 1fr;
-        padding: 2.75rem 1.5rem;
+        gap: 2rem;
     }
 
-    .storyArt {
-        max-width: 380px;
+    .storyAside {
+        text-align: center;
+        max-width: 560px;
         margin: 0 auto;
     }
 
-    .stickerGrid {
-        grid-template-columns: 1fr;
+    .storyText {
+        text-align: left;
     }
 
-    .slotGrid,
-    .skeletonGrid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
+    .storyArt {
+        max-width: 320px;
+        margin: 0 auto 1rem;
     }
+
 
     .sfx {
         display: none;
@@ -939,15 +918,7 @@
         gap: 0.5rem;
     }
 
-    .slotGrid,
-    .skeletonGrid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 0.85rem;
-    }
 
-    .skeletonCard {
-        height: 280px;
-    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -955,3 +926,9 @@
         animation: none;
     }
 }
+
+/* Alto del esqueleto en pareja con los cortes de FanCards.module.css. */
+@media (max-width: 1023px) { .abanicoEsqueleto { height: 34rem; } }
+@media (max-width: 767px)  { .abanicoEsqueleto { height: 28rem; } }
+@media (max-width: 639px)  { .abanicoEsqueleto { height: 26rem; } }
+@media (max-width: 479px)  { .abanicoEsqueleto { height: 22rem; } }

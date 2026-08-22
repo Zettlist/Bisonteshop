@@ -24,6 +24,14 @@ export default function MangaCard({ manga, onClick }) {
                         {!imgLoaded && <div className={styles.imageSkeleton} aria-hidden="true" />}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
+                            // Si la imagen ya venia en cache, el navegador la
+                            // termina ANTES de que React enganche onLoad y ese
+                            // evento no vuelve a dispararse: la portada se
+                            // quedaba invisible para siempre. Al montar se
+                            // revisa `complete` y se marca cargada a mano.
+                            ref={(el) => {
+                                if (el && el.complete && el.naturalWidth > 0) setImgLoaded(true);
+                            }}
                             src={imageUrl}
                             alt={manga.title || 'Portada'}
                             className={styles.image}
