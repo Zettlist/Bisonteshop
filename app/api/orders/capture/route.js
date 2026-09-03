@@ -40,12 +40,14 @@ export async function POST(request) {
 
     const order = rows[0];
 
-    if (order.status !== 'pending') {
-      return NextResponse.json({ success: false, error: `El pedido ya fue procesado (status: ${order.status})` }, { status: 409 });
+    // El eje del dinero es `pago_estado`, no `status` (columna que no existe).
+    // Solo se puede cobrar o liberar lo que sigue autorizado: si ya se capturo,
+    // cancelo o reembolso, reintentar aqui seria cobrar dos veces.
+    if (order.pago_estado !== 'autorizado') {
+      return NextResponse.json({ success: false, error: `El pedido ya fue procesado (pago: ${order.pago_estado})` }, { status: 409 });
     }
 
     const paymentIntentId = order.payment_intent_id;
-    const items = JSON.parse(order.items_json || '[]');
 
     if (action === 'capture') {
       // ── CAPTURAR: cobrar al cliente ──────────────────────────────
@@ -53,8 +55,12 @@ export async function POST(request) {
       // Bisonte only handles the Stripe capture and status update.
       await stripe.paymentIntents.capture(paymentIntentId);
 
+      // Solo se mueve el eje del cobro. El eje de la entrega (`estado`) lo
+      // escribe el POS cuando confirma existencias y prepara el envio: si la
+      // tienda lo adelantara aqui, el pedido se veria confirmado antes de que
+      // nadie haya tocado el paquete. `updated_at` se actualiza sola.
       await pool.query(
-        "UPDATE bisonte_orders SET status = 'captured', updated_at = NOW() WHERE sale_id = ?",
+        "UPDATE bisonte_orders SET pago_estado = 'capturado' WHERE sale_id = ?",
         [saleId]
       );
 
@@ -113,8 +119,12 @@ export async function POST(request) {
       // ── CANCELAR: liberar autorización, no cobrar ────────────────
       await stripe.paymentIntents.cancel(paymentIntentId);
 
+      // Aqui si se mueven los dos ejes: una autorizacion liberada no deja
+      // pedido que entregar, y `cancelled_at` es lo que fecha la cancelacion.
       await pool.query(
-        "UPDATE bisonte_orders SET status = 'cancelled', updated_at = NOW() WHERE sale_id = ?",
+        `UPDATE bisonte_orders
+            SET pago_estado = 'cancelado', estado = 'cancelado', cancelled_at = NOW()
+          WHERE sale_id = ?`,
         [saleId]
       );
 

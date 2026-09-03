@@ -11,13 +11,19 @@ export const dynamic = 'force-dynamic';
  * Body: { saleId: number, apiKey: string, reason?: string }
  *
  * - Issues a full Stripe refund for the captured PaymentIntent
- * - Updates bisonte_orders.status = 'refunded'
+ * - Updates bisonte_orders.pago_estado = 'reembolsado' y guarda refund_id
  * - Does NOT modify stock (TorlanPos handles stock restoration)
  */
 export async function POST(request) {
+  // Fuera del try: el catch de abajo lo necesita para marcar el reembolso
+  // cuando Stripe responde que el cargo ya estaba devuelto. Antes leia
+  // `request._saleId`, que nunca existio, y ese UPDATE no tocaba ninguna fila.
+  let saleId = null;
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
-    const { saleId, apiKey, reason } = await request.json();
+    const body = await request.json();
+    const { apiKey, reason } = body;
+    saleId = body.saleId;
 
     // Auth
     if (!apiKey || apiKey !== process.env.CAPTURE_API_KEY) {
@@ -43,14 +49,15 @@ export async function POST(request) {
     const order = rows[0];
 
     // Already refunded — idempotent
-    if (order.status === 'refunded') {
+    if (order.pago_estado === 'reembolsado') {
       return NextResponse.json({ success: true, alreadyRefunded: true, saleId });
     }
 
-    // Only captured orders can be refunded
-    if (order.status !== 'captured') {
+    // Solo se devuelve dinero que se cobro. Una autorizacion sin capturar se
+    // libera con /capture action=cancel, no se reembolsa.
+    if (order.pago_estado !== 'capturado') {
       return NextResponse.json(
-        { success: false, error: `No se puede reembolsar un pedido en estado: ${order.status}` },
+        { success: false, error: `No se puede reembolsar un pedido con pago en estado: ${order.pago_estado}` },
         { status: 409 }
       );
     }
@@ -63,10 +70,11 @@ export async function POST(request) {
       reason: reason || 'requested_by_customer',
     });
 
-    // Update bisonte_orders status
+    // Se guarda tambien el id del reembolso: la columna existe y sin ella no
+    // hay forma de casar el movimiento con Stripe desde la base.
     await pool.query(
-      "UPDATE bisonte_orders SET status = 'refunded', updated_at = NOW() WHERE sale_id = ?",
-      [saleId]
+      'UPDATE bisonte_orders SET pago_estado = ?, refund_id = ? WHERE sale_id = ?',
+      ['reembolsado', refund.id, saleId]
     );
 
     console.log(`[Refund] Pedido #${saleId} reembolsado. Refund ID: ${refund.id} | PI: ${paymentIntentId}`);
@@ -83,10 +91,10 @@ export async function POST(request) {
     console.error('[Refund API Error]', error.message);
 
     // Stripe already refunded this charge
-    if (error.code === 'charge_already_refunded') {
+    if (error.code === 'charge_already_refunded' && saleId) {
       await pool.query(
-        "UPDATE bisonte_orders SET status = 'refunded', updated_at = NOW() WHERE sale_id = ?",
-        [request._saleId]
+        "UPDATE bisonte_orders SET pago_estado = 'reembolsado' WHERE sale_id = ?",
+        [saleId]
       ).catch(() => {});
       return NextResponse.json({ success: true, alreadyRefunded: true, error: error.message });
     }
