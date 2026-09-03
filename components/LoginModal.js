@@ -7,6 +7,8 @@ import { Eye, EyeOff, LogIn, X, MailWarning, MailCheck, RefreshCw, UserPlus } fr
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import GoogleAuthButton from './GoogleAuthButton';
+import GloboBisa from './GloboBisa';
+import TerminosModal from './TerminosModal';
 import m from './LoginModal.module.css';
 
 const REGISTRO_INICIAL = {
@@ -30,6 +32,7 @@ export default function LoginModal({ isOpen, onClose }) {
     const [regLoading, setRegLoading] = useState(false);
     const [regError, setRegError] = useState(null);
     const [regSuccess, setRegSuccess] = useState(null); // email registrado
+    const [showTerms, setShowTerms] = useState(false);
 
     // Google: entra (o se da de alta) de una. La fecha de nacimiento que Google
     // no comparte se pide despues, con el aviso de cuenta incompleta.
@@ -299,19 +302,19 @@ export default function LoginModal({ isOpen, onClose }) {
                                             <select id="reg-nacionalidad" name="nacionalidad" className={m.input}
                                                 value={reg.nacionalidad} onChange={handleRegChange}>
                                                 <option value="">Selecciona tu país</option>
-                                                <option value="México">🇲🇽 México</option>
-                                                <option value="Argentina">🇦🇷 Argentina</option>
-                                                <option value="Chile">🇨🇱 Chile</option>
-                                                <option value="Colombia">🇨🇴 Colombia</option>
-                                                <option value="Perú">🇵🇪 Perú</option>
-                                                <option value="Venezuela">🇻🇪 Venezuela</option>
-                                                <option value="Ecuador">🇪🇨 Ecuador</option>
-                                                <option value="Bolivia">🇧🇴 Bolivia</option>
-                                                <option value="Uruguay">🇺🇾 Uruguay</option>
-                                                <option value="Paraguay">🇵🇾 Paraguay</option>
-                                                <option value="España">🇪🇸 España</option>
-                                                <option value="Estados Unidos">🇺🇸 Estados Unidos</option>
-                                                <option value="Otro">🌍 Otro</option>
+                                                <option value="México">México</option>
+                                                <option value="Argentina">Argentina</option>
+                                                <option value="Chile">Chile</option>
+                                                <option value="Colombia">Colombia</option>
+                                                <option value="Perú">Perú</option>
+                                                <option value="Venezuela">Venezuela</option>
+                                                <option value="Ecuador">Ecuador</option>
+                                                <option value="Bolivia">Bolivia</option>
+                                                <option value="Uruguay">Uruguay</option>
+                                                <option value="Paraguay">Paraguay</option>
+                                                <option value="España">España</option>
+                                                <option value="Estados Unidos">Estados Unidos</option>
+                                                <option value="Otro">Otro</option>
                                             </select>
                                         </div>
 
@@ -348,9 +351,10 @@ export default function LoginModal({ isOpen, onClose }) {
                                                 onChange={handleRegChange} className={m.checkbox} />
                                             <span>
                                                 Acepto los{' '}
-                                                <Link href="/privacidad" target="_blank" className={m.termsLink}>
+                                                <button type="button" className={m.termsLink}
+                                                    onClick={() => setShowTerms(true)}>
                                                     términos y condiciones
-                                                </Link>
+                                                </button>
                                             </span>
                                         </label>
 
@@ -551,15 +555,9 @@ export default function LoginModal({ isOpen, onClose }) {
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src="/bisonta-fullbody.png" alt="" className={m.bisonta} aria-hidden="true" />
 
-                            <motion.p
-                                key={dialogoBisa}
-                                className={m.globo}
-                                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.25 }}
-                            >
-                                {dialogoBisa}
-                            </motion.p>
+                            {/* key: al cambiar de vista la frase se reescribe
+                                desde cero en vez de continuar la anterior. */}
+                            <GloboBisa key={dialogoBisa} texto={dialogoBisa} className={m.globo} />
                             <div className={m.arteBase} />
                             <div className={m.firma}>
                                 <span className={m.firmaNombre}>Bisa</span>
@@ -567,6 +565,14 @@ export default function LoginModal({ isOpen, onClose }) {
                             </div>
                         </aside>
                     </motion.div>
+
+                    {/* Hermano del panel, no hijo: asi su overlay tapa tambien
+                        el popup de login en vez de quedar recortado adentro. */}
+                    <TerminosModal
+                        abierto={showTerms}
+                        onCerrar={() => setShowTerms(false)}
+                        onAceptar={() => setReg(r => ({ ...r, terminos: true }))}
+                    />
                 </>
             )}
         </AnimatePresence>

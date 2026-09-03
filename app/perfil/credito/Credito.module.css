@@ -1,38 +1,62 @@
+/* ── Credito de tienda ──────────────────────────────────────────────────────
+   El saldo es el dato que se viene a ver: va grande, en Fraunces, y en verde
+   solo cuando hay algo a favor. Lo demas se aparta para no competir. */
+
 .balanceCard {
     text-align: center;
-    padding: 2rem 1.5rem !important;
+    padding: 2.2rem 1.5rem !important;
 }
 
 .balanceLabel {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1rem;
-    letter-spacing: 2px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
-    margin: 0 0 0.5rem;
+    color: var(--pf-muted);
+    margin: 0 0 0.6rem;
 }
 
 .balanceAmount {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 3.2rem;
-    color: #ffd60a;
-    margin: 0 0 0.5rem;
-    letter-spacing: 2px;
+    font-family: var(--pf-serif);
+    font-size: clamp(2.6rem, 7vw, 3.4rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--pf-text);
+    margin: 0 0 0.6rem;
     line-height: 1;
 }
 
 .balanceAmount.positive {
-    color: #2ecc71;
+    color: var(--pf-ok);
 }
 
 .balanceNote {
-    font-family: 'Caveat', cursive;
-    font-size: 1.05rem;
-    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.85rem;
+    color: var(--pf-muted);
     margin: 0;
 }
 
-/* ── History ── */
+.comprarBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 1.1rem;
+    padding: 0.7rem 1.4rem;
+    border-radius: var(--pf-radius-sm);
+    background: var(--pf-accent);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.comprarBtn:hover {
+    background: var(--pf-accent-deep);
+    box-shadow: 0 8px 24px rgba(230, 57, 70, 0.28);
+}
+
+/* ── Historial de movimientos ── */
 .historyList {
     display: flex;
     flex-direction: column;
@@ -42,9 +66,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.85rem 0;
-    border-bottom: 2px dashed rgba(255, 255, 255, 0.12);
     gap: 1rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--pf-border-soft);
 }
 
 .historyRow:last-child {
@@ -56,25 +80,26 @@
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
+    min-width: 0;
 }
 
 .historyDesc {
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--foreground);
+    color: var(--pf-text);
 }
 
 .historyDate {
-    font-size: 0.76rem;
-    color: var(--muted);
+    font-size: 0.78rem;
+    color: var(--pf-muted);
 }
 
 .historyAmount {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.25rem;
-    letter-spacing: 1px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
-.positive { color: #2ecc71; }
-.negative { color: #ff6b6b; }
+.positive { color: var(--pf-ok); }
+.negative { color: var(--pf-danger); }

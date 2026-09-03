@@ -15,42 +15,48 @@ export async function POST(req, { params }) {
     }
 
     try {
-        // Verify order belongs to this user and is in a claimable status
-        const [[sale]] = await pool.query(
-            `SELECT s.id, s.web_status, c.nombre, c.apellido, c.email
-             FROM sales s
-             INNER JOIN clientes c ON c.id = s.cliente_id
-             WHERE s.id = ? AND s.cliente_id = ?`,
+        // El pedido web vive en bisonte_orders: ahi estan el cliente, el estado
+        // de entrega y el eje del reclamo. La consulta anterior los pedia como
+        // columnas de `sales` (s.web_status, s.cliente_id) — columnas que el
+        // esquema actual no tiene — y la ruta devolvia 500 siempre.
+        const [[order]] = await pool.query(
+            `SELECT bo.sale_id, bo.estado, bo.claim_status, c.nombre, c.apellido, c.email
+             FROM bisonte_orders bo
+             INNER JOIN clientes c ON c.id = bo.cliente_id
+             WHERE bo.sale_id = ? AND bo.cliente_id = ?`,
             [id, clienteId]
         );
 
-        if (!sale) {
+        if (!order) {
             return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
         }
 
-        if (!['entregado', 'transito', 'envio'].includes(sale.web_status)) {
-            return NextResponse.json({ error: 'Solo puedes levantar un reclamo para pedidos en tránsito o entregados' }, { status: 400 });
+        // El reclamo abierto se descarta primero: antes esta rama iba despues
+        // del filtro de estados claimables y no se alcanzaba nunca.
+        if (order.estado === 'reclamo') {
+            return NextResponse.json({ error: 'Ya existe un reclamo activo para este pedido' }, { status: 400 });
         }
 
-        if (sale.web_status === 'reclamo') {
-            return NextResponse.json({ error: 'Ya existe un reclamo activo para este pedido' }, { status: 400 });
+        // `envio` y `entregado` son los valores del enum; la tienda los muestra
+        // como "En tránsito" y "Entregado".
+        if (!['envio', 'entregado'].includes(order.estado)) {
+            return NextResponse.json({ error: 'Solo puedes levantar un reclamo para pedidos en tránsito o entregados' }, { status: 400 });
         }
 
         const fullNotes = `[${claim_reason}] ${claim_notes || ''}`.trim();
 
-        // Update sale to reclamo
         await pool.query(
-            `UPDATE sales
-             SET web_status = 'reclamo',
+            `UPDATE bisonte_orders
+             SET estado = 'reclamo',
                  claim_status = 'disputa',
                  claim_type = 'cliente',
                  claim_notes = ?
-             WHERE id = ?`,
-            [fullNotes, id]
+             WHERE sale_id = ? AND cliente_id = ?`,
+            [fullNotes, id, clienteId]
         );
 
         // Send email via Resend directly
-        await sendClaimEmail(sale, id, fullNotes);
+        await sendClaimEmail(order, id, fullNotes);
 
         return NextResponse.json({ success: true });
     } catch (err) {
@@ -59,9 +65,9 @@ export async function POST(req, { params }) {
     }
 }
 
-async function sendClaimEmail(sale, orderId, notes) {
+async function sendClaimEmail(cliente, orderId, notes) {
     const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey || !sale.email) return;
+    if (!apiKey || !cliente.email) return;
 
     const html = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f4f4f5;padding:32px 16px">
@@ -70,7 +76,7 @@ async function sendClaimEmail(sale, orderId, notes) {
           </div>
           <div style="background:#fff;border-radius:16px;padding:32px;border-top:3px solid #f59e0b">
             <h2 style="color:#f59e0b;margin:0 0 12px">Hemos recibido tu reclamo</h2>
-            <p style="color:#374151">Hola <strong>${sale.nombre} ${sale.apellido}</strong>,</p>
+            <p style="color:#374151">Hola <strong>${cliente.nombre} ${cliente.apellido}</strong>,</p>
             <p style="color:#374151">Tu reclamo para el pedido <strong>#${orderId}</strong> ha sido registrado.</p>
             ${notes ? `<div style="background:#fffbeb;padding:16px;border-radius:10px;border-left:4px solid #f59e0b;margin:16px 0">
               <p style="margin:0;font-size:14px;color:#92400e">${notes}</p>
@@ -90,7 +96,7 @@ async function sendClaimEmail(sale, orderId, notes) {
             },
             body: JSON.stringify({
                 from: 'Bisonte Manga <noreply@bisontemanga.com>',
-                to: sale.email,
+                to: cliente.email,
                 subject: `⚠️ Reclamo recibido — Pedido #${orderId} — Bisonte Manga`,
                 html,
             }),

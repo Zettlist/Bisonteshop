@@ -35,7 +35,13 @@ export default function SplashScreen() {
     const logo = esAdultos ? '/logo-hentai-sm.webp' : '/logo.png';
 
     useEffect(() => {
-        if (!visible || cerrado.current) return;
+        if (!visible) return;
+
+        // Se reinicia en cada apertura: el splash ya no es una sola vez por
+        // pestana — tambien corre al entrar al perfil — y con la bandera de la
+        // vez anterior puesta se cerraba solo, sin llegar a verse.
+        cerrado.current = false;
+        setPct(0);
 
         const t0 = Date.now();
         let pedido = false;

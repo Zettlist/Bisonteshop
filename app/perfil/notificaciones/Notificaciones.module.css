@@ -1,3 +1,9 @@
+/* ── Centro de notificaciones ───────────────────────────────────────────────
+   Los cuadros de icono llevaban borde negro y sombra dura; ahora son pastillas
+   de color tenue. El color por estado se conserva — es informacion, no
+   decoracion: verde confirmado, azul en camino, naranja reclamo, rojo
+   cancelado. */
+
 .headerRow {
     display: flex;
     align-items: flex-start;
@@ -9,28 +15,27 @@
 .markAllBtn {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.45rem 1rem;
-    border-radius: 8px;
-    border: 2.5px solid #000;
-    background: #ffd60a;
-    color: #1a1a1a;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.9rem;
-    letter-spacing: 1.5px;
+    gap: 0.45rem;
+    padding: 0.55rem 1rem;
+    border-radius: var(--pf-radius-sm);
+    border: 1px solid var(--pf-border);
+    background: var(--pf-surface-soft);
+    color: var(--pf-text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
     cursor: pointer;
-    box-shadow: 3px 3px 0 #000;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
     white-space: nowrap;
     margin-top: 0.25rem;
+    transition: background 0.18s ease, border-color 0.18s ease;
 }
 
 .markAllBtn:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 5px 5px 0 #000;
+    background: var(--pf-surface-hover);
+    border-color: var(--pf-border-strong);
 }
 
-/* ── Notification list ── */
+/* ── Lista ── */
 .list {
     display: flex;
     flex-direction: column;
@@ -38,14 +43,12 @@
 
 .item {
     display: flex;
-    gap: 1rem;
-    padding: 1rem 0;
-    border-bottom: 2px dashed rgba(255, 255, 255, 0.12);
+    gap: 0.9rem;
+    padding: 1rem 0.5rem;
+    border-bottom: 1px solid var(--pf-border-soft);
+    border-radius: var(--pf-radius-sm);
     cursor: default;
-    transition: background 0.15s;
-    border-radius: 8px;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    transition: background 0.15s ease;
 }
 
 .item:last-child {
@@ -57,67 +60,63 @@
 }
 
 .itemUnread:hover {
-    background: rgba(255,255,255,0.03);
-}
-
-[data-theme='light'] .itemUnread:hover {
-    background: rgba(0,0,0,0.02);
+    background: var(--pf-surface-soft);
 }
 
 .iconWrap {
     flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 9px;
-    background: rgba(255,255,255,0.06);
-    border: 2px solid #000;
-    box-shadow: 2px 2px 0 #000;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--pf-radius-sm);
+    background: var(--pf-surface-soft);
+    border: 1px solid var(--pf-border-soft);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--muted);
+    color: var(--pf-muted);
     margin-top: 0.1rem;
 }
 
 .iconUnread {
-    background: rgba(230,57,70,0.1);
-    border-color: rgba(230,57,70,0.3);
-    color: var(--primary);
+    background: var(--pf-accent-wash);
+    border-color: var(--pf-accent-line);
+    color: var(--pf-accent);
 }
 
-/* ── Icon color variants by status ── */
+/* ── Variantes por estado del pedido ── */
 .iconConfirmado {
-    background: rgba(16,185,129,0.1);
-    border-color: rgba(16,185,129,0.3);
-    color: #10b981;
+    background: var(--pf-ok-wash);
+    border-color: rgba(52, 211, 153, 0.3);
+    color: var(--pf-ok);
 }
 
 .iconEnvio {
-    background: rgba(59,130,246,0.1);
-    border-color: rgba(59,130,246,0.3);
-    color: #3b82f6;
+    background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.3);
+    color: #60a5fa;
 }
 
 .iconEntregado {
-    background: rgba(34,197,94,0.1);
-    border-color: rgba(34,197,94,0.3);
-    color: #22c55e;
+    background: var(--pf-ok-wash);
+    border-color: rgba(52, 211, 153, 0.3);
+    color: var(--pf-ok);
 }
 
 .iconReclamo {
-    background: rgba(249,115,22,0.1);
-    border-color: rgba(249,115,22,0.3);
-    color: #f97316;
+    background: var(--pf-warn-wash);
+    border-color: rgba(251, 191, 36, 0.3);
+    color: var(--pf-warn);
 }
 
 .iconCancelado {
-    background: rgba(239,68,68,0.1);
-    border-color: rgba(239,68,68,0.3);
-    color: #ef4444;
+    background: var(--pf-danger-wash);
+    border-color: rgba(248, 113, 113, 0.3);
+    color: var(--pf-danger);
 }
 
 .content {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
@@ -130,29 +129,28 @@
 }
 
 .title {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--foreground);
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--pf-text);
 }
 
 .dot {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: var(--primary);
+    background: var(--pf-accent);
     flex-shrink: 0;
 }
 
 .body {
-    font-size: 0.82rem;
-    color: var(--muted);
+    font-size: 0.84rem;
+    color: var(--pf-muted);
     margin: 0;
-    line-height: 1.45;
+    line-height: 1.5;
 }
 
 .date {
-    font-size: 0.73rem;
-    color: var(--muted);
-    opacity: 0.7;
+    font-size: 0.75rem;
+    color: var(--pf-faint);
     margin-top: 0.15rem;
 }

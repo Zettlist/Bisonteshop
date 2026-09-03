@@ -178,3 +178,96 @@ button {
   scrollbar-width: thin;
   scrollbar-color: #2a2a2a #0a0a0a;
 }
+/* Texto solo para lectores de pantalla. Las paginas del perfil ya no muestran
+   su titulo — la barra lateral dice en cual estas — pero cada documento sigue
+   necesitando su encabezado para quien navega sin ver la pantalla. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Cursor del globo de dialogo de Bisa mientras "escribe". Va en globals y no
+   en el modulo del modal porque el componente que lo pinta (GloboBisa) recibe
+   su clase contenedora desde fuera. */
+.globo-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 0.95em;
+  margin-left: 2px;
+  vertical-align: -0.13em;
+  background: currentColor;
+  opacity: 0.7;
+  animation: globo-parpadeo 0.9s steps(1) infinite;
+}
+
+@keyframes globo-parpadeo {
+  0%, 49%   { opacity: 0.7; }
+  50%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .globo-cursor { display: none; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   PALETA DEL PERFIL (--pf-*)
+   Vive en :root y no en .perfilContainer porque el modal de un
+   pedido se monta con createPortal en document.body: fuera del
+   contenedor no heredaba ninguna variable y las insignias de
+   estado salian en blanco.
+   Solo la usan los CSS del perfil; el resto del sitio la ignora.
+   ═══════════════════════════════════════════════════════════ */
+:root {
+    /* ── Superficies ── */
+    --pf-bg: #140b0c;
+    --pf-surface: rgba(30, 18, 19, 0.55);
+    --pf-surface-strong: rgba(30, 18, 19, 0.8);
+    --pf-surface-soft: rgba(255, 255, 255, 0.06);
+    --pf-surface-hover: rgba(255, 255, 255, 0.11);
+
+    /* ── Bordes ── */
+    --pf-border: rgba(255, 255, 255, 0.14);
+    --pf-border-soft: rgba(255, 255, 255, 0.09);
+    --pf-border-strong: rgba(255, 255, 255, 0.3);
+
+    /* ── Texto ── */
+    --pf-text: #f6f2f4;
+    --pf-text-2: #d6c9d0;
+    --pf-muted: #a1919b;
+    --pf-faint: #93838c;
+
+    /* ── Acento: el rojo de la marca, el mismo del logotipo y la barra ── */
+    --pf-accent: #e63946;
+    --pf-accent-deep: #c1121f;
+    --pf-accent-wash: rgba(230, 57, 70, 0.13);
+    --pf-accent-ring: rgba(230, 57, 70, 0.22);
+    --pf-accent-line: rgba(230, 57, 70, 0.38);
+
+    /* ── Semaforo (estados de pedido, saldos, errores) ── */
+    --pf-ok: #34d399;
+    --pf-ok-wash: rgba(52, 211, 153, 0.12);
+    --pf-ok-line: rgba(52, 211, 153, 0.26);
+    --pf-warn: #fbbf24;
+    --pf-warn-wash: rgba(251, 191, 36, 0.12);
+    --pf-warn-line: rgba(251, 191, 36, 0.3);
+    --pf-danger: #f87171;
+    --pf-danger-wash: rgba(248, 113, 113, 0.12);
+    --pf-danger-line: rgba(248, 113, 113, 0.26);
+
+    /* ── Forma ── */
+    --pf-radius: 18px;
+    --pf-radius-sm: 11px;
+    --pf-radius-pill: 999px;
+    --pf-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --pf-shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.5);
+    --pf-blur: blur(20px) saturate(1.2);
+    --pf-serif: 'Fraunces', Georgia, serif;
+}

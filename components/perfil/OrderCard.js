@@ -1,22 +1,39 @@
 'use client';
 
+import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import styles from './OrderCard.module.css';
+import BarraProgreso from './BarraProgreso';
+import {
+    progresoDe,
+    esFinalizado,
+    esCancelado,
+    esReclamoActivo,
+    reclamoResuelto,
+    puedeReclamar,
+} from '@/lib/pedidoProgreso';
 
 const STATUS_MAP = {
     verificando: { label: 'Verificando existencias', class: styles.status_verificando },
     preparando:  { label: 'Preparando',              class: styles.status_preparando  },
     transito:    { label: 'En Tránsito',             class: styles.status_transito    },
-    entregado:   { label: 'Entregado',               class: styles.status_entregado   },
+    entregado:   { label: 'Completado',              class: styles.status_entregado   },
     cancelado:   { label: 'Cancelado',               class: styles.status_cancelado   },
     produccion:  { label: 'En Producción',           class: styles.status_produccion  },
     reclamo:     { label: 'En Reclamo',              class: styles.status_reclamo     },
 };
 
-export default function OrderCard({ order, isHistory, onOpenDetail }) {
-    const resolvedClaim = order.status === 'reclamo' && order.claimStatus === 'resolucion';
-    const statusConfig = resolvedClaim
-        ? { label: 'Reclamo Resuelto', class: styles.status_entregado }
+export default function OrderCard({ order, onOpenDetail }) {
+    const resuelto  = reclamoResuelto(order);
+    const cerrado   = esFinalizado(order);
+    const cancelado = esCancelado(order);
+    const enReclamo = esReclamoActivo(order);
+
+    const statusConfig = resuelto
+        ? { label: 'Completado', class: styles.status_entregado }
         : STATUS_MAP[order.status] || STATUS_MAP['verificando'];
+
+    const { flujo, indice, tono } = progresoDe(order);
+
     const fmt  = (n) => `$${Number(n || 0).toFixed(2)}`;
     const paid = order.payments.reduce((acc, p) => acc + p.amount, 0);
     const debt = order.total - paid;
@@ -65,11 +82,48 @@ export default function OrderCard({ order, isHistory, onOpenDetail }) {
                 </div>
             </div>
 
+            {/* Un pedido cerrado ya no tiene recorrido que mostrar: en su lugar
+                va el remate, y desde ahi se abre el reclamo si aun cabe. */}
+            {cerrado ? (
+                <div className={`${styles.remate} ${cancelado ? styles.remateCancelado : ''}`}>
+                    <div className={styles.remateTexto}>
+                        {cancelado ? <XCircle size={16} /> : <CheckCircle2 size={16} />}
+                        <span>
+                            {cancelado
+                                ? 'Pedido cancelado'
+                                : resuelto
+                                ? 'Reclamo resuelto · Pedido completado'
+                                : 'Pedido completado'}
+                        </span>
+                    </div>
+
+                    {puedeReclamar(order) && (
+                        <button
+                            className={styles.reclamoBtn}
+                            onClick={() => onOpenDetail?.({ reclamo: true })}
+                        >
+                            <AlertTriangle size={14} />
+                            Levantar reclamo
+                        </button>
+                    )}
+                </div>
+            ) : (
+                <div className={styles.progresoBloque}>
+                    <BarraProgreso pasos={flujo} indice={indice} tono={tono} />
+                    {enReclamo && (
+                        <p className={styles.notaReclamo}>
+                            <AlertTriangle size={13} />
+                            Reclamo en curso. Te avisamos en cuanto tengamos resolución.
+                        </p>
+                    )}
+                </div>
+            )}
+
             <div className={styles.footer}>
-                {!isHistory && debt > 0 && (
+                {!cerrado && debt > 0 && (
                     <button className={styles.btnPrimary}>Abonar Saldo</button>
                 )}
-                <button className={styles.btnSecondary} onClick={onOpenDetail}>
+                <button className={styles.btnSecondary} onClick={() => onOpenDetail?.()}>
                     Ver Detalles
                 </button>
             </div>

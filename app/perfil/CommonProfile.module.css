@@ -1,76 +1,64 @@
-/* ===========================
-   Perfil (compartido) — estética zine/manga
-   Usado por: mis-pedidos, crédito, notificaciones, ajustes
-=========================== */
+/* ===========================================================================
+   Perfil (compartido) — vidrio, mismo lenguaje que el popup de login
+   Usado por: credito, notificaciones, anticipos, series y ajustes.
+
+   Antes: tarjetas negras con borde de 3px y sombra dura desplazada, titulos en
+   Bebas Neue amarillo y subtitulos en Caveat rotados. Ahora superficies
+   translucidas y el rojo de la marca como unico acento. Las paginas ya no
+   llevan titulo propio: la barra lateral dice en cual estas.
+   ======================================================================== */
 
 .container {
     max-width: 900px;
-}
-
-.header {
-    margin-bottom: 1.75rem;
-}
-
-.title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(2.4rem, 5vw, 3.2rem);
-    letter-spacing: 3px;
-    color: #ffd60a;
-    line-height: 1;
-    margin-bottom: 0.35rem;
-}
-
-.subtitle {
-    font-family: 'Caveat', cursive;
-    font-size: 1.25rem;
-    color: rgba(255, 255, 255, 0.6);
-    transform: rotate(-1deg);
-    display: inline-block;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
 
 .card {
-    background: #141414;
-    border: 3px solid #000;
-    border-radius: 16px;
-    box-shadow: 6px 6px 0 #000;
-    padding: 1.6rem 1.75rem;
-    margin-bottom: 1.5rem;
-    color: #fff;
+    background: var(--pf-surface-strong);
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius);
+    box-shadow: var(--pf-shadow);
+    padding: 1.4rem 1.5rem;
+    color: var(--pf-text);
 }
 
 .cardTitle {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.35rem;
-    letter-spacing: 2px;
-    color: #ffd60a;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px dashed rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--pf-muted);
+    margin: 0 0 1.1rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--pf-border-soft);
 }
 
 .emptyState {
     text-align: center;
-    padding: 3rem;
-    font-family: 'Caveat', cursive;
-    font-size: 1.3rem;
-    color: rgba(255, 255, 255, 0.55);
+    padding: 2.75rem 1.5rem;
+    font-size: 0.92rem;
+    color: var(--pf-muted);
 }
 
 .amount {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.8rem;
-    letter-spacing: 2px;
-    color: #ffd60a;
-    margin-bottom: 0.5rem;
+    font-family: var(--pf-serif);
+    font-size: 2.6rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--pf-text);
+    margin-bottom: 0.4rem;
 }
 
 .amount.positive {
-    color: #2ecc71;
+    color: var(--pf-ok);
 }
 
 .amountLabel {
-    font-family: 'Caveat', cursive;
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.6);
-    letter-spacing: 0.5px;
+    font-size: 0.85rem;
+    color: var(--pf-muted);
 }

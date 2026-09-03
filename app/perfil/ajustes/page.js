@@ -337,10 +337,7 @@ export default function AjustesPage() {
 
     return (
         <div className={commonStyles.container}>
-            <div className={commonStyles.header}>
-                <h1 className={commonStyles.title}>Ajustes</h1>
-                <p className={commonStyles.subtitle}>Personaliza tu perfil y preferencias.</p>
-            </div>
+            <h1 className="sr-only">Ajustes</h1>
 
             <div className={styles.sections}>
 

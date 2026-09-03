@@ -1,0 +1,120 @@
+/* ── Barra de progreso del pedido ───────────────────────────────────────────
+   Los colores salen de dos variables locales: cambiar el tono del reclamo es
+   remapearlas, no reescribir cada regla. */
+
+.barra {
+    --bp-acento: var(--pf-accent);
+    --bp-acento-wash: var(--pf-accent-wash);
+    --bp-apagado: var(--pf-border-soft);
+
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.barra.reclamo {
+    --bp-acento: var(--pf-warn);
+    --bp-acento-wash: var(--pf-warn-wash);
+}
+
+.paso {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fila {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+/* ── Linea ── */
+.riel {
+    flex: 1 1 auto;
+    height: 2px;
+    background: var(--bp-apagado);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+/* Las puntas existen solo para que el circulo quede centrado en su celda. */
+.rielVacio {
+    background: transparent;
+}
+
+.relleno {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: var(--bp-acento);
+    transform-origin: left center;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rielVacio .relleno {
+    display: none;
+}
+
+/* ── Circulos ── */
+.circulo {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.76rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
+.hecho {
+    background: var(--bp-acento);
+    border: 2px solid var(--bp-acento);
+    color: #fff;
+}
+
+/* El paso actual va hueco y con anillo: se distingue de los ya cumplidos sin
+   competir con ellos en peso visual. */
+.actual {
+    background: var(--bp-acento-wash);
+    border: 2px solid var(--bp-acento);
+    color: var(--pf-text);
+    box-shadow: 0 0 0 4px var(--bp-acento-wash);
+}
+
+.pendiente {
+    background: transparent;
+    border: 2px solid var(--bp-apagado);
+    color: var(--pf-muted);
+}
+
+/* ── Etiquetas ── */
+.etiqueta {
+    font-size: 0.72rem;
+    line-height: 1.25;
+    text-align: center;
+    color: var(--pf-muted);
+    padding: 0 0.15rem;
+}
+
+.etiquetaActual {
+    color: var(--pf-text);
+    font-weight: 600;
+}
+
+@media (max-width: 520px) {
+    .circulo { width: 23px; height: 23px; font-size: 0.72rem; }
+    .etiqueta { font-size: 0.66rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .relleno { transition: none; }
+}

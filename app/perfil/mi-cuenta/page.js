@@ -4,13 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
-import { ShoppingBag, Ticket, CreditCard, Copy, CheckCircle2, AlertTriangle, X, Trash2, Shield, Star } from 'lucide-react';
+import { ShoppingBag, Ticket, CreditCard, Bell, Copy, CheckCircle2, AlertTriangle, X, Trash2 } from 'lucide-react';
+import CreditoPanel from '@/components/perfil/CreditoPanel';
+import NotificacionesPanel from '@/components/perfil/NotificacionesPanel';
 import styles from './MiCuenta.module.css';
 
 export default function MiCuenta() {
-    const { user, isAuthenticated, clearUser } = useAuthStore();
+    const { user, isAuthenticated, clearUser, _hydrated } = useAuthStore();
     const router = useRouter();
-    const [copied, setCopied] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState('');
     const [deleting, setDeleting] = useState(false);
@@ -24,9 +25,33 @@ export default function MiCuenta() {
     const [checking, setChecking] = useState(false);
     const [copiedCupon, setCopiedCupon] = useState(null);
 
+    // Los paneles de credito y notificaciones ya consultan sus APIs; publican
+    // aqui el resumen para que la fila de indicadores no repita las llamadas.
+    const [creditBalance, setCreditBalance] = useState(null);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [activeOrders, setActiveOrders] = useState(null);
+
+    // Hay que esperar a que zustand rehidrate desde localStorage: en el primer
+    // render isAuthenticated todavia es false y esta pagina expulsaba a la home
+    // a cualquiera que recargara /perfil/mi-cuenta con sesion valida.
     useEffect(() => {
-        if (!isAuthenticated) router.replace('/');
-    }, [isAuthenticated, router]);
+        if (_hydrated && !isAuthenticated) router.replace('/');
+    }, [_hydrated, isAuthenticated, router]);
+
+    // Pedidos en curso: los que aun no llegaron a su ultimo estado. El
+    // indicador mostraba un 0 fijo, que no decia nada del pedido real.
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        fetch('/api/orders')
+            .then(r => r.json())
+            .then(d => {
+                const abiertos = (d.orders || []).filter(
+                    o => !['entregado', 'cancelado'].includes(o.status)
+                );
+                setActiveOrders(abiertos.length);
+            })
+            .catch(() => setActiveOrders(0));
+    }, [isAuthenticated]);
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -71,12 +96,6 @@ export default function MiCuenta() {
 
     if (!user) return null;
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(user.client_code);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2200);
-    };
-
     const handleDeleteAccount = async () => {
         if (deleteConfirm !== user.email) {
             setDeleteError('El correo no coincide.');
@@ -99,10 +118,7 @@ export default function MiCuenta() {
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>MI CUENTA<span>.</span></h1>
-                <p className={styles.subtitle}>tu identidad en la banda Bisonte ✌️</p>
-            </div>
+            <h1 className="sr-only">Mi cuenta</h1>
 
             {/* ── Perfil hero ── */}
             <div className={`${styles.card} ${styles.profileCard}`}>
@@ -120,10 +136,6 @@ export default function MiCuenta() {
                     <div className={styles.profileInfo}>
                         <div className={styles.profileNameRow}>
                             <h2 className={styles.profileName}>{user.nombre} {user.apellido}</h2>
-                            <span className={styles.memberBadge}>
-                                <Star size={10} />
-                                Miembro
-                            </span>
                         </div>
                         <p className={styles.profileEmail}>{user.email}</p>
                         <div className={styles.profileActions}>
@@ -139,7 +151,7 @@ export default function MiCuenta() {
             <div className={styles.statsGrid}>
                 <div className={styles.statCard}>
                     <div className={styles.statIcon}><ShoppingBag size={18} /></div>
-                    <span className={styles.statValue}>0</span>
+                    <span className={styles.statValue}>{activeOrders === null ? '—' : activeOrders}</span>
                     <span className={styles.statLabel}>Pedidos Activos</span>
                 </div>
                 <div
@@ -155,29 +167,24 @@ export default function MiCuenta() {
                     <span className={styles.statLabel}>Cupones</span>
                 </div>
                 <div className={styles.statCard}>
+                    <div className={styles.statIcon}><Bell size={18} /></div>
+                    <span className={styles.statValue}>{unreadCount}</span>
+                    <span className={styles.statLabel}>Sin Leer</span>
+                </div>
+                <div className={styles.statCard}>
                     <div className={styles.statIcon}><CreditCard size={18} /></div>
-                    <span className={styles.statValue}>$0</span>
+                    <span className={styles.statValue}>
+                        {creditBalance === null ? '—' : `$${Number(creditBalance).toFixed(2)}`}
+                    </span>
                     <span className={styles.statLabel}>Crédito</span>
                 </div>
             </div>
 
-            {/* ── Credencial ── */}
-            <div className={`${styles.card} ${styles.credentialCard}`}>
-                <div className={styles.credentialHeader}>
-                    <Shield size={16} className={styles.credentialIcon} />
-                    <p className={styles.credentialTitle}>Credencial Bisonte</p>
-                </div>
-                <div className={styles.credentialRow}>
-                    <span className={styles.credentialCode}>{user.client_code}</span>
-                    <button
-                        onClick={handleCopy}
-                        className={`${styles.copyBtn} ${copied ? styles.copyBtnSuccess : ''}`}
-                    >
-                        {copied ? <CheckCircle2 size={15} /> : <Copy size={15} />}
-                        {copied ? '¡Copiado!' : 'Copiar'}
-                    </button>
-                </div>
-            </div>
+            {/* ── Credito de tienda (antes: /perfil/credito) ── */}
+            <CreditoPanel onBalance={setCreditBalance} />
+
+            {/* ── Notificaciones (antes: /perfil/notificaciones) ── */}
+            <NotificacionesPanel onUnread={setUnreadCount} />
 
             {/* ── Zona de peligro ── */}
             <div className={`${styles.card} ${styles.dangerCard}`}>
@@ -207,7 +214,7 @@ export default function MiCuenta() {
                 <div className={styles.modalOverlay} onClick={() => setShowCupones(false)}>
                     <div className={styles.modal} onClick={e => e.stopPropagation()}>
                         <div className={styles.modalHeader}>
-                            <div className={styles.modalIconWrapper} style={{ background: 'rgba(255,214,10,0.12)', color: '#ffd60a' }}>
+                            <div className={styles.modalIconWrapper} style={{ background: 'rgba(230, 57, 70, 0.12)', color: '#e63946', borderColor: 'rgba(230, 57, 70, 0.32)' }}>
                                 <Ticket size={22} />
                             </div>
                             <button className={styles.modalClose} onClick={() => setShowCupones(false)}>
@@ -226,12 +233,12 @@ export default function MiCuenta() {
                                 {cupones.map(c => (
                                     <div key={c.code} style={{
                                         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
-                                        background: 'rgba(255,214,10,0.07)', border: '1px dashed rgba(255,214,10,0.45)',
-                                        borderRadius: '10px', padding: '0.7rem 0.9rem',
+                                        background: 'rgba(230, 57, 70, 0.07)', border: '1px dashed rgba(230, 57, 70, 0.4)',
+                                        borderRadius: '12px', padding: '0.7rem 0.9rem',
                                     }}>
                                         <div style={{ minWidth: 0 }}>
-                                            <div style={{ fontWeight: 800, letterSpacing: '1px', color: '#ffd60a', fontFamily: 'monospace', fontSize: '1.05rem' }}>{c.code}</div>
-                                            <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: '2px' }}>{c.origen} · {c.detalle}</div>
+                                            <div style={{ fontWeight: 600, letterSpacing: '2px', color: '#f6f2f4', fontFamily: 'monospace', fontSize: '1.05rem' }}>{c.code}</div>
+                                            <div style={{ fontSize: '0.78rem', color: '#a1919b', marginTop: '2px' }}>{c.origen} · {c.detalle}</div>
                                         </div>
                                         <button
                                             onClick={() => copyCupon(c.code)}

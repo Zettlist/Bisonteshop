@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -16,19 +16,48 @@ import { usePathname } from 'next/navigation';
 
 const RUTAS_CON_SPLASH = ['/', '/adultos'];
 
+const esPerfil = (ruta) => !!ruta?.startsWith('/perfil');
+
 // Solo en la primera carga real. En navegaciones cliente el modulo sigue vivo
 // con la marca puesta, asi que no se repite al volver a la home.
 let yaMostrada = false;
+
+// `previa` es null en la primera carga de la pestana.
+function abreSplash(ruta, previa) {
+    if (RUTAS_CON_SPLASH.includes(ruta) && !yaMostrada) return true;
+
+    // El perfil tiene su propia cortina cada vez que se entra al apartado,
+    // aunque el landing ya la haya mostrado. Pero solo al entrar desde fuera:
+    // entre sus subpaginas seria una cortina en cada clic del menu lateral.
+    if (esPerfil(ruta) && !esPerfil(previa)) return true;
+
+    return false;
+}
 
 const Ctx = createContext(null);
 
 export function SplashProvider({ children }) {
     const pathname = usePathname();
-    const conSplash = RUTAS_CON_SPLASH.includes(pathname) && !yaMostrada;
+    const rutaPrevia = useRef(null);
 
+    const inicial = abreSplash(pathname, null);
+    const [conSplash, setConSplash] = useState(inicial);
     // Las rutas sin splash arrancan listas: si no, su contenido se quedaria
     // esperando una señal que nunca llega.
-    const [listo, setListo] = useState(!conSplash);
+    const [listo, setListo] = useState(!inicial);
+
+    useEffect(() => {
+        if (rutaPrevia.current === pathname) return;
+        const anterior = rutaPrevia.current;
+        rutaPrevia.current = pathname;
+
+        // La primera carga ya quedo resuelta en el estado inicial.
+        if (anterior === null) return;
+
+        const abrir = abreSplash(pathname, anterior);
+        setConSplash(abrir);
+        setListo(!abrir);
+    }, [pathname]);
 
     const valor = useMemo(() => ({
         listo,

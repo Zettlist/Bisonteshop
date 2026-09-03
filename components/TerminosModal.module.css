@@ -1,0 +1,175 @@
+/* ─── Terminos y Condiciones · modal compartido ───────────────────────────────
+   Estilos migrados de app/registro/registro.module.css. El z-index queda por
+   encima del popup de login (1101) para que tambien funcione anidado ahi. */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1200;
+    padding: 1rem;
+    backdrop-filter: blur(8px);
+}
+
+.modal {
+    background: var(--surface);
+    width: 100%;
+    max-width: 800px;
+    height: 90vh;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.header h2 {
+    font-size: 1.2rem;
+    font-family: var(--font-display);
+    color: var(--foreground);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.closeBtn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.closeBtn:hover {
+    color: var(--primary);
+}
+
+.content {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--surface);
+    padding: 2rem;
+}
+
+.body {
+    max-width: 650px;
+    margin: 0 auto;
+    color: var(--text-base);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.mainTitle {
+    font-size: 1.5rem;
+    color: var(--foreground);
+    margin-bottom: 0.5rem;
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.date {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 2rem;
+}
+
+.heading {
+    font-size: 1.1rem;
+    color: var(--primary);
+    margin-top: 1.8rem;
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.body p {
+    margin-bottom: 1rem;
+}
+
+.body ul {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+.body li {
+    margin-bottom: 0.5rem;
+}
+
+.avisoLink {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.copyright {
+    margin-top: 3rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+}
+
+.btnCerrar {
+    padding: 0.8rem 1.5rem;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnCerrar:hover {
+    color: var(--foreground);
+    border-color: var(--muted);
+}
+
+.btnAceptar {
+    padding: 0.8rem 1.5rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btnAceptar:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 640px) {
+    .overlay { padding: 0; }
+    .modal { height: 100dvh; max-width: none; border-radius: 0; border: none; }
+    .content { padding: 1.25rem; }
+    .footer { padding: 1rem; }
+}

@@ -7,17 +7,16 @@
 
 /* ── Accordion section ──────────────────────────────── */
 .section {
-    border: 3px solid #000;
-    border-radius: 14px;
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius);
     overflow: hidden;
-    background: #141414;
-    box-shadow: 4px 4px 0 #000;
-    transition: box-shadow 0.2s, transform 0.2s;
+    background: var(--pf-surface-strong);
+    box-shadow: var(--pf-shadow);
+    transition: border-color 0.2s ease;
 }
 
 .section:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: 5px 5px 0 rgba(230, 57, 70, 0.55);
+    border-color: var(--pf-border-strong);
 }
 
 .sectionHeader {
@@ -35,7 +34,7 @@
 }
 
 .sectionHeader:hover {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--pf-surface-soft);
 }
 
 [data-theme='light'] .sectionHeader:hover {
@@ -52,10 +51,9 @@
     width: 34px;
     height: 34px;
     border-radius: 8px;
-    background: #e63946;
-    color: #fff;
-    border: 2px solid #000;
-    box-shadow: 2px 2px 0 #000;
+    background: var(--pf-accent-wash);
+    color: var(--pf-accent);
+    border: 1px solid var(--pf-accent-line);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -63,9 +61,9 @@
 }
 
 .sectionTitle {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.15rem;
-    letter-spacing: 1.5px;
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
 }
 
 .chevron {
@@ -85,11 +83,10 @@
 
 /* ── Hint text ──────────────────────────────────────── */
 .hint {
-    font-family: 'Caveat', cursive;
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.86rem;
+    color: var(--pf-muted);
     margin-bottom: 1.25rem;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 /* ── Avatar category tabs ───────────────────────────── */
@@ -101,29 +98,28 @@
 }
 
 .categoryTab {
-    padding: 0.35rem 1rem;
-    border-radius: 8px;
-    border: 2px solid #000;
-    background: #1d1d1d;
-    color: rgba(255, 255, 255, 0.6);
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.9rem;
-    letter-spacing: 1.5px;
+    padding: 0.45rem 1rem;
+    border-radius: var(--pf-radius-pill);
+    border: 1px solid var(--pf-border-soft);
+    background: var(--pf-surface-soft);
+    color: var(--pf-muted);
+    font-family: inherit;
+    font-size: 0.84rem;
+    font-weight: 500;
     cursor: pointer;
-    box-shadow: 2px 2px 0 #000;
-    transition: all 0.15s ease;
+    transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .categoryTab:hover {
-    color: #ffd60a;
-    transform: translate(-1px, -1px);
-    box-shadow: 3px 3px 0 #000;
+    color: var(--pf-text);
+    background: var(--pf-surface-hover);
 }
 
-.categoryTabActive {
-    background: #e63946;
-    color: #fff;
-    transform: rotate(-1deg);
+.categoryTabActive,
+.categoryTabActive:hover {
+    background: var(--pf-accent-wash);
+    border-color: var(--pf-accent-line);
+    color: var(--pf-text);
 }
 
 /* ── Avatar grid ────────────────────────────────────── */
@@ -197,25 +193,25 @@
 }
 
 .label {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.7);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--pf-text-2);
 }
 
 .input {
-    padding: 0.7rem 1rem;
-    background: #1d1d1d;
-    border: 2.5px solid #000;
-    border-radius: 8px;
-    color: var(--foreground);
+    padding: 0.7rem 0.9rem;
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius-sm);
+    color: var(--pf-text);
     font-size: 0.95rem;
-    font-family: var(--font-sans);
+    font-family: inherit;
     width: 100%;
-    box-shadow: 3px 3px 0 #000;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
+
+.input::placeholder { color: var(--pf-faint); }
 
 [data-theme='light'] .input {
     background: rgba(0, 0, 0, 0.02);
@@ -223,8 +219,9 @@
 
 .input:focus {
     outline: none;
-    border-color: #e63946;
-    box-shadow: 3px 3px 0 rgba(230, 57, 70, 0.6);
+    border-color: var(--pf-accent);
+    background: rgba(255, 255, 255, 0.13);
+    box-shadow: 0 0 0 3px var(--pf-accent-ring);
 }
 
 .input:disabled {
@@ -334,28 +331,27 @@ select.input {
 }
 
 .customSelectOptionActive {
-    color: var(--primary);
-    background: rgba(230, 57, 70, 0.07);
+    color: var(--pf-accent);
+    background: var(--pf-accent-wash);
 }
 
 /* ── Primary button ─────────────────────────────────── */
 .btnPrimary {
-    background: #e63946;
-    color: white;
-    border: 2.5px solid #000;
-    padding: 0.65rem 1.5rem;
-    border-radius: 8px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1rem;
-    letter-spacing: 2px;
+    background: var(--pf-accent);
+    color: #fff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--pf-radius-sm);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
     cursor: pointer;
-    box-shadow: 3px 3px 0 #000;
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btnPrimary:hover:not(:disabled) {
-    transform: translate(-2px, -2px);
-    box-shadow: 5px 5px 0 #000;
+    background: var(--pf-accent-deep);
+    box-shadow: 0 8px 24px rgba(230, 57, 70, 0.28);
 }
 
 .btnPrimary:disabled {
@@ -364,7 +360,8 @@ select.input {
 }
 
 .btnSuccess {
-    background: #16a34a !important;
+    background: var(--pf-ok) !important;
+    color: #10281f !important;
 }
 
 .btnInner {
@@ -531,8 +528,8 @@ select.input {
 }
 
 .toggleOn {
-    background: #e63946 !important;
-    border-color: #000 !important;
+    background: var(--pf-accent) !important;
+    border-color: var(--pf-accent) !important;
 }
 
 .toggleThumb {
@@ -560,25 +557,27 @@ select.input {
 }
 
 .addressCard {
-    border: 2.5px solid #000;
-    border-radius: 12px;
+    border: 1px solid var(--pf-border-soft);
+    border-radius: var(--pf-radius-sm);
     padding: 1rem 1.25rem;
-    background: #1d1d1d;
-    box-shadow: 3px 3px 0 #000;
+    background: var(--pf-surface-soft);
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
-    transition: box-shadow 0.2s, transform 0.2s;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .addressCard:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0 rgba(230, 57, 70, 0.55);
+    border-color: var(--pf-border-strong);
+    background: var(--pf-surface-hover);
 }
 
+/* La direccion predeterminada se marca con el rojo de la casa, no con otra
+   sombra: es la misma senal que usa la barra lateral para la seccion abierta. */
 .addressCardDefault {
-    box-shadow: 3px 3px 0 rgba(255, 214, 10, 0.5) !important;
+    border-color: var(--pf-accent-line) !important;
+    background: var(--pf-accent-wash) !important;
     background: rgba(255, 214, 10, 0.05) !important;
 }
 
@@ -656,25 +655,25 @@ select.input {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.6rem 1.1rem;
-    border-radius: 10px;
-    border: 2.5px dashed rgba(255, 214, 10, 0.5);
+    padding: 0.7rem 1.1rem;
+    border-radius: var(--pf-radius-sm);
+    border: 1px dashed var(--pf-border);
     background: transparent;
-    color: rgba(255, 255, 255, 0.6);
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.95rem;
-    letter-spacing: 1.5px;
+    color: var(--pf-muted);
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.18s;
+    transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
     margin-bottom: 1.25rem;
     width: 100%;
     justify-content: center;
 }
 
 .addAddressBtn:hover {
-    border-color: #ffd60a;
-    color: #ffd60a;
-    background: rgba(255, 214, 10, 0.06);
+    border-color: var(--pf-accent-line);
+    color: var(--pf-text);
+    background: var(--pf-accent-wash);
 }
 
 .addressFormTitle {

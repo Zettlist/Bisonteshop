@@ -7,17 +7,15 @@ import styles from './Sidebar.module.css';
 import {
     FiUser,
     FiPackage,
-    FiCreditCard,
-    FiBell,
     FiSettings,
     FiLogOut,
 } from 'react-icons/fi';
 
+// Credito de tienda y Notificaciones salieron del menu: ahora se leen dentro
+// de Mi Cuenta, que es donde el cliente busca el estado de su cuenta.
 const navItems = [
     { path: '/perfil/mi-cuenta', label: 'Mi Cuenta', icon: FiUser },
     { path: '/perfil/mis-pedidos', label: 'Mis Pedidos', icon: FiPackage },
-    { path: '/perfil/credito', label: 'Crédito de Tienda', icon: FiCreditCard },
-    { path: '/perfil/notificaciones', label: 'Notificaciones', icon: FiBell },
     { path: '/perfil/ajustes', label: 'Ajustes', icon: FiSettings },
 ];
 

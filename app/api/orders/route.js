@@ -7,12 +7,17 @@ export async function GET() {
         const clienteId = await getClienteId();
         if (!clienteId) return NextResponse.json({ orders: [] });
 
+        // El pedido web se identifica por bisonte_orders: ahi viven el cliente,
+        // el estado y los datos de envio. sales guarda solo el importe. La
+        // consulta anterior los pedia como columnas de sales (s.cliente_id,
+        // s.web_status, ...), fallaba, y el catch de abajo devolvia una lista
+        // vacia: el historial se veia sin pedidos en vez de dar error.
         const [sales] = await pool.query(
             `SELECT s.id, s.subtotal, s.discount, s.surcharge, s.total, s.payment_method, s.created_at,
-                    s.web_status, s.claim_status, s.tracking_number, s.envia_quote_data, bo.items_json
-             FROM sales s
-             INNER JOIN bisonte_orders bo ON bo.sale_id = s.id
-             WHERE s.cliente_id = ?
+                    bo.estado, bo.claim_status, bo.tracking_number, bo.envia_quote_data
+             FROM bisonte_orders bo
+             INNER JOIN sales s ON s.id = bo.sale_id
+             WHERE bo.cliente_id = ?
              ORDER BY s.created_at DESC`,
             [clienteId]
         );
@@ -40,12 +45,10 @@ export async function GET() {
             const saleItems = itemsBySale[sale.id] || [];
             const firstItem = saleItems[0];
 
-            // Detectar preventa desde items_json de bisonte_orders
-            let isPreventa = false;
-            try {
-                const parsed = JSON.parse(sale.items_json || '[]');
-                isPreventa = parsed.some(i => i.type === 'preventa');
-            } catch {}
+            // La marca de preventa venia de bisonte_orders.items_json, columna
+            // que el esquema actual no tiene. Queda pendiente reponer la senal
+            // (ver pre_orders); hasta entonces todos se listan como pedido normal.
+            const isPreventa = false;
 
             // Extraer carrier desde envia_quote_data
             let carrier = null;
@@ -55,7 +58,7 @@ export async function GET() {
                 if (carrier) carrier = carrier.toLowerCase();
             } catch {}
 
-            // Mapear web_status de sales a status visible en ecommerce
+            // Mapear el estado operativo a la etiqueta que ve el cliente
             const statusMap = {
                 pendiente:  'verificando',
                 confirmado: 'preparando',
@@ -64,7 +67,7 @@ export async function GET() {
                 reclamo:    'reclamo',
                 cancelado:  'cancelado',
             };
-            const status = statusMap[sale.web_status] || 'verificando';
+            const status = statusMap[sale.estado] || 'verificando';
 
             return {
                 id: String(sale.id),

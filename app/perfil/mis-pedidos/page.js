@@ -4,65 +4,69 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './MisPedidos.module.css';
 import OrderCard from '@/components/perfil/OrderCard';
+import { esEnCurso, esFinalizado, esReclamoActivo } from '@/lib/pedidoProgreso';
+
+// Las pestanas se declaran juntas: cada una es su filtro. `todos` abre por
+// defecto — entrar y no ver nada porque el unico pedido esta en otra pestana
+// era lo que hacia parecer vacio el historial.
+const PESTANAS = [
+    { key: 'todos',    label: 'Todos',    filtro: () => true },
+    { key: 'curso',    label: 'En Curso', filtro: esEnCurso       },
+    { key: 'pedidos',  label: 'Pedidos',  filtro: esFinalizado    },
+    { key: 'reclamos', label: 'Reclamos', filtro: esReclamoActivo, alerta: true },
+];
 
 export default function MisPedidos() {
-    const [activeTab, setActiveTab]     = useState('curso');
+    const [activeTab, setActiveTab]     = useState('todos');
     const [orders, setOrders]           = useState([]);
     const [loading, setLoading]         = useState(true);
     const [modalIndex, setModalIndex]   = useState(null); // índice del pedido abierto
+    const [abrirReclamo, setAbrirReclamo] = useState(false);
 
     useEffect(() => {
-        fetch('/api/orders')
+        // ?demo=1 sirve pedidos de muestra con todos los estados encima. La
+        // ruta solo responde en desarrollo; en produccion da 404 y la lista
+        // queda vacia, igual que si el fetch fallara.
+        const demo = new URLSearchParams(window.location.search).get('demo') === '1';
+
+        fetch(demo ? '/api/orders/demo' : '/api/orders')
             .then(r => r.json())
             .then(({ orders }) => setOrders(orders || []))
             .catch(() => setOrders([]))
             .finally(() => setLoading(false));
     }, []);
 
-    const enCursoOrders  = orders.filter(o => ['verificando', 'preparando', 'transito'].includes(o.status));
-    const pedidosOrders  = orders.filter(o =>
-        ['entregado', 'cancelado'].includes(o.status) ||
-        (o.status === 'reclamo' && o.claimStatus === 'resolucion')
+    const conteos = Object.fromEntries(
+        PESTANAS.map(p => [p.key, orders.filter(p.filtro).length])
     );
-    const reclamosOrders = orders.filter(o => o.status === 'reclamo' && o.claimStatus !== 'resolucion');
 
-    const currentList = activeTab === 'curso'
-        ? enCursoOrders
-        : activeTab === 'reclamos'
-        ? reclamosOrders
-        : pedidosOrders;
+    const pestanaActiva = PESTANAS.find(p => p.key === activeTab) || PESTANAS[0];
+    const currentList   = orders.filter(pestanaActiva.filtro);
 
-    const openModal  = (i) => setModalIndex(i);
-    const closeModal = ()  => setModalIndex(null);
-    const goNext     = ()  => setModalIndex(i => Math.min(i + 1, currentList.length - 1));
-    const goPrev     = ()  => setModalIndex(i => Math.max(i - 1, 0));
+    const openModal  = (i, opts) => { setModalIndex(i); setAbrirReclamo(!!opts?.reclamo); };
+    const closeModal = ()  => { setModalIndex(null); setAbrirReclamo(false); };
+    const goNext     = ()  => { setAbrirReclamo(false); setModalIndex(i => Math.min(i + 1, currentList.length - 1)); };
+    const goPrev     = ()  => { setAbrirReclamo(false); setModalIndex(i => Math.max(i - 1, 0)); };
 
     return (
         <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>Mis Pedidos</h1>
-                <p className={styles.subtitle}>Sigue el estado de tus coleccionables y revisa tu historial.</p>
-            </div>
+            <h1 className="sr-only">Mis pedidos</h1>
 
             <div className={styles.tabsContainer}>
-                <button
-                    className={`${styles.tab} ${activeTab === 'curso' ? styles.active : ''}`}
-                    onClick={() => { setActiveTab('curso'); setModalIndex(null); }}
-                >
-                    En Curso {enCursoOrders.length > 0 && <span className={styles.tabBadge}>{enCursoOrders.length}</span>}
-                </button>
-                <button
-                    className={`${styles.tab} ${activeTab === 'pedidos' ? styles.active : ''}`}
-                    onClick={() => { setActiveTab('pedidos'); setModalIndex(null); }}
-                >
-                    Pedidos
-                </button>
-                <button
-                    className={`${styles.tab} ${activeTab === 'reclamos' ? styles.active : ''}`}
-                    onClick={() => { setActiveTab('reclamos'); setModalIndex(null); }}
-                >
-                    Reclamos {reclamosOrders.length > 0 && <span className={`${styles.tabBadge} ${styles.tabBadgeAlert}`}>{reclamosOrders.length}</span>}
-                </button>
+                {PESTANAS.map(p => (
+                    <button
+                        key={p.key}
+                        className={`${styles.tab} ${activeTab === p.key ? styles.active : ''}`}
+                        onClick={() => { setActiveTab(p.key); closeModal(); }}
+                    >
+                        {p.label}
+                        {conteos[p.key] > 0 && (
+                            <span className={`${styles.tabBadge} ${p.alerta ? styles.tabBadgeAlert : ''}`}>
+                                {conteos[p.key]}
+                            </span>
+                        )}
+                    </button>
+                ))}
             </div>
 
             <div className={styles.orderList}>
@@ -75,8 +79,7 @@ export default function MisPedidos() {
                         <OrderCard
                             key={order.id}
                             order={order}
-                            isHistory={activeTab === 'pedidos'}
-                            onOpenDetail={() => openModal(i)}
+                            onOpenDetail={(opts) => openModal(i, opts)}
                         />
                     ))
                 ) : (
@@ -96,6 +99,7 @@ export default function MisPedidos() {
                     onClose={closeModal}
                     onNext={goNext}
                     onPrev={goPrev}
+                    abrirReclamo={abrirReclamo}
                     onOrderStatusChange={(id, newStatus, newClaimStatus) => {
                         setOrders(prev => prev.map(o => o.id === id
                             ? { ...o, status: newStatus, ...(newClaimStatus !== undefined ? { claimStatus: newClaimStatus } : {}) }
@@ -128,7 +132,7 @@ const STATUS_MAP = {
     verificando: { label: 'Verificando existencias', cls: modalStyles.status_verificando },
     preparando:  { label: 'Preparando',              cls: modalStyles.status_preparando  },
     transito:    { label: 'En Tránsito',             cls: modalStyles.status_transito    },
-    entregado:   { label: 'Entregado',               cls: modalStyles.status_entregado   },
+    entregado:   { label: 'Completado',              cls: modalStyles.status_entregado   },
     reclamo:     { label: 'En Reclamo',              cls: modalStyles.status_cancelado   },
     cancelado:   { label: 'Cancelado',               cls: modalStyles.status_cancelado   },
 };
@@ -150,9 +154,11 @@ const CLAIM_REASONS = [
     'Otro',
 ];
 
-function OrderModalWithNav({ order: initialOrder, index, total, onClose, onNext, onPrev, onOrderStatusChange }) {
+function OrderModalWithNav({ order: initialOrder, index, total, onClose, onNext, onPrev, onOrderStatusChange, abrirReclamo }) {
     const [order, setOrder] = React.useState(initialOrder);
-    const [showClaimForm, setShowClaimForm] = React.useState(false);
+    // `abrirReclamo` llega cuando se entro desde el boton de la tarjeta: el
+    // formulario se muestra ya abierto en vez de pedir un clic mas.
+    const [showClaimForm, setShowClaimForm] = React.useState(!!abrirReclamo);
     const [claimReason, setClaimReason] = React.useState('');
     const [claimNotes, setClaimNotes] = React.useState('');
     const [claimLoading, setClaimLoading] = React.useState(false);
@@ -161,11 +167,11 @@ function OrderModalWithNav({ order: initialOrder, index, total, onClose, onNext,
     // Sync order when navigating between orders
     React.useEffect(() => {
         setOrder(initialOrder);
-        setShowClaimForm(false);
+        setShowClaimForm(!!abrirReclamo);
         setClaimReason('');
         setClaimNotes('');
         setClaimError('');
-    }, [initialOrder]);
+    }, [initialOrder, abrirReclamo]);
 
     const canClaim = ['transito', 'entregado'].includes(order.status);
 
@@ -181,8 +187,9 @@ function OrderModalWithNav({ order: initialOrder, index, total, onClose, onNext,
             });
             const data = await res.json();
             if (!res.ok) { setClaimError(data.error || 'Error al enviar'); return; }
-            setOrder(prev => ({ ...prev, status: 'reclamo' }));
-            onOrderStatusChange?.(order.id, 'reclamo');
+            // 'disputa' es lo que deja escrito la ruta de alta del reclamo.
+            setOrder(prev => ({ ...prev, status: 'reclamo', claimStatus: 'disputa' }));
+            onOrderStatusChange?.(order.id, 'reclamo', 'disputa');
             setShowClaimForm(false);
         } catch { setClaimError('Error de conexión'); }
         finally { setClaimLoading(false); }
@@ -191,7 +198,7 @@ function OrderModalWithNav({ order: initialOrder, index, total, onClose, onNext,
     const fmt = (n) => `$${Number(n || 0).toFixed(2)}`;
     const resolvedClaim = order.status === 'reclamo' && order.claimStatus === 'resolucion';
     const statusConfig = resolvedClaim
-        ? { label: 'Reclamo Resuelto', cls: modalStyles.status_entregado }
+        ? { label: 'Completado', cls: modalStyles.status_entregado }
         : STATUS_MAP[order.status] || STATUS_MAP['verificando'];
     const currentIdx = STATUS_ORDER.indexOf(order.status);
     const carrierInfo = order.carrier ? CARRIER_INFO[order.carrier.toLowerCase()] : null;

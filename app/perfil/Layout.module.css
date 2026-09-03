@@ -1,12 +1,82 @@
+/* ===========================================================================
+   Perfil — marco y tokens
+
+   Todo el apartado habla el mismo idioma que el popup de login: fondo oscuro
+   ciruela, tarjetas de vidrio translucido, tipografia Fraunces para los
+   titulos y el rojo de la marca como unico acento. Antes convivian dos estilos —
+   la barra lateral y las paginas iban en zine/manga (Bebas Neue, rojo #e63946,
+   bordes negros duros) mientras Mi Cuenta ya era de vidrio.
+
+   Las variables se declaran aqui, en el contenedor: los CSS Modules de cada
+   pagina las heredan sin necesidad de un archivo global.
+   ======================================================================== */
+
 .perfilContainer {
+    /* ── Puente con los tokens globales de la tienda ──────────────────────
+       Ajustes y OrderCard estan escritos contra las variables generales
+       (--foreground, --primary, --border...), que apuntan al tema rojo sobre
+       negro del resto del sitio. Redefinirlas aqui recolorea esos archivos
+       completos sin tener que reescribir cada regla, y solo queda por corregir
+       lo que traian con el color escrito a mano. Vale unicamente dentro del
+       perfil: la barra de navegacion y el resto del sitio quedan intactos. */
+    --background: var(--pf-bg);
+    --surface: var(--pf-surface);
+    --surface-2: var(--pf-surface-soft);
+    --foreground: var(--pf-text);
+    --muted: var(--pf-muted);
+    --border: var(--pf-border);
+    --primary: var(--pf-accent);
+    --primary-dark: var(--pf-accent-deep);
+    --primary-glow: var(--pf-accent-ring);
+    --radius: var(--pf-radius-sm);
+
+    position: relative;
     display: flex;
     max-width: var(--max-width);
     margin: 0 auto;
     width: 100%;
+    color: var(--pf-text);
+}
+
+/* El telon del login es la ilustracion de Bisonta desenfocada. Aqui se queda
+   solo el color de esa luz: el perfil es una zona de trabajo — datos, pedidos,
+   formularios — y una imagen detras competiria con ellos. */
+/* z-index 0 y no -1: con valor negativo el fondo se pinta por detras del
+   contenedor, y basta con que un ancestro abra un contexto de apilamiento
+   (una animacion, un filtro, un transform) para que desaparezca y quede la
+   pagina en negro. Aqui va al fondo del propio contenedor y el contenido se
+   levanta un nivel. */
+.perfilContainer::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background:
+        radial-gradient(90% 60% at 15% 0%, rgba(230, 57, 70, 0.15) 0%, transparent 55%),
+        radial-gradient(80% 70% at 100% 100%, rgba(74, 30, 34, 0.5) 0%, transparent 60%),
+        var(--pf-bg);
+}
+
+/* Los controles de formulario no heredan la tipografia del documento — el
+   navegador les impone su fuente de sistema. Declararla una vez aqui evita
+   tener que repetirlo en cada campo de cada pantalla. */
+.perfilContainer input,
+.perfilContainer select,
+.perfilContainer textarea,
+.perfilContainer button {
+    font-family: var(--font-sans);
+}
+
+.perfilContainer select option {
+    background: #241417;
+    color: var(--pf-text);
 }
 
 .perfilContent {
+    position: relative;
+    z-index: 1;
     flex: 1;
+    min-width: 0;
     padding: 2rem;
     min-height: calc(100vh - 80px);
 }
@@ -17,6 +87,6 @@
     }
 
     .perfilContent {
-        padding: 1rem;
+        padding: 1.1rem;
     }
 }

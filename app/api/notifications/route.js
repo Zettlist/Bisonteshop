@@ -23,7 +23,7 @@ async function ensureTable() {
     await addCol('ref_id', 'VARCHAR(100) NULL');
 }
 
-// Status config — uses s.web_status values
+// Config por estado — usa los valores de bisonte_orders.estado
 const STATUS_CFG = {
     pendiente:  {
         type:  'order_pendiente',
@@ -59,23 +59,27 @@ const STATUS_CFG = {
 
 // Sync order notifications — one per (order, status) combination
 async function syncOrderNotifications(clienteId) {
+    // El vinculo con el cliente y el estado del pedido viven en
+    // bisonte_orders, no en sales: la consulta anterior pedia s.web_status y
+    // s.cliente_id, columnas que no existen, y la ruta respondia 500 siempre.
     const [orders] = await pool.query(
-        `SELECT s.id, s.web_status, s.created_at
-         FROM sales s
-         WHERE s.cliente_id = ?
-         ORDER BY s.created_at DESC
+        `SELECT bo.sale_id AS id, bo.estado, bo.created_at
+         FROM bisonte_orders bo
+         WHERE bo.cliente_id = ?
+         ORDER BY bo.created_at DESC
          LIMIT 50`,
         [clienteId]
     );
 
     for (const order of orders) {
-        const cfg = STATUS_CFG[order.web_status];
+        const cfg = STATUS_CFG[order.estado];
         if (!cfg) continue;
 
-        const refId = `order_${order.id}_${order.web_status}`;
+        const refId = `order_${order.id}_${order.estado}`;
 
-        // Use order.created_at for initial "pendiente", NOW() for rest
-        const createdAt = order.web_status === 'pendiente' ? order.created_at : undefined;
+        // El "pendiente" inicial conserva la fecha del pedido; el resto se
+        // marca con la hora en que se detecta el cambio.
+        const createdAt = order.estado === 'pendiente' ? order.created_at : undefined;
 
         if (createdAt !== undefined) {
             await pool.query(

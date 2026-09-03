@@ -1,33 +1,33 @@
 .card {
-    background: #141414;
-    border: 3px solid #000;
-    border-radius: 16px;
-    box-shadow: 5px 5px 0 #000;
-    padding: 1.5rem;
+    background: var(--pf-surface-strong);
+    border: 1px solid var(--pf-border);
+    border-radius: var(--pf-radius);
+    box-shadow: var(--pf-shadow);
+    padding: 1.4rem 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    transition: transform var(--transition), box-shadow var(--transition);
+    gap: 1.25rem;
+    transition: border-color 0.2s ease;
 }
 
 .card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 7px 7px 0 rgba(230, 57, 70, 0.55);
+    border-color: var(--pf-border-strong);
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 2px dashed rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid var(--pf-border-soft);
     padding-bottom: 1rem;
 }
 
 .orderId {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.3rem;
-    letter-spacing: 1.5px;
-    color: #ffd60a;
+    font-family: var(--pf-serif);
+    font-size: 1.15rem;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--pf-text);
 }
 
 .date {
@@ -36,64 +36,67 @@
 }
 
 .statusBadge {
-    padding: 0.3rem 0.8rem;
-    border-radius: 6px;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 0.85rem;
-    letter-spacing: 1.5px;
+    padding: 0.3rem 0.7rem;
+    border-radius: var(--pf-radius-pill);
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    border: 2px solid #000 !important;
-    box-shadow: 2px 2px 0 #000;
-    transform: rotate(-1deg);
+    white-space: nowrap;
+    border: 1px solid transparent;
 }
 
-/* Status colors map */
+/* ── Colores de estado ───────────────────────────────────────────────────────
+   Antes cada estado traia su propio tono suelto — indigo, azul, naranja, verde
+   y amarillo saturados — y la tarjeta parecia de otra aplicacion. Ahora salen
+   todos de la paleta del perfil y el recorrido se lee como una intensidad que
+   sube en el rojo de la casa:
+
+     verificando  neutro           todavia no pasa nada
+     preparando   rojo tenue       el pedido ya se mueve
+     transito     rojo pleno       va en camino
+     entregado    verde suave      cerrado y bien
+     reclamo      ambar            el mismo de la barra de reclamo
+     cancelado    rojo apagado     cerrado y mal
+   ======================================================================== */
+
 .status_verificando {
-    background: rgba(99, 102, 241, 0.15);
-    color: #818cf8;
-    border: 1px solid rgba(99, 102, 241, 0.3);
+    background: var(--pf-surface-soft);
+    border-color: var(--pf-border-soft);
+    color: var(--pf-text-2);
 }
 
-.status_preparando {
-    background: rgba(234, 179, 8, 0.15);
-    color: #eab308;
-    border: 1px solid rgba(234, 179, 8, 0.3);
-}
-
-.status_cancelado {
-    background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.status_reclamo {
-    background: rgba(249, 115, 22, 0.15);
-    color: #f97316;
-    border: 1px solid rgba(249, 115, 22, 0.3);
-}
-
+.status_preparando,
 .status_produccion {
-    background: rgba(234, 179, 8, 0.15);
-    color: #eab308;
-    border: 1px solid rgba(234, 179, 8, 0.3);
+    background: rgba(230, 57, 70, 0.09);
+    border-color: rgba(230, 57, 70, 0.22);
+    color: #ef7b84;
 }
 
 .status_transito {
-    background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: var(--pf-accent-wash);
+    border-color: var(--pf-accent-line);
+    color: var(--pf-accent);
 }
 
+.status_entregado,
 .status_listo {
-    background: rgba(168, 85, 247, 0.15);
-    color: #a855f7;
-    border: 1px solid rgba(168, 85, 247, 0.3);
+    background: var(--pf-ok-wash);
+    border-color: var(--pf-ok-line);
+    color: var(--pf-ok);
 }
 
-.status_entregado {
-    background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
+.status_reclamo {
+    background: var(--pf-warn-wash);
+    border-color: var(--pf-warn-line);
+    color: var(--pf-warn);
+}
+
+.status_cancelado {
+    background: var(--pf-danger-wash);
+    border-color: var(--pf-danger-line);
+    color: var(--pf-danger);
 }
 
 .body {
@@ -223,10 +226,24 @@
 
 /* ── Modal ───────────────────────────────────────────── */
 .overlay {
+    /* El modal se monta con createPortal en document.body, fuera de
+       .perfilContainer: el puente de tokens del perfil no llega hasta aqui y
+       el modal salia con la paleta del resto del sitio. Se repite en el telon,
+       que si envuelve todo el contenido. */
+    --background: var(--pf-bg);
+    --surface: var(--pf-surface-strong);
+    --surface-2: var(--pf-surface-soft);
+    --foreground: var(--pf-text);
+    --muted: var(--pf-muted);
+    --border: var(--pf-border);
+    --primary: var(--pf-accent);
+    --primary-dark: var(--pf-accent-deep);
+    --primary-glow: var(--pf-accent-ring);
+    --radius: var(--pf-radius-sm);
+
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.82);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.78);
     z-index: 2000;
     display: flex;
     align-items: center;
@@ -421,8 +438,8 @@
     background: var(--surface);
 }
 
-.dotDone   { border-color: #10b981; background: rgba(16,185,129,0.1); }
-.dotActive { border-color: var(--primary); background: rgba(230,57,70,0.1); }
+.dotDone   { border-color: var(--pf-ok); background: var(--pf-ok-wash); }
+.dotActive { border-color: var(--primary); background: var(--pf-accent-wash); }
 .dotPending { opacity: 0.3; }
 
 .progressLine {
@@ -432,7 +449,7 @@
     background: var(--border);
     margin: 4px 0;
 }
-.lineDone { background: #10b981; }
+.lineDone { background: var(--pf-ok); }
 
 .progressContent {
     padding: 10px 0 24px;
@@ -475,7 +492,7 @@
     color: var(--muted);
 }
 
-.discountVal { color: #10b981; font-weight: 600; }
+.discountVal { color: var(--pf-ok); font-weight: 600; }
 
 .summaryTotal {
     font-size: 1rem;
@@ -627,8 +644,8 @@
     justify-content: center;
     gap: 7px;
     background: transparent;
-    border: 1px dashed rgba(249,115,22,0.4);
-    color: #f97316;
+    border: 1px dashed var(--pf-warn-line);
+    color: var(--pf-warn);
     padding: 10px;
     border-radius: 10px;
     font-size: 0.8rem;
@@ -637,13 +654,13 @@
     transition: all 0.2s;
 }
 .claimBtn:hover {
-    background: rgba(249,115,22,0.08);
-    border-color: #f97316;
+    background: var(--pf-warn-wash);
+    border-color: var(--pf-warn);
 }
 
 .claimForm {
     background: var(--surface);
-    border: 1px solid rgba(249,115,22,0.3);
+    border: 1px solid var(--pf-warn-line);
     border-radius: 12px;
     padding: 14px;
     display: flex;
@@ -656,7 +673,7 @@
     font-weight: 700;
     letter-spacing: 1.5px;
     text-transform: uppercase;
-    color: #f97316;
+    color: var(--pf-warn);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -673,7 +690,7 @@
     cursor: pointer;
     outline: none;
 }
-.claimSelect:focus { border-color: #f97316; }
+.claimSelect:focus { border-color: var(--pf-warn); }
 
 .claimTextarea {
     width: 100%;
@@ -688,11 +705,11 @@
     font-family: inherit;
     box-sizing: border-box;
 }
-.claimTextarea:focus { border-color: #f97316; }
+.claimTextarea:focus { border-color: var(--pf-warn); }
 
 .claimError {
     font-size: 0.78rem;
-    color: #ef4444;
+    color: var(--pf-danger);
     margin: 0;
 }
 
@@ -703,8 +720,9 @@
 
 .claimSubmitBtn {
     flex: 1;
-    background: #f97316;
-    color: white;
+    background: var(--pf-warn);
+    /* Texto oscuro: el ambar es claro y el blanco encima no se leia. */
+    color: #2a1a05;
     border: none;
     padding: 9px;
     border-radius: 8px;
@@ -733,26 +751,26 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    background: rgba(249,115,22,0.08);
-    border: 1px solid rgba(249,115,22,0.3);
+    background: var(--pf-warn-wash);
+    border: 1px solid var(--pf-warn-line);
     border-radius: 10px;
     padding: 10px 14px;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #f97316;
+    color: var(--pf-warn);
 }
 
 .claimResolved {
     display: flex;
     align-items: center;
     gap: 7px;
-    background: rgba(34,197,94,0.08);
-    border: 1px solid rgba(34,197,94,0.3);
+    background: var(--pf-ok-wash);
+    border: 1px solid var(--pf-ok-line);
     border-radius: 10px;
     padding: 10px 14px;
     font-size: 0.8rem;
     font-weight: 700;
-    color: #16a34a;
+    color: var(--pf-ok);
 }
 
 @media (max-width: 600px) {
@@ -764,4 +782,81 @@
         width: 100%;
         height: 180px;
     }
+}
+/* ── Progreso en la tarjeta ─────────────────────────────────────────────────
+   La barra va entre el cuerpo y los botones, separada por lineas suaves: es
+   informacion del pedido, no una accion. */
+
+.progresoBloque {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.1rem 0.25rem 0.2rem;
+    border-top: 1px solid var(--pf-border-soft);
+}
+
+.notaReclamo {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--pf-warn);
+}
+
+/* ── Remate de pedido cerrado ───────────────────────────────────────────────
+   Era una franja verde entera y saltaba encima de todo lo demas. El aviso lo
+   da el icono; el panel es del mismo vidrio que las tarjetas. */
+.remate {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    padding: 0.8rem 1rem;
+    border-radius: var(--pf-radius-sm);
+    background: var(--pf-surface-soft);
+    border: 1px solid var(--pf-border-soft);
+}
+
+.remateTexto {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--pf-text-2);
+}
+
+.remateTexto svg {
+    color: var(--pf-ok);
+    flex-shrink: 0;
+}
+
+.remateCancelado .remateTexto svg {
+    color: var(--pf-danger);
+}
+
+/* Boton de reclamo: discreto por defecto — es una salida, no la accion que se
+   invita a tomar. El ambar aparece al pasar encima. */
+.reclamoBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--pf-radius-pill);
+    background: transparent;
+    border: 1px solid var(--pf-border);
+    color: var(--pf-text-2);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.reclamoBtn:hover {
+    background: var(--pf-warn-wash);
+    border-color: var(--pf-warn);
+    color: var(--pf-warn);
 }
