@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './MisPedidos.module.css';
 import OrderCard from '@/components/perfil/OrderCard';
-import { esEnCurso, esFinalizado, esReclamoActivo } from '@/lib/pedidoProgreso';
+import { esEnCurso, esFinalizado, esReclamoActivo, progresoDe, etiquetaActual, claseDe } from '@/lib/pedidoProgreso';
 
 // Las pestanas se declaran juntas: cada una es su filtro. `todos` abre por
 // defecto — entrar y no ver nada porque el unico pedido esta en otra pestana
@@ -120,6 +120,7 @@ export default function MisPedidos() {
 import { createPortal } from 'react-dom';
 import { X, Package, CreditCard, CheckCircle, ChevronLeft, ChevronRight, Truck, AlertTriangle } from 'lucide-react';
 import modalStyles from '@/components/perfil/OrderCard.module.css';
+import OrderTracking from '@/components/perfil/OrderTracking';
 
 const CARRIER_INFO = {
     paquetexpress: { name: 'Paquetexpress', url: (t) => `https://www.paquetexpress.com.mx/rastreo/?guia=${t}` },
@@ -128,22 +129,16 @@ const CARRIER_INFO = {
     estafeta:      { name: 'Estafeta',      url: (t) => `https://www.estafeta.com/herramientas/rastreo?wayBillType=1&wayBill=${t}` },
 };
 
-const STATUS_MAP = {
-    verificando: { label: 'Verificando existencias', cls: modalStyles.status_verificando },
-    preparando:  { label: 'Preparando',              cls: modalStyles.status_preparando  },
-    transito:    { label: 'En Tránsito',             cls: modalStyles.status_transito    },
-    entregado:   { label: 'Completado',              cls: modalStyles.status_entregado   },
-    reclamo:     { label: 'En Reclamo',              cls: modalStyles.status_cancelado   },
-    cancelado:   { label: 'Cancelado',               cls: modalStyles.status_cancelado   },
+// Solo el color del badge vive acá — la etiqueta sale de etiquetaActual(),
+// la misma fuente que usa OrderTracking debajo.
+const STATUS_CLASS = {
+    verificando: modalStyles.status_verificando,
+    preparando:  modalStyles.status_preparando,
+    transito:    modalStyles.status_transito,
+    entregado:   modalStyles.status_entregado,
+    reclamo:     modalStyles.status_cancelado,
+    cancelado:   modalStyles.status_cancelado,
 };
-
-const STEPS = [
-    { key: 'verificando', label: 'Verificando existencias', icon: '🔍', desc: 'Confirmando stock en almacén' },
-    { key: 'preparando',  label: 'Preparando',              icon: '📦', desc: 'Empacando tus artículos'     },
-    { key: 'transito',    label: 'En camino',               icon: '🚚', desc: 'Con la paquetería'           },
-    { key: 'entregado',   label: 'Entregado',               icon: '🏠', desc: 'En tu puerta'                },
-];
-const STATUS_ORDER = ['verificando', 'preparando', 'transito', 'entregado'];
 
 const CLAIM_REASONS = [
     'Producto dañado',
@@ -197,10 +192,12 @@ function OrderModalWithNav({ order: initialOrder, index, total, onClose, onNext,
 
     const fmt = (n) => `$${Number(n || 0).toFixed(2)}`;
     const resolvedClaim = order.status === 'reclamo' && order.claimStatus === 'resolucion';
-    const statusConfig = resolvedClaim
-        ? { label: 'Completado', cls: modalStyles.status_entregado }
-        : STATUS_MAP[order.status] || STATUS_MAP['verificando'];
-    const currentIdx = STATUS_ORDER.indexOf(order.status);
+    const statusConfig = {
+        label: etiquetaActual(order),
+        cls: resolvedClaim ? modalStyles.status_entregado : (STATUS_CLASS[claseDe(order)] || modalStyles.status_verificando),
+    };
+    const { flujo, indice, tono } = progresoDe(order);
+    const actualizado = new Date(order.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     const carrierInfo = order.carrier ? CARRIER_INFO[order.carrier.toLowerCase()] : null;
     const trackingUrl = carrierInfo && order.trackingNumber ? carrierInfo.url(order.trackingNumber) : null;
     const hasPrev = index > 0;
@@ -291,29 +288,7 @@ function OrderModalWithNav({ order: initialOrder, index, total, onClose, onNext,
                         {/* Progreso */}
                         <div className={modalStyles.modalSection}>
                             <div className={modalStyles.modalSectionTitle}><CheckCircle size={13} /> Estado del pedido</div>
-                            <div className={modalStyles.progressSteps}>
-                                {STEPS.map((s, i) => {
-                                    const stepIdx  = STATUS_ORDER.indexOf(s.key);
-                                    const isDone   = stepIdx < currentIdx;
-                                    const isActive = stepIdx === currentIdx;
-                                    return (
-                                        <div key={s.key} className={modalStyles.progressRow}>
-                                            <div className={modalStyles.progressLeft}>
-                                                <div className={`${modalStyles.progressDot} ${isDone ? modalStyles.dotDone : isActive ? modalStyles.dotActive : modalStyles.dotPending}`}>
-                                                    {s.icon}
-                                                </div>
-                                                {i < STEPS.length - 1 && (
-                                                    <div className={`${modalStyles.progressLine} ${isDone ? modalStyles.lineDone : ''}`} />
-                                                )}
-                                            </div>
-                                            <div className={modalStyles.progressContent} style={{ opacity: isDone || isActive ? 1 : 0.35 }}>
-                                                <div className={modalStyles.progressLabel}>{s.label}</div>
-                                                <div className={modalStyles.progressDesc}>{s.desc}</div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            <OrderTracking pasos={flujo} indice={indice} tono={tono} actualizado={actualizado} />
                         </div>
                     </div>
 

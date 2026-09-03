@@ -5,6 +5,8 @@ import styles from './OrderCard.module.css';
 import BarraProgreso from './BarraProgreso';
 import {
     progresoDe,
+    etiquetaActual,
+    claseDe,
     esFinalizado,
     esCancelado,
     esReclamoActivo,
@@ -12,14 +14,15 @@ import {
     puedeReclamar,
 } from '@/lib/pedidoProgreso';
 
-const STATUS_MAP = {
-    verificando: { label: 'Verificando existencias', class: styles.status_verificando },
-    preparando:  { label: 'Preparando',              class: styles.status_preparando  },
-    transito:    { label: 'En Tránsito',             class: styles.status_transito    },
-    entregado:   { label: 'Completado',              class: styles.status_entregado   },
-    cancelado:   { label: 'Cancelado',               class: styles.status_cancelado   },
-    produccion:  { label: 'En Producción',           class: styles.status_produccion  },
-    reclamo:     { label: 'En Reclamo',              class: styles.status_reclamo     },
+// Solo el color del badge vive acá — la etiqueta sale de etiquetaActual(),
+// la misma fuente que usa el recorrido de abajo.
+const STATUS_CLASS = {
+    verificando: styles.status_verificando,
+    preparando:  styles.status_preparando,
+    transito:    styles.status_transito,
+    entregado:   styles.status_entregado,
+    cancelado:   styles.status_cancelado,
+    reclamo:     styles.status_reclamo,
 };
 
 export default function OrderCard({ order, onOpenDetail }) {
@@ -28,9 +31,10 @@ export default function OrderCard({ order, onOpenDetail }) {
     const cancelado = esCancelado(order);
     const enReclamo = esReclamoActivo(order);
 
-    const statusConfig = resuelto
-        ? { label: 'Completado', class: styles.status_entregado }
-        : STATUS_MAP[order.status] || STATUS_MAP['verificando'];
+    const statusConfig = {
+        label: etiquetaActual(order),
+        class: resuelto ? styles.status_entregado : (STATUS_CLASS[claseDe(order)] || styles.status_verificando),
+    };
 
     const { flujo, indice, tono } = progresoDe(order);
 

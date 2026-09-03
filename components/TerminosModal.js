@@ -73,7 +73,7 @@ export default function TerminosModal({ abierto, onCerrar, onAceptar }) {
                 <div className={s.content}>
                     <div className={s.body}>
                         <h3 className={s.mainTitle}>TÉRMINOS Y CONDICIONES BISONTE MANGA</h3>
-                        <p className={s.date}>Última actualización: Marzo 2026</p>
+                        <p className={s.date}>Última actualización: Septiembre 2026</p>
 
                         <h4 className={s.heading}>1. ACEPTACIÓN DE LOS TÉRMINOS</h4>
                         <p>Al acceder y utilizar el sitio web de BISONTE MANGA, el usuario acepta quedar vinculado por los presentes Términos y Condiciones, así como por la Política de Privacidad y demás disposiciones aplicables. Si el usuario no está de acuerdo con alguno de estos términos, deberá abstenerse de utilizar el sitio.</p>
@@ -103,8 +103,12 @@ export default function TerminosModal({ abierto, onCerrar, onAceptar }) {
                             <li>El producto recibido no corresponda al artículo pedido.</li>
                             <li>El producto se encuentre sin abrir y en su empaque original (para casos de arrepentimiento de compra).</li>
                         </ul>
-                        <p>6.2 Para iniciar una devolución, el usuario debe contactar a BISONTE MANGA a través de los canales de atención indicados en el sitio, adjuntando evidencia fotográfica en caso de daño.</p>
+                        <p>6.2 Para iniciar una devolución o reclamo, el usuario puede contactar a BISONTE MANGA a través de los canales de atención indicados en el sitio, o bien levantarlo directamente desde la sección "Mis Pedidos" de su cuenta, seleccionando el pedido correspondiente y adjuntando la evidencia solicitada.</p>
                         <p>6.3 Los gastos de envío por devolución corren a cargo del comprador, salvo en caso de error o defecto imputable a BISONTE MANGA.</p>
+                        <p>6.4 Los reclamos deberán presentarse dentro de los 30 días naturales siguientes a la recepción del producto. Transcurrido este plazo, no será posible levantar un reclamo sobre el producto.</p>
+                        <p>6.5 Cuando el producto cuente con garantía del fabricante, el usuario deberá comunicarse directamente a través del apartado de{' '}
+                            <Link href="/contacto" target="_blank" className={s.avisoLink}>Contacto</Link>{' '}
+                            del sitio para gestionar dicha garantía.</p>
 
                         <h4 className={s.heading}>7. PROPIEDAD INTELECTUAL</h4>
                         <p>Todo el contenido publicado en el sitio web (logotipos, código fuente, diseño gráfico, textos, catálogo de productos y precios) es propiedad exclusiva de BISONTE MANGA o de sus licenciantes, y está protegido por la Ley Federal del Derecho de Autor y demás legislación aplicable. Queda estrictamente prohibido:</p>

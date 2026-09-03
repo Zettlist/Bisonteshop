@@ -63,7 +63,10 @@ function demoOrders() {
 
         // ── En curso, preventa: mismo recorrido, otras etiquetas ──
         pedido({ titulo: 'One Piece Vol. 108 (preventa)', status: 'verificando', tipo: 'Preventa', dias: 8, precio: 199, cantidad: 3 }),
-        pedido({ titulo: 'Figura Nendoroid Gojo (preventa)', status: 'preparando', tipo: 'Preventa', dias: 14, precio: 1450, cantidad: 1 }),
+        pedido({
+            titulo: 'Figura Nendoroid Gojo (preventa)', status: 'preparando', tipo: 'Preventa', dias: 14,
+            precio: 1450, cantidad: 1, pagado: 500,
+        }),
 
         // ── Pago parcial: la tarjeta muestra saldo pendiente ──
         pedido({
