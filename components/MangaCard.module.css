@@ -1,18 +1,30 @@
 .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    /* Vidrio: el degradado da el brillo de arriba y el blur toma el fondo de
+       la pagina. Sin el degradado la tarjeta se ve plana, porque el fondo del
+       sitio es solido y el blur por si solo no tiene nada que difuminar. */
+    background:
+        linear-gradient(160deg, var(--glass-highlight) 0%, transparent 42%),
+        var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    /* 16px, entre los 22 de la tarjeta grande del acceso y los 11 de sus
+       campos: la del catalogo es una pieza intermedia. */
+    border-radius: 16px;
     overflow: hidden;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition), background var(--transition);
 }
 
+/* El borde se aclara en vez de teñirse de rojo: en una rejilla de veinte
+   portadas el acento en cada hover competia con las propias cubiertas. */
 .card:hover {
-    border-color: rgba(230, 57, 70, 0.5);
+    border-color: var(--glass-border-hover);
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 22px 56px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--glass-highlight) inset;
 }
 
 .imageWrapper {
@@ -20,7 +32,9 @@
     width: 100%;
     aspect-ratio: 2 / 3;
     overflow: hidden;
-    background: var(--surface);
+    /* Translucido tambien: un bloque solido aqui cortaba el vidrio en seco a
+       media tarjeta mientras la portada cargaba. */
+    background: var(--glass-bg);
     flex-shrink: 0;
 }
 
@@ -162,15 +176,21 @@
     pointer-events: none;
 }
 
+/* Va sobre la portada, asi que el relleno no puede ser el vidrio claro de la
+   ficha: no se leeria sobre una cubierta blanca. Mismo lenguaje de pastilla,
+   pero en negro translucido con desenfoque propio. */
 .publisherBadge {
-    background: rgba(0, 0, 0, 0.75);
+    background: rgba(10, 6, 9, 0.55);
+    backdrop-filter: blur(10px) saturate(1.2);
+    -webkit-backdrop-filter: blur(10px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     color: #fff;
     font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    padding: 0.2rem 0.5rem;
-    border-radius: 3px;
+    padding: 0.24rem 0.6rem;
+    border-radius: 999px;
     max-width: 55%;
     overflow: hidden;
     text-overflow: ellipsis;

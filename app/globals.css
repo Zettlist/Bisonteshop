@@ -53,6 +53,20 @@
   --primary-glow: rgba(230, 57, 70, 0.35);
   --accent: #f4a261;
   --border: rgba(255, 255, 255, 0.08);
+  /* Vidrio. Los valores salen del popup de acceso (LoginModal): esa tarjeta es
+     la referencia de la casa y el catalogo iba por libre. Con el blanco al 5%
+     que habia antes no se leia como cristal, solo ensuciaba el fondo; el 9% con
+     borde al 14% es lo que hace que se vea la capa. */
+  --glass-bg: rgba(255, 255, 255, 0.09);
+  --glass-bg-hover: rgba(255, 255, 255, 0.15);
+  --glass-bg-strong: rgba(28, 18, 25, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-hover: rgba(255, 255, 255, 0.3);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
+  --glass-blur: blur(26px) saturate(1.2);
+  --glass-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  --glass-radius: 22px;
+  --glass-radius-sm: 11px;
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Bebas Neue', sans-serif;
   --max-width: 1280px;
@@ -75,6 +89,13 @@
   --btn-secondary-bg: #0f0f0f;
   --btn-secondary-color: #ffffff;
   --btn-secondary-border: #0f0f0f;
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-bg-hover: rgba(255, 255, 255, 0.82);
+  --glass-bg-strong: rgba(252, 252, 253, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-border-hover: rgba(0, 0, 0, 0.24);
+  --glass-highlight: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 30px 80px rgba(0, 0, 0, 0.18);
 }
 
 :root,
@@ -143,6 +164,13 @@ button {
   --primary-glow: rgba(155, 93, 229, 0.35);
   --accent: #e040fb;
   --border: rgba(155, 93, 229, 0.18);
+  --glass-bg: rgba(186, 138, 255, 0.11);
+  --glass-bg-hover: rgba(196, 152, 255, 0.2);
+  --glass-bg-strong: rgba(38, 10, 52, 0.55);
+  --glass-border: rgba(199, 155, 255, 0.24);
+  --glass-border-hover: rgba(224, 64, 251, 0.5);
+  --glass-highlight: rgba(224, 64, 251, 0.08);
+  --glass-shadow: 0 30px 80px rgba(20, 0, 30, 0.62);
   --navbar-bg: rgba(13, 0, 16, 0.92);
   --btn-secondary-bg: transparent;
   --btn-secondary-color: #f0e6ff;
