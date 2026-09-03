@@ -1,13 +1,16 @@
 /** @type {import('next').NextConfig} */
 
-// CSP compatible con Stripe Elements (js.stripe.com iframes + api.stripe.com).
+// CSP compatible con Stripe Elements (js.stripe.com iframes + api.stripe.com) y
+// con GA4. Sin los dominios de Google el script de analitica se bloquea en
+// silencio: la etiqueta queda puesta y no llega un solo dato, que es la forma
+// mas facil de creer que se mide sin estar midiendo nada.
 const CSP = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://m.stripe.network https://www.googletagmanager.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://api.stripe.com https://m.stripe.network https://open.er-api.com",
+    "connect-src 'self' https://api.stripe.com https://m.stripe.network https://open.er-api.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
     "object-src 'none'",
     "base-uri 'self'",

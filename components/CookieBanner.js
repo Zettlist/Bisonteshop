@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Cookie, X } from 'lucide-react';
 import s from './CookieBanner.module.css';
+import { avisarConsentimiento } from '@/lib/analytics';
 
 export default function CookieBanner() {
     const [visible, setVisible] = useState(false);
@@ -13,13 +14,18 @@ export default function CookieBanner() {
         }
     }, []);
 
+    // Hasta ahora la respuesta solo se guardaba y nadie la leia: el banner
+    // pedia permiso para algo que no ocurria. Ahora es lo que decide si GA4
+    // se carga, y el aviso permite encenderlo sin recargar la pagina.
     const accept = () => {
         localStorage.setItem('cookies_accepted', '1');
+        avisarConsentimiento(true);
         setVisible(false);
     };
 
     const decline = () => {
         localStorage.setItem('cookies_accepted', '0');
+        avisarConsentimiento(false);
         setVisible(false);
     };
 

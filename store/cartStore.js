@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { agregarAlCarrito, quitarDelCarrito } from '@/lib/analytics';
 
 export const useCartStore = create(
   persist(
@@ -45,6 +46,9 @@ export const useCartStore = create(
       },
 
       addItem: (product, quantity = 1, type = 'stock', anticipo_percent = 0) => set((state) => {
+        // Se mide aqui y no en cada boton: al carrito se entra desde la
+        // tarjeta, desde la ficha y desde el carrito mismo.
+        agregarAlCarrito(product, quantity);
         const existing = state.items.find((i) => i.id === product.id && i.type === type);
         let newItems;
         if (existing) {
@@ -59,9 +63,11 @@ export const useCartStore = create(
         return { items: newItems };
       }),
 
-      removeItem: (productId, type) => set((state) => ({
-        items: state.items.filter((i) => !(i.id === productId && i.type === type))
-      })),
+      removeItem: (productId, type) => set((state) => {
+        const fuera = state.items.find((i) => i.id === productId && i.type === type);
+        if (fuera) quitarDelCarrito(fuera, fuera.quantity);
+        return { items: state.items.filter((i) => !(i.id === productId && i.type === type)) };
+      }),
 
       updateQuantity: (productId, type, quantity) => set((state) => ({
         items: quantity <= 0

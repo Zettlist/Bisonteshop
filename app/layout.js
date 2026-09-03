@@ -9,6 +9,7 @@ import MundialWidget from '@/components/eventos/mundial2026/MundialWidget';
 import SplashScreen from '@/components/SplashScreen';
 import CompletarPerfil from '@/components/CompletarPerfil';
 import CookieBanner from '@/components/CookieBanner';
+import Analytics from '@/components/Analytics';
 import { SplashProvider } from '@/context/SplashContext';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -49,6 +50,7 @@ export default function RootLayout({ children }) {
                                 <Footer />
                                 <CompletarPerfil />
                                 <CookieBanner />
+                                <Analytics />
                                 {/* Ultimo y fuera de template.js: tapa TODO —
                                     barra incluida — desde el primer pintado. */}
                                 <SplashScreen />

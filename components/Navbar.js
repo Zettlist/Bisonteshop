@@ -8,6 +8,7 @@ import CurrencySelector from './CurrencySelector';
 import LoginModal from './LoginModal';
 import { useCartStore } from '@/store/cartStore';
 import { useSearchStore } from '@/store/searchStore';
+import { busqueda } from '@/lib/analytics';
 import CartPopover from './CartPopover';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
@@ -89,6 +90,17 @@ export default function Navbar() {
     // porque quien filtra son los catálogos, no la barra.
     const term = useSearchStore((s) => s.term);
     const setTerm = useSearchStore((s) => s.setTerm);
+
+    // El buscador filtra mientras se escribe, asi que medir cada tecla mandaria
+    // "n", "na", "nar", "naru"... y el informe de busquedas seria basura. Se
+    // espera a que la escritura se detenga y solo cuenta lo que parece una
+    // busqueda de verdad.
+    useEffect(() => {
+        const limpio = term.trim();
+        if (limpio.length < 3) return;
+        const id = setTimeout(() => busqueda(limpio), 1200);
+        return () => clearTimeout(id);
+    }, [term]);
     const [buscarAbierto, setBuscarAbierto] = useState(false);
     const inputBuscar = useRef(null);
     const RUTAS_CATALOGO = ['/mangas', '/figuras', '/adultos'];

@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/authStore';
 import { CheckCircle, ChevronDown, ShieldCheck, Truck, CreditCard, ShoppingBag, ArrowLeft, Plus, Minus, Trash2, Tag, X, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import styles from './checkout.module.css';
+import { iniciarCheckout, compra } from '@/lib/analytics';
 
 // Ensure you replace this with your actual Stripe publishable key
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock');
@@ -185,6 +186,15 @@ function CheckoutFlow() {
     useEffect(() => {
         setIsMounted(true);
     }, []);
+
+    // Una sola vez por visita al checkout, no en cada cambio del carrito: si se
+    // repitiera, el embudo mostraria mas checkouts iniciados que personas.
+    const [checkoutMedido, setCheckoutMedido] = useState(false);
+    useEffect(() => {
+        if (checkoutMedido || !cartItems.length) return;
+        iniciarCheckout(cartItems);
+        setCheckoutMedido(true);
+    }, [cartItems, checkoutMedido]);
 
     useEffect(() => {
         if (isMounted && !isAuthenticated) {
@@ -427,6 +437,17 @@ function CheckoutFlow() {
                 });
                 const confirmData = await confirmRes.json();
                 const saleId = confirmData?.saleId;
+
+                // Se mide despues de que /confirm respondio: si se disparara al
+                // autorizar la tarjeta, GA contaria ventas que el POS todavia
+                // puede cancelar por falta de existencias.
+                compra({
+                    pedidoId: saleId,
+                    total: totals.totalToPayNow || 0,
+                    envio: totals.shippingCost || 0,
+                    descuento: totals.promoDiscount || 0,
+                    productos: cartItems,
+                });
 
                 const orderNumber = saleId ? `#${saleId}` : ('BS-' + paymentIntent.id.slice(-8).toUpperCase());
                 setOrderNumber(orderNumber);
