@@ -226,6 +226,13 @@ CREATE TABLE IF NOT EXISTS products (
     sinopsis_fuente  VARCHAR(500) NULL,
     artist           VARCHAR(255) NULL,
     gender           VARCHAR(50)  NULL,
+    -- Calificacion que se muestra en la ficha. Se guarda el promedio ya
+    -- calculado y cuantas opiniones lo sostienen porque las opiniones todavia
+    -- no viven en la base: sin `rating_count` un 5.0 de una sola persona se ve
+    -- igual que uno de doscientas. NULL = sin calificar; la ficha no pinta
+    -- estrellas en vez de inventar un cero.
+    rating           DECIMAL(2,1) NULL,
+    rating_count     INT NOT NULL DEFAULT 0,
     group_name       VARCHAR(255) NULL,
     events           JSON NULL,
     created_at       DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -253,6 +260,9 @@ CREATE TABLE IF NOT EXISTS products (
     CONSTRAINT chk_products_reservado CHECK (stock_reservado >= 0),
     -- No se puede comprometer mas de lo que hay: la base rechaza la sobreventa.
     CONSTRAINT chk_products_disponible CHECK (stock_reservado <= stock),
+    -- Una calificacion fuera de 0-5 solo puede venir de un error de calculo;
+    -- la base la rechaza antes de que la ficha pinte seis estrellas.
+    CONSTRAINT chk_products_rating CHECK (rating IS NULL OR (rating >= 0 AND rating <= 5)),
     INDEX idx_empresa       (empresa_id),
     INDEX idx_category      (category),
     INDEX idx_isbn          (isbn),

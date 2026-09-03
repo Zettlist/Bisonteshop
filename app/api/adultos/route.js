@@ -27,6 +27,8 @@ export async function GET() {
         p.is_adult,
         p.events,
         p.sinopsis,
+        p.rating,
+        p.rating_count,
         GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ',') as tags,
         -- Subconsulta, no JOIN: la query ya multiplica filas por cada tag y
         -- un SUM() aqui contaria cada venta una vez por etiqueta.

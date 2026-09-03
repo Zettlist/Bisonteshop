@@ -1,0 +1,51 @@
+.wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    line-height: 1;
+}
+
+/* El contenedor se dimensiona con la fila base; la de relleno va encima en
+   position:absolute para poder recortarla sin mover el layout. */
+.estrellas {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.fila {
+    display: inline-flex;
+    gap: 0.08em;
+}
+
+.base {
+    display: inline-flex;
+    color: rgba(255, 255, 255, 0.22);
+}
+
+[data-theme='light'] .base {
+    color: rgba(0, 0, 0, 0.18);
+}
+
+.relleno {
+    position: absolute;
+    inset: 0 auto 0 0;
+    display: inline-flex;
+    overflow: hidden;
+    color: #fbbf24;
+    /* El recorte parte estrellas a la mitad; sin esto el sobrante asoma
+       cuando el contenedor tiene padding heredado. */
+    white-space: nowrap;
+}
+
+.nota {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--foreground);
+    opacity: 0.85;
+}
+
+.total {
+    font-size: 0.72rem;
+    color: var(--muted);
+}

@@ -26,6 +26,8 @@ export async function GET() {
         p.image_url,
         p.is_adult,
         p.sinopsis,
+        p.rating,
+        p.rating_count,
         GROUP_CONCAT(DISTINCT t.name ORDER BY t.name SEPARATOR ',') as tags
       FROM products p
       LEFT JOIN product_tags pt ON p.id = pt.product_id
