@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import MangaCard from '@/components/MangaCard';
 import { useSearchStore } from '@/store/searchStore';
-import MangaModal from '@/components/MangaModal';
 import { Loader2, Filter, PackageX, X } from 'lucide-react';
 import styles from './figuras.module.css';
 
@@ -26,7 +25,6 @@ export default function FigurasPage() {
     const [sortBy, setSortBy] = useState('recent');
 
     // Estado UI
-    const [selectedManga, setSelectedManga] = useState(null);
 
     // Cargar figuras
     useEffect(() => {
@@ -341,10 +339,7 @@ export default function FigurasPage() {
                                 <div className={styles.grid}>
                                     {processedFiguras.map((manga) => (
                                         <div key={manga.id} className={styles.gridItem}>
-                                            <MangaCard
-                                                manga={manga}
-                                                onClick={(m) => setSelectedManga(m)}
-                                            />
+                                            <MangaCard manga={manga} />
                                         </div>
                                     ))}
                                 </div>
@@ -354,12 +349,6 @@ export default function FigurasPage() {
                 </div>
             </div>
 
-            {selectedManga && (
-                <MangaModal
-                    manga={selectedManga}
-                    onClose={() => setSelectedManga(null)}
-                />
-            )}
         </div>
     );
 }

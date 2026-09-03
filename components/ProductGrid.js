@@ -4,12 +4,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import styles from './ProductGrid.module.css';
 import Link from 'next/link';
 import MangaCard from '@/components/MangaCard';
-import MangaModal from '@/components/MangaModal';
 
 const SLOT_VISIBLE = 5;
 const SLOT_INTERVAL = 3200;
 
-function SlotGrid({ products, onCardClick }) {
+function SlotGrid({ products }) {
     const [offset, setOffset] = useState(0);
     const [phase, setPhase] = useState('idle');
     const hasMore = products.length > SLOT_VISIBLE;
@@ -48,7 +47,7 @@ function SlotGrid({ products, onCardClick }) {
                     className={`${styles.slotItem} ${itemClass}`}
                     style={{ animationDelay: phase === 'enter' ? `${i * 0.07}s` : '0s' }}
                 >
-                    <MangaCard manga={p} onClick={onCardClick} />
+                    <MangaCard manga={p} />
                 </div>
             ))}
             {hasMore && (
@@ -68,7 +67,6 @@ function SlotGrid({ products, onCardClick }) {
 export default function ProductGrid() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedProduct, setSelectedProduct] = useState(null);
 
     useEffect(() => {
         fetch('/api/mangas?all=1')
@@ -114,8 +112,7 @@ export default function ProductGrid() {
     if (displayProducts.length === 0) return null;
 
     return (
-        <>
-            <section className={styles.gridSection}>
+        <section className={styles.gridSection}>
                 <div className={styles.container}>
                     <div className={styles.header}>
                         <div>
@@ -127,13 +124,8 @@ export default function ProductGrid() {
                         </div>
                         <Link href="/mangas" className={styles.seeAll}>Ver todo →</Link>
                     </div>
-                    <SlotGrid products={displayProducts} onCardClick={setSelectedProduct} />
+                    <SlotGrid products={displayProducts} />
                 </div>
             </section>
-
-            {selectedProduct && (
-                <MangaModal manga={selectedProduct} onClose={() => setSelectedProduct(null)} />
-            )}
-        </>
     );
 }

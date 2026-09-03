@@ -1,0 +1,503 @@
+/* ===========================================================================
+   Ficha de producto
+
+   Dos columnas: portada fija a la izquierda, datos a la derecha, y la fila de
+   similares abajo a todo el ancho. La columna de la portada es sticky porque
+   la de datos es la larga — al bajar a leer la ficha tecnica, la portada se
+   quedaba arriba fuera de vista y ya no se sabia de que producto se hablaba.
+   ======================================================================== */
+
+.pagina {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 4rem;
+}
+
+/* ── Migas ─────────────────────────────────────────────────────────────── */
+.migas {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+}
+
+.migas a {
+    transition: color var(--transition);
+}
+
+.migas a:hover {
+    color: var(--foreground);
+}
+
+.migas span[aria-current] {
+    color: var(--foreground);
+    /* El titulo puede ser larguisimo; en la ruta se corta y el nombre completo
+       ya esta en el h1 justo debajo. */
+    max-width: 22rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Rejilla principal ─────────────────────────────────────────────────── */
+.cuerpo {
+    display: grid;
+    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+    gap: 2.5rem;
+    align-items: start;
+}
+
+.columnaImagen {
+    position: sticky;
+    top: calc(var(--navbar-height) + 1rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.marco {
+    position: relative;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    border-radius: var(--glass-radius);
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    background:
+        linear-gradient(160deg, var(--glass-highlight) 0%, transparent 42%),
+        var(--glass-bg);
+    box-shadow: var(--glass-shadow);
+}
+
+/* Sin forzar el ancho: las portadas son 900x1600 y a 420px de columna
+   medirian 747px de alto — mas que la ventana, con lo que la columna sticky
+   deja de pegarse y la ficha arranca con la portada cortada. Se limita por
+   alto y el ancho lo sigue la proporcion. */
+.portada {
+    max-width: 100%;
+    max-height: min(72vh, 620px);
+    width: auto;
+    height: auto;
+    display: block;
+}
+
+.marcoAgotado .portada {
+    filter: grayscale(0.85) brightness(0.7);
+}
+
+.sinPortada {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 2 / 3;
+    font-size: 3rem;
+    opacity: 0.4;
+}
+
+.selloAgotado {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(10, 6, 9, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btnSimilares {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    height: 40px;
+    border-radius: var(--glass-radius-sm);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--foreground);
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: background var(--transition), border-color var(--transition);
+}
+
+.btnSimilares:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+}
+
+/* ── Columna de datos ──────────────────────────────────────────────────── */
+.columnaDatos {
+    min-width: 0;
+}
+
+.badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+}
+
+/* Misma pastilla que las etiquetas; lo unico que las distingue es el punto de
+   color, para que el acento se lo quede el precio y no compitan con el titulo. */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.34rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--foreground);
+    font-size: 0.64rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.1px;
+}
+
+.badge::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--muted);
+}
+
+.badgeCategoria::before {
+    background: #60a5fa;
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.7);
+}
+
+.badgeGenero::before {
+    background: var(--primary);
+    box-shadow: 0 0 8px var(--primary-glow);
+}
+
+.titulo {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 1.4rem + 1.8vw, 2.75rem);
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--foreground);
+    margin-bottom: 0.6rem;
+}
+
+.rating {
+    margin-bottom: 1rem;
+}
+
+.precioFila {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin-bottom: 0.35rem;
+}
+
+.precio {
+    font-size: clamp(2rem, 1.6rem + 1.4vw, 2.6rem);
+    font-weight: 900;
+    line-height: 1;
+    color: #10b981;
+}
+
+.precio small {
+    font-size: 0.9rem;
+    font-weight: 600;
+    opacity: 0.75;
+}
+
+.stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+}
+
+.stockHay { color: #34d399; }
+.stockAgotado { color: #f87171; }
+
+.notaEnvio {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 1.4rem;
+}
+
+/* ── Acciones ──────────────────────────────────────────────────────────── */
+.acciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+    margin-bottom: 1.4rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    height: 50px;
+    border-radius: var(--glass-radius-sm);
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background var(--transition), border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btnPrimario {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btnPrimario:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px var(--primary-glow);
+}
+
+/* Apartar es la alternativa, no la accion principal: va en vidrio para que se
+   lea como segunda opcion sin desaparecer, igual que el boton de registrarse
+   junto al de entrar en el acceso. */
+.btnSecundario {
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    color: var(--foreground);
+}
+
+.btnSecundario:hover:not(:disabled) {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    transform: translateY(-1px);
+}
+
+/* ── Etiquetas ─────────────────────────────────────────────────────────── */
+.tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--foreground);
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1;
+    transition: background var(--transition), border-color var(--transition), transform var(--transition);
+}
+
+.tag:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    transform: translateY(-1px);
+}
+
+/* ── Sinopsis ──────────────────────────────────────────────────────────── */
+.sinopsis {
+    margin-bottom: 1.75rem;
+}
+
+.sinopsisTexto {
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--foreground);
+    opacity: 0.88;
+    /* Cuatro renglones y el resto se pliega. `-webkit-line-clamp` sigue siendo
+       la unica forma con soporte real de recortar por renglones. */
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.sinopsisAbierta {
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+}
+
+.leerMas {
+    margin-top: 0.4rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--primary);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-underline-offset: 3px;
+}
+
+.leerMas:hover {
+    text-decoration: underline;
+}
+
+.sinopsisFuente {
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+}
+
+/* ── Ficha tecnica ─────────────────────────────────────────────────────── */
+.fichaTitulo {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+}
+
+/* Lista con filetes, no rejilla de cajas: el marco lo pone la pagina y cada
+   renglon solo separa el nombre del campo de su valor. */
+.fichaLista {
+    display: grid;
+    grid-template-columns: 1fr;
+    border-top: 1px solid var(--glass-border);
+    margin: 0;
+}
+
+.fichaFila {
+    display: grid;
+    grid-template-columns: 1.05rem 8rem minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 0.7rem;
+    padding: 0.62rem 0.15rem;
+    border-bottom: 1px solid var(--glass-border);
+    min-width: 0;
+}
+
+.fichaFila:last-child {
+    border-bottom: none;
+}
+
+/* En tono apagado: en una lista de ocho renglones, ocho iconos de acento pesan
+   mas que los propios datos. Bajado a la linea base a mano, porque un svg
+   alineado por baseline se cuelga unos pixeles. */
+.fichaIcono {
+    color: var(--muted);
+    line-height: 0;
+    transform: translateY(2px);
+}
+
+.fichaCampo {
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.fichaValor {
+    margin: 0;
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--foreground);
+    word-break: break-word;
+    line-height: 1.35;
+}
+
+.fichaNota {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--muted);
+    line-height: 1.4;
+    margin-top: 0.1rem;
+}
+
+/* ── Similares ─────────────────────────────────────────────────────────── */
+.similares {
+    margin-top: 4rem;
+    /* Compensa el navbar fijo al saltar desde "Ver similares": sin esto el
+       titulo de la seccion queda debajo de la barra. */
+    scroll-margin-top: calc(var(--navbar-height) + 1rem);
+}
+
+.similaresTitulo {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 1.25rem;
+}
+
+.similaresRejilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.25rem;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .cuerpo {
+        grid-template-columns: 1fr;
+        gap: 1.75rem;
+    }
+
+    /* En una sola columna la portada deja de ser sticky: pegada arriba se
+       comeria media pantalla mientras se lee la ficha. */
+    .columnaImagen {
+        position: static;
+        max-width: 340px;
+        margin: 0 auto;
+        width: 100%;
+    }
+}
+
+@media (max-width: 560px) {
+    .pagina {
+        padding: 1rem 1rem 3rem;
+    }
+
+    /* En vertical la portada a 72vh se comia la pantalla entera y habia que
+       hacer scroll para llegar al precio. */
+    .portada {
+        max-height: 52vh;
+    }
+
+    .acciones {
+        grid-template-columns: 1fr;
+    }
+
+    .fichaFila {
+        grid-template-columns: 1.05rem minmax(0, 1fr);
+        row-gap: 0.15rem;
+    }
+
+    .fichaValor {
+        grid-column: 2;
+    }
+
+    .migas span[aria-current] {
+        max-width: 12rem;
+    }
+}

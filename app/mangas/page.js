@@ -4,10 +4,9 @@ import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import MangaCard from '@/components/MangaCard';
 import { useSearchStore } from '@/store/searchStore';
-import MangaModal from '@/components/MangaModal';
 import { Filter, PackageX, X } from 'lucide-react';
 import styles from './mangas.module.css';
 
@@ -34,12 +33,15 @@ function MangasPageInner() {
     const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categoria') || '');
     const [selectedPublisher, setSelectedPublisher] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('');
-    const [selectedTags, setSelectedTags] = useState([]); // múltiples tags (AND)
+    // La ficha de producto enlaza cada etiqueta aqui. Llega una sola en la
+    // URL; el filtro sigue admitiendo varias a la vez desde el panel.
+    const [selectedTags, setSelectedTags] = useState(
+        searchParams.get('etiqueta') ? [searchParams.get('etiqueta')] : []
+    );
     const [selectedStock, setSelectedStock] = useState('all'); // 'all' or 'inStock'
     const [sortBy, setSortBy] = useState('recent');
 
     // Estado UI
-    const [selectedManga, setSelectedManga] = useState(null);
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [filtersClosing, setFiltersClosing] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -397,10 +399,7 @@ function MangasPageInner() {
                                             initial="hidden"
                                             animate="visible"
                                         >
-                                            <MangaCard
-                                                manga={manga}
-                                                onClick={(m) => setSelectedManga(m)}
-                                            />
+                                            <MangaCard manga={manga} />
                                         </motion.div>
                                     ))}
                                 </div>
@@ -410,14 +409,6 @@ function MangasPageInner() {
                 </div>
             </div>
 
-            <AnimatePresence>
-                {selectedManga && (
-                    <MangaModal
-                        manga={selectedManga}
-                        onClose={() => setSelectedManga(null)}
-                    />
-                )}
-            </AnimatePresence>
         </div>
 
         {/* ── Mobile Filter Sheet — Portal directo a body, evita stacking context de framer-motion ── */}

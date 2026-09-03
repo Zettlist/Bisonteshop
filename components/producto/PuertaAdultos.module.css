@@ -1,0 +1,99 @@
+/* Puerta de edad para las fichas +18 abiertas por URL directa. Es la misma
+   confirmacion que la portada de /adultos, en tamano de tarjeta. */
+
+/* Hueco mientras se lee sessionStorage. Ocupa alto para que la pagina no de un
+   salto cuando se decide que pintar. */
+.espera {
+    min-height: 60vh;
+}
+
+.puerta {
+    display: grid;
+    place-items: center;
+    min-height: 70vh;
+    padding: 2rem 1.25rem;
+}
+
+.tarjeta {
+    max-width: 460px;
+    padding: 2rem 1.75rem;
+    text-align: center;
+    border-radius: var(--glass-radius);
+    border: 1px solid var(--glass-border);
+    background:
+        linear-gradient(155deg, var(--glass-highlight) 0%, transparent 38%),
+        var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+}
+
+.sello {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-bottom: 1.1rem;
+}
+
+.titulo {
+    font-family: var(--font-display);
+    font-size: 1.9rem;
+    font-weight: 800;
+    margin-bottom: 0.75rem;
+}
+
+.texto {
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: var(--muted);
+    margin-bottom: 1.5rem;
+}
+
+.texto strong {
+    color: var(--foreground);
+}
+
+.botones {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.aceptar {
+    height: 48px;
+    border: none;
+    border-radius: var(--glass-radius-sm);
+    background: var(--primary);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.aceptar:hover {
+    background: var(--primary-dark);
+}
+
+.salir {
+    display: grid;
+    place-items: center;
+    height: 44px;
+    border-radius: var(--glass-radius-sm);
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: background var(--transition), border-color var(--transition);
+}
+
+.salir:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+}

@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import MangaCard from '@/components/MangaCard';
-import MangaModal from '@/components/MangaModal';
+import { rutaDeProducto } from '@/lib/slug';
 import { useSearchStore } from '@/store/searchStore';
 import LandingZineAdultos from '@/components/LandingZineAdultos';
 import { ShieldAlert, SlidersHorizontal, AlertTriangle, ArrowLeft, Tag, X } from 'lucide-react';
@@ -35,7 +35,6 @@ function AdultosPageInner() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [selectedProduct, setSelectedProduct] = useState(null);
     // La busqueda vive en la barra de navegacion (store global).
     const searchTerm = useSearchStore((st) => st.term);
     const [selectedCategory, setSelectedCategory] = useState('');
@@ -216,7 +215,7 @@ function AdultosPageInner() {
                         loading={loading}
                         onExplore={() => handleOpenCatalog()}
                         onCategory={(tag) => handleOpenCatalog(tag)}
-                        onSelectProduct={setSelectedProduct}
+                        onSelectProduct={(p) => router.push(rutaDeProducto(p))}
                     />
                 )}
 
@@ -335,7 +334,7 @@ function AdultosPageInner() {
                                     <div className={styles.grid}>
                                         {filtered.map(p => (
                                             <div key={p.id} className={styles.gridItem}>
-                                                <MangaCard manga={p} onClick={setSelectedProduct} />
+                                                <MangaCard manga={p} />
                                             </div>
                                         ))}
                                     </div>
@@ -345,7 +344,6 @@ function AdultosPageInner() {
                     </div>
                 )}
 
-                {selectedProduct && <MangaModal manga={selectedProduct} onClose={() => setSelectedProduct(null)} />}
             </div>
 
 

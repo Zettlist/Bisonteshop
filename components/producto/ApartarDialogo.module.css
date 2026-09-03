@@ -1,0 +1,164 @@
+/* Dialogo del apartado. Mismo vidrio que el resto: telon desenfocado y tarjeta
+   translucida encima. */
+
+.telon {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: radial-gradient(120% 90% at 50% 20%, rgba(24, 14, 20, 0.9) 0%, rgba(8, 5, 8, 0.96) 100%);
+    /* El desenfoque va aqui y no en la tarjeta: un padre con backdrop-filter se
+       vuelve raiz de fondo y anula el de sus hijos. */
+    backdrop-filter: blur(40px) saturate(1.5);
+    -webkit-backdrop-filter: blur(40px) saturate(1.5);
+}
+
+.tarjeta {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    padding: 1.75rem;
+    border-radius: var(--glass-radius);
+    border: 1px solid var(--glass-border);
+    background:
+        linear-gradient(155deg, var(--glass-highlight) 0%, transparent 38%),
+        var(--glass-bg-strong);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-shadow);
+}
+
+.cerrar {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--foreground);
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.cerrar:hover {
+    background: var(--glass-bg-hover);
+}
+
+.titulo {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+    padding-right: 2.5rem;
+}
+
+.producto {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 1.25rem;
+}
+
+/* ── Cuentas ───────────────────────────────────────────────────────────── */
+.cuentas {
+    margin: 0 0 1.25rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.renglon {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0.1rem;
+    border-bottom: 1px solid var(--glass-border);
+    font-size: 0.86rem;
+}
+
+.renglon dt {
+    color: var(--muted);
+}
+
+.renglon dd {
+    margin: 0;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+/* Lo que se paga hoy es el dato que importa: es lo unico que sale de la
+   tarjeta ahora mismo. */
+.renglonFuerte dd {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #10b981;
+}
+
+/* ── Condiciones ───────────────────────────────────────────────────────── */
+.condiciones {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    margin-bottom: 1.4rem;
+}
+
+.condiciones li {
+    display: grid;
+    grid-template-columns: 1.1rem minmax(0, 1fr);
+    gap: 0.6rem;
+    align-items: start;
+    font-size: 0.83rem;
+    line-height: 1.55;
+    color: var(--muted);
+}
+
+.condiciones svg {
+    color: var(--muted);
+    margin-top: 3px;
+}
+
+.condiciones strong {
+    color: var(--foreground);
+}
+
+/* ── Confirmar ─────────────────────────────────────────────────────────── */
+.confirmar {
+    width: 100%;
+    height: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    border: none;
+    border-radius: var(--glass-radius-sm);
+    background: var(--primary);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.confirmar:hover:not(:disabled) {
+    background: var(--primary-dark);
+}
+
+.confirmar:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.aviso {
+    margin-top: 0.7rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--muted);
+    text-align: center;
+}

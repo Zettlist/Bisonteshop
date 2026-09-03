@@ -1,10 +1,16 @@
+import Link from 'next/link';
 import styles from './MangaCard.module.css';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useCartStore } from '@/store/cartStore';
 import { ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
+import RatingStars from './RatingStars';
+import { rutaDeProducto } from '@/lib/slug';
 
-export default function MangaCard({ manga, onClick }) {
+// La tarjeta es un enlace, no un div que escucha clics: antes abria un modal y
+// no habia forma de compartir un producto, abrirlo en otra pestana ni de que un
+// buscador lo encontrara. Ahora cada producto tiene su URL.
+export default function MangaCard({ manga }) {
     const { formatPrice } = useCurrency();
     const addItem = useCartStore(state => state.addItem);
     const imageUrl = manga.image_url || null;
@@ -13,8 +19,8 @@ export default function MangaCard({ manga, onClick }) {
     const [imgError, setImgError] = useState(false);
 
     return (
-        <div
-            onClick={() => onClick(manga)}
+        <Link
+            href={rutaDeProducto(manga)}
             className={`${styles.card} ${isOutOfStock ? styles.outOfStock : ''}`}
         >
             {/* Image Container */}
@@ -51,6 +57,9 @@ export default function MangaCard({ manga, onClick }) {
                     <button
                         className={styles.quickAddBtn}
                         onClick={(e) => {
+                            // Dentro de un enlace hay que parar las dos cosas:
+                            // la propagacion y la navegacion por defecto.
+                            e.preventDefault();
                             e.stopPropagation();
                             addItem(manga);
                         }}
@@ -82,6 +91,9 @@ export default function MangaCard({ manga, onClick }) {
                 )}
                 <h3 className={styles.title}>{manga.title}</h3>
 
+                {/* Calificación: no ocupa lugar si el producto no tiene */}
+                <RatingStars valor={manga.rating} total={manga.rating_count} size={13} />
+
                 {/* Quick meta */}
                 <div className={styles.meta}>
                     {manga.pages > 0 && (
@@ -103,6 +115,6 @@ export default function MangaCard({ manga, onClick }) {
                     </span>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 }
