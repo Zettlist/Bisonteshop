@@ -1,5 +1,6 @@
 import pool from '@/lib/db';
 import { NextResponse } from 'next/server';
+import { conDemo } from '@/lib/demo';
 
 const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
@@ -51,8 +52,12 @@ export async function GET(request) {
       events: p.events ? (typeof p.events === 'string' ? JSON.parse(p.events) : p.events) : null,
     }));
 
+    // El mismo recorte que acaba de hacer el SQL, para que la vitrina de prueba
+    // no se cuele en el listado que deja fuera figuras y accesorios.
+    const conVitrina = conDemo(mangas, p => all || !/figura|calendario|accesorio/i.test(p.category));
+
     return NextResponse.json(
-      { success: true, mangas, empresa_id: EMPRESA_ID },
+      { success: true, mangas: conVitrina, empresa_id: EMPRESA_ID },
       { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
     );
   } catch (error) {

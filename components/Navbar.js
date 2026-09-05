@@ -367,7 +367,7 @@ export default function Navbar() {
                             {user.avatar ? (
                                 <img src={`${user.avatar}?v=2`} alt="Avatar" className={styles.userAvatar} />
                             ) : (
-                                <User size={20} color="var(--primary)" />
+                                <User size={30} color="var(--primary)" />
                             )}
                             <ChevronDown size={13} className={`${styles.userChevron} ${menuOpen ? styles.userChevronOpen : ''}`} />
                         </button>
@@ -514,7 +514,7 @@ export default function Navbar() {
                                 <>
                                     <div className={styles.drawerUser}>
                                         {user.avatar ? (
-                                            <img src={`${user.avatar}?v=2`} alt="Avatar" className={styles.userAvatar} />
+                                            <img src={`${user.avatar}?v=2`} alt="Avatar" className={`${styles.userAvatar} ${styles.drawerAvatar}`} />
                                         ) : (
                                             <User size={18} color="var(--primary)" />
                                         )}

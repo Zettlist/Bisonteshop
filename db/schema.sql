@@ -226,11 +226,13 @@ CREATE TABLE IF NOT EXISTS products (
     sinopsis_fuente  VARCHAR(500) NULL,
     artist           VARCHAR(255) NULL,
     gender           VARCHAR(50)  NULL,
-    -- Calificacion que se muestra en la ficha. Se guarda el promedio ya
-    -- calculado y cuantas opiniones lo sostienen porque las opiniones todavia
-    -- no viven en la base: sin `rating_count` un 5.0 de una sola persona se ve
-    -- igual que uno de doscientas. NULL = sin calificar; la ficha no pinta
-    -- estrellas en vez de inventar un cero.
+    -- Calificacion que se muestra en la ficha. Es el promedio ya calculado de
+    -- `product_reviews` mas cuantas opiniones lo sostienen: sin `rating_count`
+    -- un 5.0 de una sola persona se ve igual que uno de doscientas. Se guarda
+    -- resuelto y no se calcula al vuelo porque el catalogo lo lee en cada
+    -- tarjeta; quien escribe una opinion lo recalcula en la misma transaccion.
+    -- NULL = sin calificar; la ficha no pinta estrellas en vez de inventar un
+    -- cero.
     rating           DECIMAL(2,1) NULL,
     rating_count     INT NOT NULL DEFAULT 0,
     group_name       VARCHAR(255) NULL,
@@ -713,6 +715,29 @@ CREATE TABLE IF NOT EXISTS product_tags (
     CONSTRAINT fk_pt_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     CONSTRAINT fk_pt_tag     FOREIGN KEY (tag_id)     REFERENCES tags(id)     ON DELETE CASCADE,
     INDEX idx_tag (tag_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Las opiniones que sostienen products.rating. Antes esas dos columnas eran un
+-- promedio sin nadie detras: no habia donde poner una nota, ni desde la tienda
+-- ni desde el POS, y las unicas del catalogo estaban escritas a mano en
+-- lib/demo.js. La tabla es solo de la tienda; el POS no la ve ni la necesita.
+CREATE TABLE IF NOT EXISTS product_reviews (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    product_id  INT NOT NULL,
+    cliente_id  INT NOT NULL,
+    rating      TINYINT NOT NULL,
+    -- Hoy la tienda solo pide estrellas. La columna se crea desde el principio
+    -- para que agregar el comentario despues no obligue a migrar una tabla que
+    -- ya tendra opiniones dentro.
+    comentario  TEXT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_reviews_product FOREIGN KEY (product_id) REFERENCES products(id)  ON DELETE CASCADE,
+    CONSTRAINT fk_reviews_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id)  ON DELETE CASCADE,
+    CONSTRAINT chk_reviews_rating CHECK (rating BETWEEN 1 AND 5),
+    -- Una opinion por persona y producto: se cambia, no se acumula.
+    UNIQUE KEY uniq_review (product_id, cliente_id),
+    INDEX idx_product (product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- FIX 9 — `is_demo` reemplaza el numero magico `cliente_id >= 900001` que las

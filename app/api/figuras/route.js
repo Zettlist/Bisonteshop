@@ -1,5 +1,6 @@
 import pool from '@/lib/db';
 import { NextResponse } from 'next/server';
+import { conDemo } from '@/lib/demo';
 
 const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
@@ -44,9 +45,11 @@ export async function GET() {
       tags: p.tags ? p.tags.split(',') : []
     }));
 
+    const conVitrina = conDemo(mangas, p => /figura|calendario|accesorio/i.test(p.category));
+
     // Retorna 'mangas' array name to reuse same frontend code easily, standardizing the payload
     return NextResponse.json(
-      { success: true, mangas, empresa_id: EMPRESA_ID },
+      { success: true, mangas: conVitrina, empresa_id: EMPRESA_ID },
       { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } }
     );
   } catch (error) {

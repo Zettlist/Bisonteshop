@@ -1,22 +1,27 @@
 /* ── Recorrido vertical del pedido ──────────────────────────────────────────
-   Mismas variables locales remapeables que BarraProgreso: cambiar el tono de
-   reclamo es remapear --ot-acento, no reescribir cada regla. */
+   La version en lista de BarraProgreso, y con su mismo lenguaje zine: sin
+   difuminados, borde negro y Bebas Neue en los nombres de paso.
+
+   Mismas variables locales remapeables: cambiar el tono del reclamo es
+   remapear --ot-acento, no reescribir cada regla. */
 
 .tracking {
-    --ot-acento: var(--pf-accent);
-    --ot-apagado: var(--pf-border);
+    --ot-acento: #e63946;
+    --ot-tinta: #000;
+    --ot-apagado: rgba(255, 255, 255, 0.18);
 
     display: flex;
     flex-direction: column;
 }
 
 .tracking.reclamo {
-    --ot-acento: var(--pf-warn);
+    --ot-acento: #ffd60a;
 }
 
 .vacio {
-    font-size: 0.85rem;
-    color: var(--pf-muted);
+    font-family: 'Caveat', cursive;
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .paso {
@@ -36,16 +41,19 @@
 }
 
 .iconoPendiente {
-    color: var(--pf-muted);
-    opacity: 0.6;
+    color: rgba(255, 255, 255, 0.35);
 }
 
+/* Mas gruesa y con contorno negro, para que la columna se lea como el resto de
+   las lineas del perfil y no como un hilo de una interfaz distinta. */
 .linea {
-    width: 1.5px;
+    width: 5px;
     flex: 1;
     min-height: 26px;
     margin: 3px 0;
     background: var(--ot-apagado);
+    border: 1.5px solid var(--ot-tinta);
+    border-radius: 2px;
 }
 
 .lineaHecha {
@@ -58,18 +66,26 @@
 
 .nombre {
     margin: 0;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--pf-muted);
-    line-height: 1.3;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 1.2px;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.25;
 }
 
 .nombreActual {
-    color: var(--pf-text);
+    color: #ffd60a;
 }
 
+.tracking.reclamo .nombreActual {
+    color: #fff;
+}
+
+/* La fecha va en Caveat como los subtitulos del perfil: es una anotacion al
+   margen, no un dato de la ficha. */
 .fecha {
-    margin: 3px 0 0;
-    font-size: 0.78rem;
-    color: var(--pf-muted);
+    margin: 2px 0 0;
+    font-family: 'Caveat', cursive;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.55);
 }

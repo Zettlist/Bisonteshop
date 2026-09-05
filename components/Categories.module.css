@@ -1,11 +1,50 @@
+/* ===========================================================================
+   Categorías
+
+   Una regla de medir: dos escalas con sus marcas, la aguja fija en el centro y
+   los títulos pasando por debajo. La categoría no se "elige" de una lista, se
+   sintoniza — por eso la aguja va en rojo y no se mueve nunca: lo que se mueve
+   es todo lo demás.
+   ======================================================================== */
+
+/* La sección va en tres pisos: el encabezado sobre las viñetas del landing, la
+   cinta negra de los títulos y, ya debajo, el estante sobre gris. Ninguno de
+   los tres es del color del tema — el landing se oscurece igual en claro que en
+   oscuro — así que la tinta se define aquí, fija, y no con `--foreground`, que
+   con el tema claro daría texto casi negro sobre cualquiera de los tres.
+
+   El padding horizontal vive en `.container` y no aquí, porque tanto la cinta
+   como el gris tienen que llegar de borde a borde. */
 .section {
-    padding: var(--space-16) var(--container-pad);
-    background: var(--surface);
+    --tinta: #f2f2f2;
+    --tinta-suave: #a3a3a8;
+    --linea: rgba(255, 255, 255, 0.18);
+
+    position: relative;
+    padding: var(--space-16) 0;
+    background: transparent;
 }
 
 .container {
     max-width: var(--container-width);
     margin: 0 auto;
+    padding: 0 var(--container-pad);
+}
+
+/* ── La cinta ──
+   A sangre, de un borde al otro. El negro pleno la separa del gris de la
+   sección: es lo que la hace leerse como una cinta que cruza la página. Los
+   títulos apagados bajan aquí un punto más que fuera, porque contra el negro
+   el mismo gris se vería más claro de la cuenta. */
+.franja {
+    --tinta-suave: #8c8c8c;
+
+    /* La mitad de alto que antes: la cinta pesaba más que el estante que
+       anuncia. Baja a la mitad todo lo que la compone —aire, separación, marcas
+       y tipografía— y no solo el aire, porque aplastar el hueco dejando la letra
+       grande la habría vuelto una banda apretada en vez de una regla. */
+    padding: 0.8rem 0;
+    background: #000;
 }
 
 .header {
@@ -26,181 +65,279 @@
 .title {
     font-family: var(--font-display);
     font-size: var(--text-2xl);
-    color: var(--foreground);
+    color: var(--tinta);
     letter-spacing: 2px;
 }
 
-/* ── Grid — columna única de cards horizontales ── */
-.grid {
+/* ── La regleta ─────────────────────────────────────────────────────────── */
+.regleta {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-}
-
-/* ── Card ── */
-.card {
-    border-radius: var(--radius);
+    gap: 0.55rem;
+    /* Los títulos se salen por los lados a propósito: el corte contra el borde
+       es lo que dice que la lista sigue. */
     overflow: hidden;
-    border: 1px solid var(--border);
-    background: #0d0d0d;
-    transition: border-color 0.3s ease, transform 0.3s ease;
+    cursor: grab;
+    /* En móvil el dedo tiene que poder seguir bajando por la página. */
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-.card:hover {
-    border-color: var(--primary);
-    transform: translateY(-3px);
+.regleta:active {
+    cursor: grabbing;
 }
 
-.cardInner {
-    display: flex;
-    text-decoration: none;
-    height: 160px;
+/* ── Escalas ──
+   Dos capas de marcas: la menuda da la textura, la larga da la escala. Con una
+   sola se lee como un rayado decorativo, no como una medida. Se desplazan
+   moviendo el fondo, que no toca el layout.
+
+   La separacion la mide el JS y no se escribe aqui. Con los 100px fijos que
+   habia antes, que la aguja cayera sobre una marca larga dependia del ancho de
+   la ventana —la ranura mide el 32% de la regla, un numero que casi nunca es
+   multiplo de 100— asi que la aguja quedaba entre dos marcas y el titulo con
+   ella. Ahora la marca larga es la ranura partida en tres: cambiar de categoria
+   son siempre tres marcas justas, y el titulo cae en una marca larga sea cual
+   sea el ancho.
+
+   `linear-gradient` y no `repeating-`: el degradado repetido lleva su propio
+   periodo escrito a mano, y en cuanto la baldosa se hace mas ancha que ese
+   periodo salen dos marcas dentro de la misma baldosa. Sin repetir manda la
+   baldosa y siempre hay una. */
+.regla {
     position: relative;
+    height: 11px;
+    color: var(--tinta-suave);
+    opacity: 0.55;
+    background-image:
+        linear-gradient(90deg, currentColor 0 1.5px, transparent 1.5px),
+        linear-gradient(90deg, currentColor 0 1.5px, transparent 1.5px);
+    /* Solo para el primer fotograma, antes de que el JS mida: la separacion de
+       verdad llega en el style de la etiqueta y pisa esta. Sin el respaldo la
+       baldosa arrancaba en 0px y la regla salia en blanco hasta la medida. */
+    background-size: 100px 100%, 20px 55%;
+    background-repeat: repeat-x;
+    transition: background-position 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ── Imagen izquierda ── */
-.cardImage {
+.reglaArriba {
+    background-position-y: top, top;
+}
+
+.reglaAbajo {
+    background-position-y: bottom, bottom;
+}
+
+/* La aguja no se mueve nunca: es el punto de lectura. En rojo porque es el
+   único elemento de la sección que dice "aquí", y el rojo ya significa eso en
+   el resto del sitio. */
+.aguja {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    transform: translateX(-50%);
+    background: var(--primary);
+}
+
+/* ── Títulos ─────────────────────────────────────────────────────────────── */
+.pista {
     position: relative;
-    width: 42%;
-    flex-shrink: 0;
-    /* overflow:hidden removido — logo badge sale right:-28px, .card lo contiene */
+    height: clamp(1.15rem, 2.5vw, 1.6rem);
 }
 
-.imageOverlay {
+.ranura {
     position: absolute;
-    inset: 0;
-    background: linear-gradient(to right, transparent 50%, #0d0d0d 100%);
-    z-index: 1;
-}
-
-/* ── Logo badge ── */
-.logoBadge {
-    position: absolute;
-    right: -28px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 3;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: #0d0d0d;
-    border: 2px solid var(--border);
+    left: 50%;
+    top: 0;
+    height: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-}
-
-/* ── Contenido derecho ── */
-.cardContent {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 1.25rem 1.5rem 1.25rem 2rem;
-    position: relative;
-    z-index: 2;
-}
-
-.cardNumber {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 3px;
-    color: var(--primary);
-    opacity: 0.7;
-    margin-bottom: var(--space-1);
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
     font-family: var(--font-display);
-}
-
-.cardTitle {
-    font-family: var(--font-display);
-    font-size: var(--text-xl);
-    color: #fff;
+    font-size: clamp(0.85rem, 1.6vw, 1.35rem);
     letter-spacing: 1px;
-    line-height: 1.1;
-    margin: 0 0 var(--space-1);
-    text-transform: uppercase;
+    line-height: 1;
+    color: var(--tinta-suave);
+    transition:
+        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.5s ease,
+        color 0.3s ease;
+    will-change: transform, opacity;
 }
 
-.cardDesc {
-    font-size: var(--text-sm);
-    color: rgba(255,255,255,0.5);
-    margin: 0 0 var(--space-3);
-    line-height: 1.4;
+.ranuraActiva {
+    color: var(--tinta);
 }
 
-.cardCta {
-    display: inline-flex;
+/* Mientras el dedo está encima no hay transición que valga: la posición se
+   escribe a mano en cada movimiento y cualquier suavizado iría por detrás del
+   gesto. Al soltar vuelve la transición y es ella la que encaja la ranura. */
+.arrastrando .ranura,
+.arrastrando .regla {
+    transition: none;
+}
+
+.ranura:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 6px;
+    border-radius: 4px;
+}
+
+/* ── El estante ──
+   Sin fondo propio. El gris estaba ahi porque el fondo del landing son viñetas
+   de manga, con lineas y bocadillos blancos detras de cada letra, y los rotulos
+   y precios se perdian encima. Ahora cada portada es una tarjeta con su marco y
+   su sombra, asi que el contraste lo pone la tarjeta y el bloque gris solo
+   quedaba como un rectangulo de nadie entre la cinta y la pagina. */
+.estante {
+    /* El aire de arriba lo pone el padding y no el margen de `.mandos`: un
+       margen del primer hijo se escapa del bloque y la separacion acabaria
+       contando fuera, pegando los mandos al negro de la cinta. */
+    padding-top: 1.4rem;
+    padding-bottom: var(--space-12);
+}
+
+/* ── Descripción y mandos ────────────────────────────────────────────────── */
+.mandos {
+    display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: var(--text-xs);
-    font-weight: 700;
-    color: var(--primary);
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: var(--space-8);
+}
+
+/* Este renglon es lo unico de la seccion que no lleva tarjeta debajo, y el
+   fondo del landing es una capa fija de viñetas con bocadillos blancos: segun
+   el scroll le toca tinta negra o papel, y sobre papel el texto desaparecia.
+   La pastilla es lo mas pequeño que resuelve eso — se ajusta al texto en vez
+   de cruzar la pagina, que es lo que hacia el bloque gris que se quito. */
+.desc {
+    min-width: 0;
+    /* Basis `auto` y no 24rem: con una medida fija la pastilla saldria del
+       mismo ancho para "Figuras" que para el titulo mas largo, y se veria el
+       aire vacio a los lados. El maximo mantiene el corte de linea de antes. */
+    flex: 0 1 auto;
+    max-width: 24rem;
+    padding: 0.4rem 0.95rem;
+    border-radius: 999px;
+    background: rgba(10, 10, 10, 0.62);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--tinta-suave);
+    animation: entraDesc 0.35s ease both;
+}
+
+@keyframes entraDesc {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Con un ratón sin rueda lateral no hay forma de descubrir el arrastre, y son
+   además la vía desde el teclado. */
+.mando {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    padding-bottom: 3px;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--tinta);
+    background: transparent;
+    border: 1px solid var(--linea);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.mando:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.mando:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ── Escaparate ──────────────────────────────────────────────────────────── */
+.escaparate {
+    animation: entraEscaparate 0.4s ease both;
+}
+
+@keyframes entraEscaparate {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.verTodo {
+    display: block;
+    width: fit-content;
+    margin: var(--space-8) auto 0;
+    padding-bottom: 0.25rem;
+    font-size: var(--text-sm);
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    transition: gap 0.25s ease;
+    letter-spacing: 1px;
+    color: var(--tinta-suave);
+    border-bottom: 1px solid var(--linea);
+    transition: color var(--transition), border-color var(--transition);
 }
 
-.card:hover .cardCta {
-    gap: 0.7rem;
+.verTodo:hover {
+    color: var(--tinta);
+    border-color: var(--primary);
 }
 
-/* Borde rojo animado hover */
-.cardBorder {
-    position: absolute;
-    inset: 0;
-    border-radius: var(--radius);
-    border: 2px solid var(--primary);
-    opacity: 0;
-    transition: opacity 0.25s ease;
-    z-index: 5;
-    pointer-events: none;
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+    .container {
+        max-width: 92%;
+    }
 }
 
-.card:hover .cardBorder {
-    opacity: 1;
-}
-
-/* ── Responsive ── */
 @media (max-width: 900px) {
     .container {
         max-width: 100%;
-        padding: 0 var(--container-pad);
-    }
-    .section {
-        padding: var(--space-12) 0;
-    }
-    .cardInner {
-        height: 140px;
     }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 600px) {
     .section {
-        padding: var(--space-8) 0;
+        padding: var(--space-12) var(--container-pad);
     }
-    .container {
-        padding: 0 var(--container-pad);
+
+    /* En pantalla estrecha los mandos se comen el ancho de la descripción. El
+       gesto aquí ya es el natural, así que sobran. */
+    .mando {
+        display: none;
     }
-    .grid {
-        gap: 0.75rem;
+}
+
+/* Sin animación los títulos siguen colocándose — la posición viene del render,
+   no de la transición — pero saltan de una ranura a otra en vez de deslizarse. */
+@media (prefers-reduced-motion: reduce) {
+    .desc,
+    .escaparate {
+        animation: none;
     }
-    .cardInner {
-        height: 120px;
-    }
-    .cardImage {
-        width: 38%;
-    }
-    .logoBadge {
-        width: 44px;
-        height: 44px;
-        right: -22px;
-    }
-    .cardContent {
-        padding: 1rem 1rem 1rem 1.5rem;
-    }
-    .cardTitle {
-        letter-spacing: 0.5px;
+
+    .ranura,
+    .regla,
+    .mando,
+    .verTodo {
+        transition: none;
     }
 }

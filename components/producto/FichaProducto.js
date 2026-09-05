@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-    ShoppingBag, BookmarkPlus, ChevronRight, Sparkles,
+    ShoppingBag, BookmarkPlus, ChevronRight,
     BookOpen, Layers, Globe, Building2, User2, Weight, Barcode, Hash,
 } from 'lucide-react';
 import styles from './FichaProducto.module.css';
@@ -11,6 +11,7 @@ import MangaCard from '@/components/MangaCard';
 import RatingStars from '@/components/RatingStars';
 import PuertaAdultos from './PuertaAdultos';
 import ApartarDialogo from './ApartarDialogo';
+import CalificarProducto from './CalificarProducto';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useCartStore } from '@/store/cartStore';
 import { describirDimensiones } from '@/lib/dimensiones';
@@ -20,6 +21,15 @@ export default function FichaProducto({ producto, similares = [] }) {
     const { formatPrice, currency } = useCurrency();
     const addItem = useCartStore(state => state.addItem);
     const [apartando, setApartando] = useState(false);
+
+    // El promedio se guarda aparte del producto para poder repintarlo en cuanto
+    // el cliente deja su nota. /api/productos cachea cinco minutos, asi que
+    // leerlo de `producto` dejaria las estrellas contando la opinion anterior
+    // justo delante de quien acaba de escribirla.
+    const [resumen, setResumen] = useState({ rating: producto.rating, rating_count: producto.rating_count });
+    useEffect(() => {
+        setResumen({ rating: producto.rating, rating_count: producto.rating_count });
+    }, [producto.id, producto.rating, producto.rating_count]);
 
     // Igual que en la ficha anterior: una vista por producto. El ref evita el
     // doble montaje de React en desarrollo, que inflaba al doble justo la
@@ -107,13 +117,6 @@ export default function FichaProducto({ producto, similares = [] }) {
                         )}
                         {agotado && <span className={styles.selloAgotado}>Agotado</span>}
                     </figure>
-
-                    {similares.length > 0 && (
-                        <a href="#similares" className={styles.btnSimilares}>
-                            <Sparkles size={14} />
-                            Ver similares
-                        </a>
-                    )}
                 </div>
 
                 {/* ── Datos ── */}
@@ -131,11 +134,13 @@ export default function FichaProducto({ producto, similares = [] }) {
                     <h1 className={styles.titulo}>{producto.title}</h1>
 
                     <RatingStars
-                        valor={producto.rating}
-                        total={producto.rating_count}
+                        valor={resumen.rating}
+                        total={resumen.rating_count}
                         size={17}
                         className={styles.rating}
                     />
+
+                    <CalificarProducto productoId={producto.id} onResumen={setResumen} />
 
                     <div className={styles.precioFila}>
                         <span className={styles.precio}>

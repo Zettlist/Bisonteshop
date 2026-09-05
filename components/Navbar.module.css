@@ -565,7 +565,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    padding: 0.3rem 0.4rem;
+    padding: 0.2rem 0.3rem;
     border-radius: 8px;
     color: var(--muted);
     transition: background 0.15s, color 0.15s;
@@ -581,11 +581,17 @@
 }
 
 .userAvatar {
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid var(--primary);
+}
+
+/* En el cajon movil el avatar acompana al nombre: se queda chico. */
+.drawerAvatar {
+    width: 32px;
+    height: 32px;
 }
 
 .userChevron {

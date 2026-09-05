@@ -1,0 +1,75 @@
+/* ===========================================================================
+   Calificar producto
+
+   Va en la ficha, debajo del promedio. Las dos filas de estrellas se parecen a
+   propósito —es la misma escala— pero estas son botones: se agrandan al pasar
+   por encima y tienen foco visible, para que se note que aquí sí se toca.
+   ======================================================================== */
+
+.bloque {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin: var(--space-3) 0;
+}
+
+.titulo {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--muted);
+}
+
+.estrellas {
+    display: flex;
+    gap: 0.15rem;
+    margin-left: -0.25rem;   /* alinea la primera estrella con el texto */
+}
+
+.estrella {
+    display: grid;
+    place-items: center;
+    padding: 0.25rem;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.estrella:hover:not(:disabled),
+.estrella:focus-visible {
+    transform: scale(1.15);
+}
+
+.estrella:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+}
+
+.estrella:disabled {
+    cursor: progress;
+}
+
+/* El mismo ámbar de RatingStars: la nota propia y el promedio son la misma
+   escala y teñirlas distinto las haría parecer dos cosas. */
+.marcada {
+    color: #fbbf24;
+}
+
+/* El renglón ocupa su alto siempre, tenga texto o no: apareciendo y
+   desapareciendo movía el botón de agregar al carrito justo cuando el dedo iba
+   hacia él. */
+.aviso {
+    min-height: 1rem;
+    font-size: 0.72rem;
+    line-height: 1rem;
+    color: var(--muted);
+    opacity: 0.75;
+}
+
+.avisoVisible {
+    color: var(--foreground);
+    opacity: 1;
+}

@@ -1,20 +1,26 @@
 /* ── Barra de progreso del pedido ───────────────────────────────────────────
-   Los colores salen de dos variables locales: cambiar el tono del reclamo es
+   Estetica zine, como el resto de /perfil: borde negro grueso, sombra dura sin
+   difuminar y Bebas Neue en las etiquetas. Este componente nacio con el
+   lenguaje de vidrio, asi que aqui no hay nada que revertir — esta reescrito
+   para que no desentone con la tarjeta que lo contiene.
+
+   El color sale de dos variables locales: cambiar el tono del reclamo es
    remapearlas, no reescribir cada regla. */
 
 .barra {
-    --bp-acento: var(--pf-accent);
-    --bp-acento-wash: var(--pf-accent-wash);
-    --bp-apagado: var(--pf-border-soft);
+    --bp-acento: #e63946;
+    --bp-tinta: #000;
+    --bp-apagado: rgba(255, 255, 255, 0.18);
 
     display: flex;
     align-items: flex-start;
     width: 100%;
 }
 
+/* El reclamo va en ambar: es el mismo recorrido, pero el pedido dejo de ir
+   hacia adelante y esta en revision. */
 .barra.reclamo {
-    --bp-acento: var(--pf-warn);
-    --bp-acento-wash: var(--pf-warn-wash);
+    --bp-acento: #ffd60a;
 }
 
 .paso {
@@ -23,7 +29,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.55rem;
 }
 
 .fila {
@@ -35,8 +41,9 @@
 /* ── Linea ── */
 .riel {
     flex: 1 1 auto;
-    height: 2px;
+    height: 4px;
     background: var(--bp-apagado);
+    border: 2px solid var(--bp-tinta);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -44,6 +51,7 @@
 /* Las puntas existen solo para que el circulo quede centrado en su celda. */
 .rielVacio {
     background: transparent;
+    border-color: transparent;
 }
 
 .relleno {
@@ -62,57 +70,65 @@
 /* ── Circulos ── */
 .circulo {
     flex: 0 0 auto;
-    width: 26px;
-    height: 26px;
+    width: 30px;
+    height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    font-size: 0.76rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
+    border: 2.5px solid var(--bp-tinta);
+    box-shadow: 2px 2px 0 var(--bp-tinta);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
     line-height: 1;
-    transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    transition: background 0.25s ease, color 0.25s ease;
 }
 
 .hecho {
     background: var(--bp-acento);
-    border: 2px solid var(--bp-acento);
     color: #fff;
 }
 
-/* El paso actual va hueco y con anillo: se distingue de los ya cumplidos sin
-   competir con ellos en peso visual. */
+/* El paso actual va en amarillo y ligeramente torcido, como los sellos del
+   resto del perfil: se distingue de los cumplidos sin pesar mas que ellos. */
 .actual {
-    background: var(--bp-acento-wash);
-    border: 2px solid var(--bp-acento);
-    color: var(--pf-text);
-    box-shadow: 0 0 0 4px var(--bp-acento-wash);
+    background: #ffd60a;
+    color: #1a1a1a;
+    transform: rotate(-4deg);
+}
+
+.barra.reclamo .actual {
+    background: #fff;
 }
 
 .pendiente {
-    background: transparent;
-    border: 2px solid var(--bp-apagado);
-    color: var(--pf-muted);
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.45);
 }
 
 /* ── Etiquetas ── */
 .etiqueta {
-    font-size: 0.72rem;
-    line-height: 1.25;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    line-height: 1.2;
     text-align: center;
-    color: var(--pf-muted);
+    color: rgba(255, 255, 255, 0.55);
     padding: 0 0.15rem;
 }
 
 .etiquetaActual {
-    color: var(--pf-text);
-    font-weight: 600;
+    color: #ffd60a;
+}
+
+.barra.reclamo .etiquetaActual {
+    color: #fff;
 }
 
 @media (max-width: 520px) {
-    .circulo { width: 23px; height: 23px; font-size: 0.72rem; }
-    .etiqueta { font-size: 0.66rem; }
+    .circulo { width: 26px; height: 26px; font-size: 0.85rem; }
+    .etiqueta { font-size: 0.72rem; letter-spacing: 0.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

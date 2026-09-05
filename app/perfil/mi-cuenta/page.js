@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
@@ -30,6 +30,20 @@ export default function MiCuenta() {
     const [creditBalance, setCreditBalance] = useState(null);
     const [unreadCount, setUnreadCount] = useState(0);
     const [activeOrders, setActiveOrders] = useState(null);
+
+    // El indicador de "sin leer" solo daba un numero. Las notificaciones ya
+    // estan en esta misma pagina, mas abajo, asi que llevar hasta ellas es
+    // mejor que abrir un modal con la misma lista repetida y otra consulta.
+    const notificaciones = useRef(null);
+    const [notificacionesDestacadas, setNotificacionesDestacadas] = useState(false);
+
+    const verNotificaciones = () => {
+        notificaciones.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // El bloque queda lejos del indicador: sin un destello que lo senale,
+        // el salto parece que no llevo a ningun sitio.
+        setNotificacionesDestacadas(true);
+        setTimeout(() => setNotificacionesDestacadas(false), 1600);
+    };
 
     // Hay que esperar a que zustand rehidrate desde localStorage: en el primer
     // render isAuthenticated todavia es false y esta pagina expulsaba a la home
@@ -155,9 +169,8 @@ export default function MiCuenta() {
                     <span className={styles.statLabel}>Pedidos Activos</span>
                 </div>
                 <div
-                    className={styles.statCard}
+                    className={`${styles.statCard} ${styles.statCardClicable}`}
                     onClick={() => { setShowCupones(true); setCodeResult(null); setCodeInput(''); }}
-                    style={{ cursor: 'pointer' }}
                     role="button"
                     tabIndex={0}
                     onKeyDown={e => e.key === 'Enter' && setShowCupones(true)}
@@ -166,7 +179,13 @@ export default function MiCuenta() {
                     <span className={styles.statValue}>{cupones.length}</span>
                     <span className={styles.statLabel}>Cupones</span>
                 </div>
-                <div className={styles.statCard}>
+                <div
+                    className={`${styles.statCard} ${styles.statCardClicable}`}
+                    onClick={verNotificaciones}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => e.key === 'Enter' && verNotificaciones()}
+                >
                     <div className={styles.statIcon}><Bell size={18} /></div>
                     <span className={styles.statValue}>{unreadCount}</span>
                     <span className={styles.statLabel}>Sin Leer</span>
@@ -184,7 +203,13 @@ export default function MiCuenta() {
             <CreditoPanel onBalance={setCreditBalance} />
 
             {/* ── Notificaciones (antes: /perfil/notificaciones) ── */}
-            <NotificacionesPanel onUnread={setUnreadCount} />
+            <div
+                ref={notificaciones}
+                className={notificacionesDestacadas ? styles.bloqueDestacado : undefined}
+                style={{ scrollMarginTop: '90px' }}
+            >
+                <NotificacionesPanel onUnread={setUnreadCount} />
+            </div>
 
             {/* ── Zona de peligro ── */}
             <div className={`${styles.card} ${styles.dangerCard}`}>

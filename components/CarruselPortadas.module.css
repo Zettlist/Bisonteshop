@@ -1,0 +1,311 @@
+/* ===========================================================================
+   Tira de tarjetas
+
+   Va debajo de la cinta de categorías, sobre el fondo de viñetas del landing.
+   Cada producto va en una tarjeta con marco: apoyadas sueltas sobre la franja
+   las portadas se leían como decoración del landing, sin principio ni fin, y no
+   había dónde colgar los botones de compra.
+
+   Los colores van fijos y no por variables de tema: `.bgOverlay` deja el
+   landing oscuro tanto en claro como en oscuro, así que `--foreground` daría
+   texto casi negro sobre un fondo casi negro con el tema claro puesto.
+   ======================================================================== */
+
+.marco {
+    position: relative;
+    overflow: hidden;
+    /* En móvil el dedo tiene que poder seguir bajando por la página. */
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Las portadas de los extremos se desvanecen en vez de cortarse a cuchillo:
+       el corte recto decía que la tira se acaba ahí, y no se acaba. */
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+/* El cursor de agarre solo aparece si hay algo que recorrer: con cuatro
+   portadas en una franja ancha no hay nada que arrastrar y el cursor mentiría. */
+.movible {
+    cursor: grab;
+}
+
+.movible:active,
+.arrastrando {
+    cursor: grabbing;
+}
+
+.pista {
+    display: flex;
+    align-items: flex-start;
+    width: max-content;
+    /* La separación la pone el componente: es el mismo número con el que mide
+       el recorrido, y duplicarlo aquí los desincroniza. */
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Mientras el dedo está encima no hay transición: la posición se escribe a mano
+   en cada movimiento y cualquier suavizado iría por detrás del gesto. */
+.arrastrando .pista {
+    transition: none;
+}
+
+/* ── Tarjeta ─────────────────────────────────────────────────────────────── */
+.portada {
+    flex: 0 0 var(--portada-ancho, 248px);
+    width: var(--portada-ancho, 248px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 10px 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    /* Un gris propio, no transparencia: la franja del estante ya es gris y una
+       tarjeta translúcida encima no se despegaba del fondo. */
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)), #131316;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.portada:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 255, 255, 0.34);
+    box-shadow: 0 22px 46px rgba(0, 0, 0, 0.72);
+}
+
+/* El enlace es solo lo que lleva al producto: portada, título y precio. Los
+   botones son hermanos suyos porque un <button> dentro de un <a> no es HTML
+   válido y el navegador se queda con el enlace. */
+.enlace {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    text-decoration: none;
+    border-radius: 10px;
+}
+
+.enlace:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+
+.lamina {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    border-radius: 9px;
+    background: #111;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.imagen {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.35s ease;
+}
+
+/* La portada ya no se levanta sola: ahora se levanta la tarjeta entera, y los
+   dos movimientos encimados se leían como un tropiezo. */
+.portada:hover .imagen {
+    transform: scale(1.05);
+}
+
+/* Sin stock la tarjeta sigue ahí y se puede abrir, pero se apaga para que no
+   compita con las que sí se pueden comprar. */
+.sinStock .imagen {
+    filter: grayscale(1);
+    opacity: 0.55;
+}
+
+.sinFoto {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 2.5rem;
+}
+
+.agotado {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    padding: 0.15rem 0.5rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+}
+
+/* El rótulo y el precio ocupan un alto fijo, no el que pida su texto. Un título
+   de un renglón junto a otro de dos descuadraba la fila entera, y era también
+   lo que hacía que el estante vacío midiera distinto que el lleno. */
+.rotulo {
+    height: 2.22rem;
+    font-size: 0.82rem;
+    line-height: 1.11rem;
+    color: #ededed;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Alto fijo por lo mismo que el rótulo: un producto sin calificar no pinta
+   estrellas, y sin el hueco reservado su tarjeta mediría menos que la de al
+   lado. Las variables se redefinen aquí porque RatingStars pinta la nota con
+   `--foreground`, y en el landing —oscuro con el tema claro puesto— eso daría
+   texto negro sobre negro. */
+.rating {
+    --foreground: #ededed;
+    --muted: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    height: 1.05rem;
+}
+
+.precio {
+    height: 1.2rem;
+    font-size: 0.95rem;
+    line-height: 1.2rem;
+    font-weight: 800;
+    color: #fff;
+}
+
+/* ── Botones de compra ───────────────────────────────────────────────────────
+   Van siempre visibles, no al pasar el ratón: el estante se arrastra con el
+   dedo y en un teléfono no hay hover que revele nada. */
+.botones {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+    margin-top: 0.15rem;
+}
+
+.btn {
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0 0.7rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.12s ease;
+}
+
+.btn:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btnAgregar {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btnAgregar:hover:not(:disabled) {
+    background: var(--primary-dark);
+}
+
+/* Confirmación en el propio botón: el carrito vive en la barra de arriba y
+   desde el estante no se ve, así que sin esto no había señal de que pasó algo. */
+.btnListo {
+    background: #10b981;
+}
+
+.btnListo:hover:not(:disabled) {
+    background: #10b981;
+}
+
+.btnComprar {
+    background: transparent;
+    color: #ededed;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btnComprar:hover:not(:disabled) {
+    background: #fff;
+    border-color: #fff;
+    color: #101013;
+}
+
+/* ── Estante vacío ──
+   El hueco se queda puesto: sin él, cambiar a una categoría sin productos
+   encogería el bloque de golpe y el resto del landing daría un salto. Es la
+   misma pieza que una tarjeta, solo que sin nada dentro. */
+.portadaVacia {
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, 0.1);
+    background: transparent;
+    box-shadow: none;
+}
+
+.portadaVacia:hover {
+    transform: none;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+}
+
+.laminaVacia {
+    border: 1px dashed rgba(255, 255, 255, 0.13);
+    background: transparent;
+    box-shadow: none;
+}
+
+.btnFantasma {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: transparent;
+}
+
+@media (max-width: 900px) {
+    .portada {
+        --portada-ancho: 202px;
+    }
+}
+
+/* En pantalla chica los dos botones ya no caben de lado: apilados siguen
+   siendo tocables sin encoger la letra hasta que no se lea. */
+@media (max-width: 600px) {
+    .portada {
+        --portada-ancho: 168px;
+    }
+
+    .botones {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pista,
+    .portada,
+    .imagen,
+    .btn {
+        transition: none;
+    }
+
+    .portada:hover {
+        transform: none;
+    }
+
+    .portada:hover .imagen {
+        transform: none;
+    }
+}

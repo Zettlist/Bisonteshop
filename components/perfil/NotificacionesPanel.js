@@ -91,7 +91,7 @@ export default function NotificacionesPanel({ onUnread }) {
                 <div className={styles.emptyState}><p>Cargando…</p></div>
             ) : notifications.length === 0 ? (
                 <div className={styles.emptyState}>
-                    <Bell size={34} strokeWidth={1.2} style={{ color: 'var(--pf-muted)', marginBottom: '0.5rem' }} />
+                    <Bell size={34} strokeWidth={1.2} style={{ color: 'rgba(255, 255, 255, 0.45)', marginBottom: '0.5rem' }} />
                     <p>Sin notificaciones por ahora.</p>
                 </div>
             ) : (

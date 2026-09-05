@@ -219,10 +219,11 @@ export default function LandingZine() {
                 <span className={`${styles.sfx} ${styles.sfxRight}`} aria-hidden="true">DOKI<br />DOKI</span>
             </section>
 
-            {/* NUESTRAS CATEGORÍAS */}
-            <div className={styles.seeThrough}>
-                <Categories />
-            </div>
+            {/* NUESTRAS CATEGORÍAS — fuera de seeThrough a proposito: esa clase
+                pone el fondo en transparente para dejar ver las viñetas, y esta
+                seccion es justo lo contrario, una franja negra que corta el
+                fondo para que las portadas se lean sobre negro. */}
+            <Categories />
 
             {/* LA NETA — historia */}
             <section className={styles.story}>

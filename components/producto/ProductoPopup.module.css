@@ -1,0 +1,137 @@
+/* ===========================================================================
+   Ficha de producto en popup
+
+   El panel no reestiliza la ficha: solo le pone marco, sitio y una salida.
+   Todo lo de dentro sigue siendo FichaProducto.module.css.
+   ======================================================================== */
+
+.velo {
+    position: fixed;
+    inset: 0;
+    /* Por debajo del modal de acceso (1100): desde la ficha se puede pedir
+       iniciar sesion, y ese dialogo tiene que quedar encima de este. */
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3vh 1rem;
+    background: rgba(6, 6, 8, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: veloEntra 0.18s ease both;
+}
+
+/* Mientras se va deja de recibir clics: si no, hay dos decimas en las que la
+   pagina ya se ve pero un velo transparente se come lo que pulses. */
+.veloSale {
+    animation: veloSale 0.19s ease both;
+    pointer-events: none;
+}
+
+@keyframes veloEntra {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes veloSale {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+@keyframes panelEntra {
+    from { opacity: 0; transform: translateY(26px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+}
+
+.panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(100%, 1100px);
+    max-height: 94vh;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+    /* El panel recorta; el que se desplaza es el cuerpo. */
+    overflow: hidden;
+    animation: panelEntra 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.panel:focus {
+    outline: none;
+}
+
+.cuerpo {
+    overflow-y: auto;
+    /* Al llegar al final de la ficha, la rueda no debe seguir moviendo el
+       landing que hay detras. */
+    overscroll-behavior: contain;
+}
+
+/* ── Salida ──
+   Fuera del cuerpo que se desplaza: si se fuera con el scroll, para cerrar
+   habria que subir hasta arriba del todo cada vez. */
+.cerrar {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    color: var(--foreground);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background var(--transition), color var(--transition), transform 0.15s;
+}
+
+.cerrar:hover {
+    background: var(--primary);
+    color: #fff;
+    transform: scale(1.08);
+}
+
+.cerrar:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.aviso {
+    padding: 4rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: var(--text-sm);
+}
+
+/* En pantalla estrecha el popup ocupa todo: un panel flotante con margenes
+   deja la ficha en una columna demasiado angosta para leerse. */
+@media (max-width: 700px) {
+    .velo {
+        padding: 0;
+    }
+
+    .panel {
+        max-height: 100vh;
+        height: 100%;
+        border: none;
+        border-radius: 0;
+    }
+}
+
+/* Sin animacion el popup aparece y desaparece de golpe, que es justo lo que
+   se pide: lo que no puede es dejar de aparecer. */
+@media (prefers-reduced-motion: reduce) {
+    .velo,
+    .veloSale,
+    .panel {
+        animation: none;
+    }
+
+    .cerrar {
+        transition: none;
+    }
+}

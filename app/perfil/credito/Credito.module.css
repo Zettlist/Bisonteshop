@@ -1,62 +1,77 @@
-/* ── Credito de tienda ──────────────────────────────────────────────────────
-   El saldo es el dato que se viene a ver: va grande, en Fraunces, y en verde
-   solo cuando hay algo a favor. Lo demas se aparta para no competir. */
-
 .balanceCard {
     text-align: center;
-    padding: 2.2rem 1.5rem !important;
+    padding: 2rem 1.5rem !important;
 }
 
 .balanceLabel {
-    font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.09em;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--pf-muted);
-    margin: 0 0 0.6rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 0.5rem;
 }
 
 .balanceAmount {
-    font-family: var(--pf-serif);
-    font-size: clamp(2.6rem, 7vw, 3.4rem);
-    font-weight: 400;
-    letter-spacing: -0.02em;
-    color: var(--pf-text);
-    margin: 0 0 0.6rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.2rem;
+    color: #ffd60a;
+    margin: 0 0 0.5rem;
+    letter-spacing: 2px;
     line-height: 1;
 }
 
 .balanceAmount.positive {
-    color: var(--pf-ok);
+    color: #2ecc71;
 }
 
 .balanceNote {
-    font-size: 0.85rem;
-    color: var(--pf-muted);
+    font-family: 'Caveat', cursive;
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.55);
     margin: 0;
 }
 
+/* Este boton se quedo sin estilo al volver al diseno anterior: la clase nacio
+   con el rediseno, asi que el enlace se dibujaba como texto suelto. Va en el
+   mismo lenguaje que "Editar perfil" — rojo, contorno negro y sombra dura que
+   se despega al pasar por encima — porque es la misma clase de accion: la
+   unica que se puede tomar desde su tarjeta. */
 .comprarBtn {
     display: inline-flex;
     align-items: center;
-    gap: 0.45rem;
-    margin-top: 1.1rem;
-    padding: 0.7rem 1.4rem;
-    border-radius: var(--pf-radius-sm);
-    background: var(--pf-accent);
+    gap: 0.4rem;
+    margin-top: 1.2rem;
+    padding: 0.5rem 1.4rem;
+    background: #e63946;
     color: #fff;
-    font-size: 0.9rem;
-    font-weight: 600;
+    border: 2.5px solid #000;
+    border-radius: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 1.5px;
     text-decoration: none;
-    transition: background 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .comprarBtn:hover {
-    background: var(--pf-accent-deep);
-    box-shadow: 0 8px 24px rgba(230, 57, 70, 0.28);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
 }
 
-/* ── Historial de movimientos ── */
+/* Al pulsar se hunde contra su sombra: sin animacion de color, el clic no se
+   nota en un boton plano de un solo tono. */
+.comprarBtn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 #000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .comprarBtn { transition: none; }
+}
+
+/* ── History ── */
 .historyList {
     display: flex;
     flex-direction: column;
@@ -66,9 +81,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
     padding: 0.85rem 0;
-    border-bottom: 1px solid var(--pf-border-soft);
+    border-bottom: 2px dashed rgba(255, 255, 255, 0.12);
+    gap: 1rem;
 }
 
 .historyRow:last-child {
@@ -80,26 +95,25 @@
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
-    min-width: 0;
 }
 
 .historyDesc {
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--pf-text);
+    color: var(--foreground);
 }
 
 .historyDate {
-    font-size: 0.78rem;
-    color: var(--pf-muted);
+    font-size: 0.76rem;
+    color: var(--muted);
 }
 
 .historyAmount {
-    font-size: 1.05rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.25rem;
+    letter-spacing: 1px;
     white-space: nowrap;
 }
 
-.positive { color: var(--pf-ok); }
-.negative { color: var(--pf-danger); }
+.positive { color: #2ecc71; }
+.negative { color: #ff6b6b; }

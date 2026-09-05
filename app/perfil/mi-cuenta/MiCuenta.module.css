@@ -1,26 +1,52 @@
 /* ===========================
-   Mi Cuenta — estética glass/cinema (mismo lenguaje que LoginModal)
+   Mi Cuenta — estética zine/manga
+   (mismo lenguaje visual que la landing)
 =========================== */
 
 .container {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
 }
 
-/* ── Tarjeta base glass ── */
+/* ── Header ── */
+.header {
+    margin-bottom: 0.25rem;
+}
+
+.title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.4rem, 5vw, 3.2rem);
+    letter-spacing: 3px;
+    color: #ffd60a;
+    line-height: 1;
+    margin: 0;
+}
+
+.title span { color: #e63946; }
+
+.subtitle {
+    font-family: 'Caveat', cursive;
+    font-size: 1.25rem;
+    color: rgba(255, 255, 255, 0.6);
+    transform: rotate(-1deg);
+    display: inline-block;
+    margin-top: 0.25rem;
+}
+
+/* ── Tarjeta base zine ── */
 .card {
-    background: var(--pf-surface-strong);
-    border: 1px solid rgba(255, 255, 255, 0.13);
-    border-radius: 18px;
+    background: #141414;
+    border: 3px solid #000;
+    border-radius: 16px;
     padding: 1.4rem 1.5rem;
-    color: #f6f2f4;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    color: #fff;
 }
 
 /* ── Perfil hero ── */
 .profileCard {
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(230, 57, 70, 0.18);
+    box-shadow: 7px 7px 0 rgba(230, 57, 70, 0.55);
+    transform: rotate(-0.4deg);
 }
 
 .profileHero {
@@ -39,8 +65,8 @@
     width: 84px;
     height: 84px;
     border-radius: 50%;
-    border: 1.5px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    border: 3px solid #000;
+    box-shadow: 3px 3px 0 #000;
     object-fit: cover;
 }
 
@@ -48,23 +74,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #4a1e22 0%, #2a1315 100%);
-    font-family: 'Fraunces', Georgia, serif;
+    background: #e63946;
+    font-family: 'Bebas Neue', sans-serif;
     font-size: 2rem;
-    font-weight: 400;
-    color: #f6f2f4;
+    letter-spacing: 1px;
+    color: #fff;
 }
 
 .onlineDot {
     position: absolute;
     bottom: 5px;
     right: 5px;
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: #2ecc71;
-    border: 2px solid #150c14;
-    box-shadow: 0 0 6px rgba(46, 204, 113, 0.5);
+    border: 2.5px solid #000;
 }
 
 .profileInfo { min-width: 0; }
@@ -77,124 +102,201 @@
 }
 
 .profileName {
-    font-family: 'Fraunces', Georgia, serif;
-    font-size: 1.55rem;
-    font-weight: 400;
-    letter-spacing: -0.01em;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.7rem;
+    letter-spacing: 1.5px;
     margin: 0;
-    color: #f6f2f4;
+    color: #fff;
+}
+
+.memberBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #ffd60a;
+    color: #1a1a1a;
+    border: 2px solid #000;
+    border-radius: 6px;
+    box-shadow: 2px 2px 0 #000;
+    padding: 2px 9px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 1.5px;
+    transform: rotate(2deg);
 }
 
 .profileEmail {
-    color: #a1919b;
-    font-size: 0.88rem;
-    margin: 0.25rem 0 0.75rem;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 0.9rem;
+    margin: 0.25rem 0 0.7rem;
     overflow-wrap: anywhere;
+}
+
+/* El boton de editar vive ahora en su propia fila: la nueva distribucion
+   puede colgar mas acciones ahi sin que se peguen al correo. */
+.profileActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
 }
 
 .editBtn {
     display: inline-block;
-    background: rgba(255, 255, 255, 0.09);
-    color: #f6f2f4;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 10px;
-    padding: 0.42rem 1.1rem;
-    font-size: 0.88rem;
-    font-weight: 500;
+    background: #e63946;
+    color: #fff;
+    border: 2.5px solid #000;
+    border-radius: 8px;
+    padding: 0.4rem 1rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 1.5px;
     text-decoration: none;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .editBtn:hover {
-    background: rgba(255, 255, 255, 0.16);
-    border-color: rgba(255, 255, 255, 0.3);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
 }
 
 /* ── Stats ── */
-/* Cuatro indicadores desde que credito y notificaciones se leen aqui: en vez
-   de fijar el numero de columnas se dejan acomodar, asi el ultimo no queda
-   solo en su renglon cuando la pantalla es angosta. */
+/* Cuatro indicadores desde que credito y notificaciones viven aqui dentro.
+   Con auto-fit no hay que tocar esto la proxima vez que cambie la cuenta. */
 .statsGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
-    gap: 0.9rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
 }
 
 .statCard {
-    background: var(--pf-surface-strong);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
+    background: #141414;
+    border: 3px solid #000;
+    border-radius: 14px;
     padding: 1rem 0.75rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.2rem;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
-    transition: background 0.18s ease, border-color 0.18s ease;
-    cursor: default;
+    box-shadow: 4px 4px 0 #000;
+    transition: transform 0.15s ease;
 }
 
-.statCard:hover {
-    background: rgba(40, 26, 36, 0.8);
-    border-color: rgba(230, 57, 70, 0.25);
+.statCard:nth-child(1) { transform: rotate(-1deg); }
+.statCard:nth-child(2) { transform: rotate(0.8deg); box-shadow: 4px 4px 0 rgba(230, 57, 70, 0.55); }
+.statCard:nth-child(3) { transform: rotate(-0.6deg); box-shadow: 4px 4px 0 rgba(255, 214, 10, 0.45); }
+/* El cuarto llego con el credito y se quedaba recto entre tres torcidos. */
+.statCard:nth-child(4) { transform: rotate(1deg); box-shadow: 4px 4px 0 rgba(46, 204, 113, 0.45); }
+
+.statCard:hover { transform: rotate(0deg) scale(1.04); }
+
+/* Solo dos de los cuatro llevan a algun sitio. Sin cursor ni foco visible no
+   hay manera de distinguir cuales responden al clic. */
+.statCardClicable {
+    cursor: pointer;
+}
+
+.statCardClicable:focus-visible {
+    outline: 3px solid #ffd60a;
+    outline-offset: 3px;
 }
 
 .statIcon {
-    color: var(--pf-accent);
+    color: #e63946;
     margin-bottom: 0.2rem;
 }
 
 .statValue {
-    font-family: 'Fraunces', Georgia, serif;
-    font-size: 1.85rem;
-    font-weight: 400;
-    color: #f6f2f4;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 1px;
+    color: #ffd60a;
     line-height: 1;
 }
 
 .statLabel {
-    font-size: 0.8rem;
-    color: #a1919b;
-    text-align: center;
+    font-family: 'Caveat', cursive;
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.6);
 }
 
-/* Boton de copiar del modal de cupones. */
+/* ── Credencial ── */
+.credentialCard {
+    box-shadow: 7px 7px 0 rgba(255, 214, 10, 0.45);
+    transform: rotate(0.4deg);
+}
+
+.credentialHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.credentialIcon { color: #ffd60a; }
+
+.credentialTitle {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.25rem;
+    letter-spacing: 2px;
+    color: #ffd60a;
+    margin: 0;
+}
+
+.credentialDesc {
+    font-family: 'Caveat', cursive;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0.4rem 0 0.9rem;
+}
+
+.credentialRow {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    flex-wrap: wrap;
+    background: rgba(255, 214, 10, 0.08);
+    border: 2px dashed rgba(255, 214, 10, 0.55);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+}
+
+.credentialCode {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.7rem;
+    letter-spacing: 4px;
+    color: #fff;
+    user-select: all;
+}
+
 .copyBtn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     margin-left: auto;
-    background: rgba(255, 255, 255, 0.1);
-    color: #f6f2f4;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 9px;
+    background: #ffd60a;
+    color: #1a1a1a;
+    border: 2.5px solid #000;
+    border-radius: 8px;
     padding: 0.4rem 0.9rem;
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 1.5px;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease;
 }
 
 .copyBtn:hover {
-    background: rgba(255, 255, 255, 0.18);
-    border-color: rgba(255, 255, 255, 0.3);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
 }
 
-.copyBtnSuccess {
-    background: rgba(46, 204, 113, 0.15);
-    border-color: rgba(46, 204, 113, 0.4);
-    color: #b8f0cd;
-}
+.copyBtnSuccess { background: #2ecc71; color: #fff; }
 
 /* ── Zona de peligro ── */
-/* Ambar, no rojo: el rojo ya es el color de la marca y esta en todo el perfil
-   (seccion abierta, botones, acentos). Pintar de rojo tambien la zona de
-   peligro dejaba dos rojos distintos peleando y el aviso perdia fuerza — se
-   leia como un bloque mas. El ambar se separa del resto y sigue diciendo
-   "cuidado"; el rojo aparece recien al confirmar el borrado. */
 .dangerCard {
-    border: 1px solid rgba(251, 191, 36, 0.28);
-    background: rgba(251, 191, 36, 0.05);
+    border: 3px dashed rgba(230, 57, 70, 0.7);
+    background: rgba(230, 57, 70, 0.06);
 }
 
 .dangerHeader {
@@ -204,13 +306,13 @@
     margin-bottom: 0.6rem;
 }
 
-.dangerIcon { color: var(--pf-warn); }
+.dangerIcon { color: #ff6b6b; }
 
 .dangerTitle {
-    font-family: 'Fraunces', Georgia, serif;
-    font-size: 1.1rem;
-    font-weight: 400;
-    color: var(--pf-warn);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    color: #ff6b6b;
     margin: 0;
 }
 
@@ -225,47 +327,48 @@
 .dangerInfo { min-width: 0; }
 
 .dangerActionTitle {
-    font-weight: 600;
-    font-size: 0.93rem;
+    font-weight: 700;
+    font-size: 0.95rem;
     margin: 0 0 0.2rem;
-    color: #f6f2f4;
+    color: #fff;
 }
 
 .dangerActionDesc {
-    font-size: 0.84rem;
-    color: #a1919b;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.55);
     margin: 0;
-    line-height: 1.5;
 }
 
 .deleteBtn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: transparent;
-    color: var(--pf-text-2);
-    border: 1px solid var(--pf-border);
-    border-radius: 10px;
-    padding: 0.5rem 1.1rem;
-    font-size: 0.88rem;
-    font-weight: 500;
+    background: #e63946;
+    color: #fff;
+    border: 2.5px solid #000;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.92rem;
+    letter-spacing: 1.5px;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
     flex-shrink: 0;
 }
 
-/* El rojo se reserva para el momento en que la mano ya esta sobre el boton. */
 .deleteBtn:hover {
-    background: rgba(198, 40, 60, 0.28);
-    border-color: rgba(248, 113, 113, 0.6);
-    color: #ffd7dd;
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
 }
 
-/* ── Modal ── */
+/* ── Modal confirmación ── */
 .modalOverlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.72);
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     z-index: 1200;
     display: flex;
     align-items: center;
@@ -274,19 +377,19 @@
 }
 
 .modal {
-    background: rgba(28, 18, 25, 0.92);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 20px;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    background: #141414;
+    border: 3px solid #000;
+    border-radius: 16px;
+    box-shadow: 8px 8px 0 rgba(230, 57, 70, 0.55);
     width: min(430px, 100%);
-    padding: 1.6rem 1.75rem;
-    color: #f6f2f4;
-    animation: modalPop 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 1.5rem 1.6rem;
+    color: #fff;
+    animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes modalPop {
-    from { opacity: 0; transform: scale(0.9) translateY(12px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
+    from { opacity: 0; transform: scale(0.85) rotate(-2deg); }
+    to { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 
 .modalHeader {
@@ -300,8 +403,8 @@
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    background: rgba(198, 40, 60, 0.12);
-    border: 1px solid rgba(232, 72, 110, 0.32);
+    background: rgba(230, 57, 70, 0.12);
+    border: 2.5px dashed rgba(230, 57, 70, 0.7);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -311,29 +414,25 @@
 .modalClose {
     background: none;
     border: none;
-    color: #a1919b;
+    color: rgba(255, 255, 255, 0.5);
     cursor: pointer;
     padding: 4px;
-    border-radius: 8px;
-    transition: color 0.15s ease, background 0.15s ease;
+    transition: color 0.15s ease, transform 0.15s ease;
 }
 
-.modalClose:hover {
-    color: #f6f2f4;
-    background: rgba(255, 255, 255, 0.08);
-}
+.modalClose:hover { color: #fff; transform: rotate(90deg); }
 
 .modalTitle {
-    font-family: 'Fraunces', Georgia, serif;
-    font-size: 1.6rem;
-    font-weight: 400;
-    color: #f6f2f4;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.7rem;
+    letter-spacing: 2px;
+    color: #ffd60a;
     margin: 0 0 0.4rem;
 }
 
 .modalDesc {
     font-size: 0.9rem;
-    color: #c6b8c0;
+    color: rgba(255, 255, 255, 0.65);
     line-height: 1.55;
     margin: 0 0 1rem;
 }
@@ -346,45 +445,38 @@
 }
 
 .modalLabel {
-    font-size: 0.82rem;
-    font-weight: 500;
-    color: #d6c9d0;
-    margin-bottom: 0.1rem;
+    font-size: 0.83rem;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .modalEmailHint {
-    font-size: 0.88rem;
-    color: var(--pf-accent);
-    font-style: italic;
+    font-family: 'Caveat', cursive;
+    font-size: 1rem;
+    color: #ffd60a;
 }
 
 .modalInput {
-    width: 100%;
-    height: 46px;
-    padding: 0 0.9rem;
-    border-radius: 11px;
-    font-size: 0.93rem;
-    font-family: inherit;
-    color: #f6f2f4;
-    background: rgba(255, 255, 255, 0.09);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: #1d1d1d;
+    border: 2.5px solid #000;
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.92rem;
+    color: #fff;
     outline: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-shadow: 3px 3px 0 #000;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-
-.modalInput::placeholder { color: #93838c; }
 
 .modalInput:focus {
-    border-color: var(--pf-accent);
-    background: rgba(255, 255, 255, 0.13);
-    box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.2);
+    border-color: #e63946;
+    box-shadow: 3px 3px 0 rgba(230, 57, 70, 0.6);
 }
 
-.modalInputError { border-color: rgba(232, 72, 110, 0.7); }
+.modalInputError { border-color: #e63946; }
 
 .modalError {
     font-size: 0.8rem;
-    color: #ffc9d2;
+    color: #ff6b6b;
 }
 
 .modalActions {
@@ -395,44 +487,46 @@
 }
 
 .modalCancel {
-    background: rgba(255, 255, 255, 0.08);
-    color: #f6f2f4;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 10px;
-    padding: 0.5rem 1.1rem;
-    font-family: inherit;
-    font-size: 0.9rem;
-    font-weight: 500;
+    background: #1d1d1d;
+    color: #fff;
+    border: 2.5px solid #000;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.92rem;
+    letter-spacing: 1.5px;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .modalCancel:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
 }
 
 .modalConfirm {
-    background: rgba(198, 40, 60, 0.25);
-    color: #ffc9d2;
-    border: 1px solid rgba(232, 72, 110, 0.5);
-    border-radius: 10px;
-    padding: 0.5rem 1.1rem;
-    font-family: inherit;
-    font-size: 0.9rem;
-    font-weight: 600;
+    background: #e63946;
+    color: #fff;
+    border: 2.5px solid #000;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.92rem;
+    letter-spacing: 1.5px;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    box-shadow: 3px 3px 0 #000;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .modalConfirm:hover:not(:disabled) {
-    background: rgba(198, 40, 60, 0.42);
-    border-color: rgba(232, 72, 110, 0.75);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
 }
 
 .modalConfirm:disabled,
 .modalCancel:disabled {
-    opacity: 0.5;
+    opacity: 0.55;
     cursor: not-allowed;
 }
 
@@ -445,8 +539,31 @@
 
     .profileNameRow { justify-content: center; }
 
-    .statsGrid { grid-template-columns: repeat(2, 1fr); }
+    .statsGrid { grid-template-columns: 1fr; }
 
     .copyBtn { margin-left: 0; }
 
+    .credentialRow { justify-content: center; }
+}
+
+/* ── Destello al llegar de un salto interno ─────────────────────────────────
+   El bloque de notificaciones queda muy por debajo de su indicador: sin algo
+   que lo senale al terminar el desplazamiento, el clic parece no haber hecho
+   nada. Amarillo y sin difuminar, como el resto de los acentos del perfil. */
+.bloqueDestacado {
+    border-radius: 16px;
+    animation: destello 1.6s ease-out;
+}
+
+@keyframes destello {
+    0%, 55% { box-shadow: 0 0 0 4px #ffd60a; }
+    100%    { box-shadow: 0 0 0 4px rgba(255, 214, 10, 0); }
+}
+
+/* Sin animacion el aviso tiene que seguir existiendo, no desaparecer. */
+@media (prefers-reduced-motion: reduce) {
+    .bloqueDestacado {
+        animation: none;
+        box-shadow: 0 0 0 4px #ffd60a;
+    }
 }

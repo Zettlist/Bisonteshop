@@ -10,6 +10,7 @@ import SplashScreen from '@/components/SplashScreen';
 import CompletarPerfil from '@/components/CompletarPerfil';
 import CookieBanner from '@/components/CookieBanner';
 import Analytics from '@/components/Analytics';
+import FichasEnPopup from '@/components/producto/FichasEnPopup';
 import { SplashProvider } from '@/context/SplashContext';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -46,6 +47,9 @@ export default function RootLayout({ children }) {
                             <SplashProvider>
                                 <Navbar />
                                 {children}
+                                {/* Fuera de template.js: el popup no debe entrar
+                                    ni salir con la transicion de pagina. */}
+                                <FichasEnPopup />
                                 <MundialWidget />
                                 <Footer />
                                 <CompletarPerfil />
