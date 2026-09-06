@@ -68,7 +68,10 @@ export async function runAll() {
     for (const t of tests) {
         if (t.fix !== currentFix) {
             currentFix = t.fix;
-            console.log(`\n  FIX ${t.fix}`);
+            // Etiqueta del grupo: "FIX 19" para las correcciones numeradas,
+            // el nombre tal cual para una suite con etiqueta propia.
+            const etiqueta = typeof t.fix === 'number' ? `FIX ${t.fix}` : t.fix;
+            console.log(`\n  ${etiqueta}`);
         }
         try {
             await t.fn();

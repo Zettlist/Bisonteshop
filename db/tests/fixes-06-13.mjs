@@ -292,6 +292,8 @@ const ESPERADAS = [
     'user_notifications', 'tags', 'product_tags', 'event_votes', 'event_results',
     'pre_orders', 'pre_order_batches', 'pre_order_payments',
     'store_credits', 'store_credit_uses', 'barcode_sequences',
+    'product_reviews', 'erp_pedidos',
+    'apartado_sequences', 'anticipo_payments',
 ];
 
 test(13, 'schema.sql crea todas las tablas de una sola pasada', async () => {

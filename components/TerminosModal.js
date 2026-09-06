@@ -109,8 +109,17 @@ export default function TerminosModal({ abierto, onCerrar, onAceptar }) {
                         <p>6.5 Cuando el producto cuente con garantía del fabricante, el usuario deberá comunicarse directamente a través del apartado de{' '}
                             <Link href="/contacto" target="_blank" className={s.avisoLink}>Contacto</Link>{' '}
                             del sitio para gestionar dicha garantía.</p>
+                        <p>6.6 Las condiciones de devolución señaladas en esta sección aplican a productos ya entregados. Los anticipos pagados por apartados y preventas se rigen exclusivamente por lo establecido en la sección 7.</p>
 
-                        <h4 className={s.heading}>7. PROPIEDAD INTELECTUAL</h4>
+                        <h4 className={s.heading}>7. APARTADOS Y PREVENTAS</h4>
+                        <p>7.1 BISONTE MANGA ofrece dos modalidades de reserva de producto mediante el pago de un anticipo: el <strong>apartado</strong>, sobre artículos disponibles en existencia, y la <strong>preventa</strong>, sobre artículos de importación aún no disponibles en almacén.</p>
+                        <p>7.2 El monto del anticipo es del 30% del precio del producto en el caso de apartados, y del 50% del precio del producto en el caso de preventas. En ambos casos, el anticipo mínimo es de $100.00 MXN, salvo que el precio total del producto sea menor a dicho monto, en cuyo caso el anticipo será el precio total.</p>
+                        <p>7.3 El saldo restante deberá liquidarse dentro de los 15 días naturales siguientes a la fecha del anticipo. En el caso de las preventas, dicho plazo corre a partir de la fecha en que el producto se encuentra disponible en nuestro almacén para su entrega o envío.</p>
+                        <p>7.4 Los apartados y preventas no pueden ser cancelados por el usuario. Una vez pagado el anticipo, el compromiso de compra es firme y el anticipo no es reembolsable por arrepentimiento del comprador.</p>
+                        <p>7.5 Si el saldo no se liquida dentro del plazo establecido, el anticipo pagado se pierde como penalización por incumplimiento y el producto se libera, pudiendo BISONTE MANGA ponerlo nuevamente a la venta.</p>
+                        <p>7.6 Como excepción a lo anterior, si BISONTE MANGA no logra surtir un artículo en preventa por agotamiento de existencia con el proveedor o distribuidor, el anticipo será reembolsado en su totalidad, sin penalización alguna.</p>
+
+                        <h4 className={s.heading}>8. PROPIEDAD INTELECTUAL</h4>
                         <p>Todo el contenido publicado en el sitio web (logotipos, código fuente, diseño gráfico, textos, catálogo de productos y precios) es propiedad exclusiva de BISONTE MANGA o de sus licenciantes, y está protegido por la Ley Federal del Derecho de Autor y demás legislación aplicable. Queda estrictamente prohibido:</p>
                         <ul>
                             <li>La extracción automatizada o manual de datos, imágenes o contenido con fines comerciales.</li>
@@ -119,12 +128,12 @@ export default function TerminosModal({ abierto, onCerrar, onAceptar }) {
                         </ul>
                         <p>Cualquier uso autorizado requerirá autorización expresa y por escrito del titular de los derechos.</p>
 
-                        <h4 className={s.heading}>8. PROTECCIÓN DE DATOS PERSONALES</h4>
+                        <h4 className={s.heading}>9. PROTECCIÓN DE DATOS PERSONALES</h4>
                         <p>El tratamiento de los datos personales del usuario se realiza conforme a lo establecido en la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) y su Reglamento. El{' '}
                             <Link href="/privacidad" target="_blank" className={s.avisoLink}>Aviso de Privacidad completo</Link>{' '}
                             está disponible en el sitio web. Los datos recabados se utilizan exclusivamente para la gestión de pedidos, atención al cliente y mejora del servicio.</p>
 
-                        <h4 className={s.heading}>9. LIMITACIÓN DE RESPONSABILIDAD</h4>
+                        <h4 className={s.heading}>10. LIMITACIÓN DE RESPONSABILIDAD</h4>
                         <p>BISONTE MANGA no será responsable por:</p>
                         <ul>
                             <li>Daños derivados del mal uso de los productos adquiridos.</li>
@@ -133,13 +142,13 @@ export default function TerminosModal({ abierto, onCerrar, onAceptar }) {
                         </ul>
                         <p>En ningún caso la responsabilidad de BISONTE MANGA excederá el monto pagado por el usuario en la transacción que originó el reclamo.</p>
 
-                        <h4 className={s.heading}>10. MODIFICACIONES A LOS TÉRMINOS</h4>
+                        <h4 className={s.heading}>11. MODIFICACIONES A LOS TÉRMINOS</h4>
                         <p>BISONTE MANGA se reserva el derecho de actualizar los presentes Términos y Condiciones en cualquier momento. Los cambios entrarán en vigor a partir de su publicación en el sitio. El uso continuado del sitio tras la publicación de modificaciones implica la aceptación de los nuevos términos.</p>
 
-                        <h4 className={s.heading}>11. LEGISLACIÓN APLICABLE Y JURISDICCIÓN</h4>
+                        <h4 className={s.heading}>12. LEGISLACIÓN APLICABLE Y JURISDICCIÓN</h4>
                         <p>Los presentes Términos y Condiciones se rigen por las leyes vigentes en los Estados Unidos Mexicanos. Para la resolución de cualquier controversia derivada del uso del sitio o de las transacciones realizadas, las partes se someten a la jurisdicción de los tribunales competentes, renunciando a cualquier otro fuero que pudiera corresponderles.</p>
 
-                        <h4 className={s.heading}>12. CONTACTO</h4>
+                        <h4 className={s.heading}>13. CONTACTO</h4>
                         <p>Para cualquier duda, aclaración o ejercicio de derechos relacionados con estos Términos y Condiciones, el usuario puede comunicarse a través de los canales de atención disponibles en el sitio web de BISONTE MANGA.</p>
 
                         <div className={s.copyright}>© 2026 BISONTE MANGA – Todos los derechos reservados</div>

@@ -9,6 +9,7 @@ await import('./fixes-06-13.mjs');
 await import('./fixes-14-16.mjs');
 await import('./fixes-17-18.mjs');
 await import('./fixes-19-22.mjs');
+await import('./apartados.mjs');
 
 const fallos = await runAll();
 await teardown();

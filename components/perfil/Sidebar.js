@@ -7,6 +7,7 @@ import styles from './Sidebar.module.css';
 import {
     FiUser,
     FiPackage,
+    FiBookmark,
     FiSettings,
     FiLogOut,
 } from 'react-icons/fi';
@@ -16,6 +17,7 @@ import {
 const navItems = [
     { path: '/perfil/mi-cuenta', label: 'Mi Cuenta', icon: FiUser },
     { path: '/perfil/mis-pedidos', label: 'Mis Pedidos', icon: FiPackage },
+    { path: '/perfil/apartados', label: 'Mis Apartados', icon: FiBookmark },
     { path: '/perfil/ajustes', label: 'Ajustes', icon: FiSettings },
 ];
 

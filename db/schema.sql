@@ -417,23 +417,88 @@ CREATE TABLE IF NOT EXISTS global_changes_log (
     INDEX idx_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- =============================================================================
+--  APARTADOS
+--
+--  Un apartado es mercancia que el cliente separo pagando un anticipo. Lo que
+--  distingue a esta tabla de una venta a plazos es que tiene fecha de caducidad:
+--  si no se liquida a tiempo, la mercancia vuelve al catalogo.
+--
+--  El stock se separa con `stock_reservado`, igual que un pedido web (FIX 14):
+--  el articulo sigue fisicamente en la tienda, pero deja de estar disponible.
+--  Bajar `products.stock` en su lugar mentiria en el inventario fisico y haria
+--  que el conteo del mostrador nunca cuadrara con la base.
+-- =============================================================================
+
+-- Folio del apartado, con contador atomico por empresa. Mismo patron que
+-- barcode_sequences: un COUNT(*) + 1 retrocede al cancelar y da el mismo numero
+-- a dos altas simultaneas.
+CREATE TABLE IF NOT EXISTS apartado_sequences (
+    empresa_id INT NOT NULL,
+    next_seq   INT UNSIGNED NOT NULL DEFAULT 1,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (empresa_id),
+    CONSTRAINT fk_aseq_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS anticipos (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     empresa_id     INT NOT NULL,
+    -- Numero de pedido que se le dice al cliente: AP-000123.
+    folio          VARCHAR(20) NOT NULL,
+    -- El plazo depende del tipo: la preventa tarda en llegar y 15 dias
+    -- empezarian a correr antes de que el articulo exista.
+    tipo           ENUM('normal','preventa') NOT NULL DEFAULT 'normal',
+    -- Cuenta de la tienda web, cuando la persona tiene una. NULL para el
+    -- apartado de mostrador de quien nunca se registro: por eso el nombre y el
+    -- telefono siguen siendo columnas y no un join obligatorio.
+    cliente_id     INT NULL,
     customer_name  VARCHAR(255) NOT NULL,
-    customer_phone VARCHAR(20) NULL,
+    customer_phone VARCHAR(30)  NULL,
+    customer_email VARCHAR(255) NULL,
     total_amount   DECIMAL(10,2) NOT NULL,
-    paid_amount    DECIMAL(10,2) DEFAULT 0,
-    status         ENUM('pending','completed','cancelled') DEFAULT 'pending',
+    paid_amount    DECIMAL(10,2) NOT NULL DEFAULT 0,
+    -- El plazo se guarda en la fila y no se lee de la configuracion: si manana
+    -- la tienda pasa a 10 dias, los apartados vivos conservan lo prometido.
+    dias_plazo     SMALLINT UNSIGNED NOT NULL DEFAULT 15,
+    expires_at     DATETIME NOT NULL,
+    status         ENUM('pending','completed','cancelled','expired') NOT NULL DEFAULT 'pending',
+    -- Los apartados anteriores a este modulo no tenian vencimiento. Se les
+    -- calculo uno, pero el job no los toca: los devuelve una persona despues de
+    -- hablar con el cliente, no un cron a medianoche.
+    revisar_manual TINYINT(1) NOT NULL DEFAULT 0,
+    aviso_previo_at  DATETIME NULL,
+    aviso_vencido_at DATETIME NULL,
+    expired_at       DATETIME NULL,
+    -- Venta generada al liquidar. Permite llegar del apartado al ticket.
+    sale_id        INT NULL,
     created_by     INT NOT NULL,
     created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at   TIMESTAMP NULL,
     notes          TEXT NULL,
     CONSTRAINT fk_ant_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
     CONSTRAINT fk_ant_user    FOREIGN KEY (created_by) REFERENCES users(id),
+    CONSTRAINT fk_ant_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
+    CONSTRAINT fk_ant_sale    FOREIGN KEY (sale_id)    REFERENCES sales(id)    ON DELETE SET NULL,
+    -- Un apartado no puede tener mas abonado que su total ni un abono negativo.
+    CONSTRAINT chk_ant_pagado CHECK (paid_amount >= 0 AND paid_amount <= total_amount),
+    -- La regla del negocio, impuesta por la base: el stock se separa cuando hay
+    -- dinero de por medio. Un apartado vivo sin anticipo es una reserva gratis.
+    --
+    -- La excepcion son los marcados `revisar_manual`: apartados anteriores a
+    -- este modulo, algunos con anticipo cero. Se les deja pasar porque la
+    -- alternativa era inventarles un pago o cerrarlos sin hablar con nadie.
+    CONSTRAINT chk_ant_anticipo CHECK (status <> 'pending' OR paid_amount > 0 OR revisar_manual = 1),
+    CONSTRAINT chk_ant_plazo    CHECK (dias_plazo > 0),
+    UNIQUE KEY uniq_empresa_folio (empresa_id, folio),
     INDEX idx_empresa (empresa_id),
     INDEX idx_status  (status),
-    INDEX idx_created (created_at)
+    INDEX idx_created (created_at),
+    -- La consulta del panel y la del job: pendientes de una empresa ordenados
+    -- por lo que esta mas cerca de vencer.
+    INDEX idx_vencimiento (empresa_id, status, expires_at),
+    -- «Mis apartados» en la tienda web.
+    INDEX idx_cliente (cliente_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS anticipo_items (
@@ -445,8 +510,25 @@ CREATE TABLE IF NOT EXISTS anticipo_items (
     subtotal    DECIMAL(10,2) NOT NULL,
     CONSTRAINT fk_ai_anticipo FOREIGN KEY (anticipo_id) REFERENCES anticipos(id) ON DELETE CASCADE,
     CONSTRAINT fk_ai_product  FOREIGN KEY (product_id)  REFERENCES products(id),
+    CONSTRAINT chk_ai_qty     CHECK (quantity > 0),
     INDEX idx_anticipo (anticipo_id),
     INDEX idx_product  (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cada abono, con quien lo cobro. `anticipos.paid_amount` es la suma resuelta;
+-- esta tabla es el detalle que responde «cuando pago y cuanto».
+CREATE TABLE IF NOT EXISTS anticipo_payments (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    anticipo_id INT NOT NULL,
+    amount      DECIMAL(10,2) NOT NULL,
+    payment_method ENUM('cash','card') NOT NULL DEFAULT 'cash',
+    created_by  INT NULL,
+    created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+    notes       VARCHAR(255) NULL,
+    CONSTRAINT fk_ap_anticipo FOREIGN KEY (anticipo_id) REFERENCES anticipos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ap_user     FOREIGN KEY (created_by)  REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT chk_ap_amount  CHECK (amount > 0),
+    INDEX idx_anticipo (anticipo_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================

@@ -6,12 +6,16 @@ import { motion } from 'framer-motion';
 import { X, BookmarkPlus, CalendarClock, Wallet } from 'lucide-react';
 import styles from './ApartarDialogo.module.css';
 import { useCurrency } from '@/context/CurrencyContext';
-import { APARTADO, calcularApartado, fechaLimite } from '@/lib/apartado';
+import { calcularApartado, fechaLimite, tipoDeApartado } from '@/lib/apartado';
 
 export default function ApartarDialogo({ producto, onCerrar }) {
     const { formatPrice, currency } = useCurrency();
-    const { total, anticipo, saldo } = calcularApartado(producto.price);
-    const limite = fechaLimite();
+    // El tipo sale del catalogo, no de un prop: el mismo dialogo se abre
+    // desde la ficha de un articulo en tienda y desde el de importacion, y
+    // el anticipo no es el mismo.
+    const tipo = tipoDeApartado(producto);
+    const { total, anticipo, saldo, porcentaje } = calcularApartado(producto.price, tipo);
+    const limite = fechaLimite(new Date(), tipo);
 
     useEffect(() => {
         document.body.style.overflow = 'hidden';
@@ -49,7 +53,9 @@ export default function ApartarDialogo({ producto, onCerrar }) {
                     <X size={18} />
                 </button>
 
-                <h2 id="apartar-titulo" className={styles.titulo}>Apartar este artículo</h2>
+                <h2 id="apartar-titulo" className={styles.titulo}>
+                    {tipo === 'preventa' ? 'Apartar esta preventa' : 'Apartar este artículo'}
+                </h2>
                 <p className={styles.producto}>{producto.title}</p>
 
                 <dl className={styles.cuentas}>
@@ -71,7 +77,7 @@ export default function ApartarDialogo({ producto, onCerrar }) {
                     <li>
                         <Wallet size={15} />
                         <span>
-                            Pagas el {Math.round(APARTADO.porcentajeAnticipo * 100)}% ahora y el resto
+                            Pagas el {porcentaje}% ahora y el resto
                             cuando pases a recogerlo o antes de que te lo enviemos.
                         </span>
                     </li>

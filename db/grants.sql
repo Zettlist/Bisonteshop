@@ -49,6 +49,11 @@ GRANT SELECT ON torlan_pos.empresas          TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.tags              TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.product_tags      TO 'bisonte_app'@'%';
 
+-- Apartados: la tienda los muestra en «Mis apartados» y nada mas. Se crean
+-- y se cobran en el mostrador, asi que aqui no hay INSERT ni UPDATE.
+GRANT SELECT ON torlan_pos.anticipos         TO 'bisonte_app'@'%';
+GRANT SELECT ON torlan_pos.anticipo_items    TO 'bisonte_app'@'%';
+
 -- ── App POS (backend Express) ───────────────────────────────────────────────
 CREATE USER IF NOT EXISTS 'pos_app'@'%' IDENTIFIED BY 'CAMBIAR_ANTES_DE_EJECUTAR';
 
@@ -68,6 +73,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.business_settings  TO 'pos_ap
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.global_changes_log TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.anticipos          TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.anticipo_items     TO 'pos_app'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.anticipo_payments  TO 'pos_app'@'%';
+-- Contador de folios: se lee y se incrementa, nunca se borra una fila.
+GRANT SELECT, INSERT, UPDATE         ON torlan_pos.apartado_sequences TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.coupons            TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.tags               TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.product_tags       TO 'pos_app'@'%';
