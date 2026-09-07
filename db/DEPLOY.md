@@ -126,8 +126,24 @@ gcloud run deploy bisonte-manga --source . --region us-central1 \
 ```
 
 Firebase Hosting: `firebase.json` ya apunta al servicio `bisonte-manga` en
-`us-central1`. Actualizar `.firebaserc` al proyecto nuevo y `firebase deploy
---only hosting`.
+`us-central1`.
+
+> **Dónde vive esto de verdad (7 sep 2026).** Este documento describe una
+> migración a Aiven que nunca se hizo. La realidad hoy:
+>
+> - El servicio `bisonte-manga` corre en **`torlan-pro`**, y ahí está también el
+>   Hosting al que resuelve `bisontemanga.com`. `.firebaserc` apunta ahí. Antes
+>   decía `bisonte-manga-shop-8202`, un proyecto que no existe en la cuenta:
+>   `firebase deploy` desde este repo fallaba con «project not found» y el
+>   mensaje no dejaba claro que la culpa era del archivo.
+> - La base **no** es de Aiven: es Cloud SQL en **`torlan-web`**, y la tienda la
+>   lee entre proyectos por socket. Por eso el servicio no se puede mudar sin
+>   más a `torlan-web`: una reescritura de Hosting solo puede apuntar a un Cloud
+>   Run del mismo proyecto, así que mover el servicio arrastra Hosting y DNS.
+> - Hosting en `torlan-pro` **no acepta despliegues** ahora mismo (el canal
+>   `live` quedó huérfano y faltan agentes de servicio). No hace falta tocarlo:
+>   la reescritura ya existe y sigue sirviendo. Si algún día hay que
+>   redesplegarlo, eso se arregla primero.
 
 ---
 
