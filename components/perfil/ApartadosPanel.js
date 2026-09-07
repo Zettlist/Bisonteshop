@@ -79,7 +79,7 @@ export default function ApartadosPanel() {
                             <div>
                                 <p className={a.folio}>{ap.folio}</p>
                                 <p className={a.meta}>
-                                    {ap.tipo === 'preventa' ? 'Preventa' : 'Apartado'} del {fecha(ap.created_at)}
+                                    Apartado del {fecha(ap.created_at)}
                                 </p>
                             </div>
                             <span className={`${a.estado} ${a[tono]}`}>

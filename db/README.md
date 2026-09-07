@@ -6,7 +6,7 @@ Esquema de la base compartida entre **Bisonte Shop** (Next.js) y **Torlan POS** 
 |---|---|
 | `schema.sql` | Las 41 tablas. Única fuente de verdad. Idempotente. |
 | `grants.sql` | Usuarios MySQL con permisos acotados por dominio. |
-| `tests/` | 130 pruebas contra un MySQL 8 efímero. |
+| `tests/` | 144 pruebas contra un MySQL 8 efímero. |
 | `migrations/` | ALTER escritos a mano para bases que ya tienen datos. |
 | `DEPLOY.md` | Plan de despliegue a Aiven + Cloud Run. |
 

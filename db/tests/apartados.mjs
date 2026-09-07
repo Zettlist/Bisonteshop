@@ -4,12 +4,12 @@ const G = 'APARTADOS';
 
 /** Crea un apartado vigente con un renglon, y reserva el stock como lo hace el
  *  POS. Devuelve los ids para poder seguir tirando del hilo. */
-async function apartado(f, { total = 189, pagado = 60, dias = 15, tipo = 'normal', cantidad = 1 } = {}) {
+async function apartado(f, { total = 189, pagado = 60, dias = 15, cantidad = 1 } = {}) {
     const [a] = await sql(
-        `INSERT INTO anticipos (empresa_id, folio, tipo, cliente_id, customer_name, total_amount,
+        `INSERT INTO anticipos (empresa_id, folio, cliente_id, customer_name, total_amount,
                                 paid_amount, dias_plazo, expires_at, created_by)
-         VALUES (?,?,?,?,?,?,?,?,DATE_ADD(NOW(), INTERVAL ? DAY),?)`,
-        [f.empresaId, `AP-${String(++folio).padStart(6, '0')}`, tipo, f.clienteId, 'Ana Lopez',
+         VALUES (?,?,?,?,?,?,?,DATE_ADD(NOW(), INTERVAL ? DAY),?)`,
+        [f.empresaId, `AP-${String(++folio).padStart(6, '0')}`, f.clienteId, 'Ana Lopez',
             total, pagado, dias, dias, f.userId]);
     await sql(`INSERT INTO anticipo_items (anticipo_id, product_id, quantity, unit_price, subtotal)
                VALUES (?,?,?,?,?)`, [a.insertId, f.productId, cantidad, total, total * cantidad]);
@@ -181,25 +181,22 @@ test(G, '«mis apartados» del cliente usa indice', async () => {
         [f.clienteId], 'idx_cliente');
 });
 
-// ── El tipo ─────────────────────────────────────────────────────────────────
-test(G, 'solo hay dos tipos de apartado', async () => {
-    const f = await seed();
-    await expectError(
-        () => sql(`INSERT INTO anticipos (empresa_id, folio, tipo, customer_name, total_amount,
-                                          paid_amount, expires_at, created_by)
-                   VALUES (?,?,'consignacion',?,?,?,NOW(),?)`,
-            [f.empresaId, 'AP-TIPO-MALO', 'Ana', 189, 50, f.userId]),
-        'WARN_DATA_TRUNCATED');
+// ── El plazo ────────────────────────────────────────────────────────────────
+test(G, 'el apartado no distingue tipos: la preventa es otro modulo', async () => {
+    // Hubo una columna `tipo` con 'normal' y 'preventa'. Sobraba: un apartado
+    // solo puede hacerse sobre mercancia que ya esta en la tienda, y lo que
+    // viene en camino vive en pre_orders, con su propio reloj.
+    const [cols] = await sql(`SHOW COLUMNS FROM anticipos LIKE 'tipo'`);
+    assertEqual(cols.length, 0);
 });
 
 test(G, 'el plazo prometido se guarda en la fila', async () => {
     // Si manana la tienda cambia de politica, los apartados vivos conservan el
     // plazo con el que se vendieron.
     const f = await seed();
-    const id = await apartado(f, { tipo: 'preventa', dias: 30 });
-    const [r] = await sql(`SELECT tipo, dias_plazo FROM anticipos WHERE id = ?`, [id]);
-    assertEqual(r[0].tipo, 'preventa');
-    assertEqual(r[0].dias_plazo, 30);
+    const id = await apartado(f, { dias: 20 });
+    const [r] = await sql(`SELECT dias_plazo FROM anticipos WHERE id = ?`, [id]);
+    assertEqual(r[0].dias_plazo, 20);
 });
 
 test(G, 'un plazo de cero dias no tiene sentido y la base lo rechaza', async () => {
@@ -210,4 +207,34 @@ test(G, 'un plazo de cero dias no tiene sentido y la base lo rechaza', async () 
                    VALUES (?,?,?,?,?,0,NOW(),?)`,
             [f.empresaId, 'AP-PLAZO-CERO', 'Ana', 189, 50, f.userId]),
         'ER_CHECK_CONSTRAINT_VIOLATED');
+});
+
+// ── El turno de caja en el que entro el dinero ──────────────────────────────
+test(G, 'el abono de un apartado guarda el turno de caja', async () => {
+    // El corte no suma los abonos, asi que este es el unico hilo que ata ese
+    // dinero a un turno. Sin el, al cerrar la caja el sobrante no se puede
+    // explicar.
+    const f = await seed();
+    const id = await apartado(f);
+    const [c] = await sql(
+        `INSERT INTO cash_sessions (empresa_id, user_id, opening_amount) VALUES (?,?,?)`,
+        [f.empresaId, f.userId, 500.00]);
+    await sql(`INSERT INTO anticipo_payments (anticipo_id, amount, payment_method, cash_session_id, created_by)
+               VALUES (?,?,?,?,?)`, [id, 60.00, 'cash', c.insertId, f.userId]);
+    const [r] = await sql(`SELECT cash_session_id FROM anticipo_payments WHERE anticipo_id = ?`, [id]);
+    assertEqual(r[0].cash_session_id, c.insertId);
+});
+
+test(G, 'borrar un turno de caja no borra el abono', async () => {
+    const f = await seed();
+    const id = await apartado(f);
+    const [c] = await sql(
+        `INSERT INTO cash_sessions (empresa_id, user_id, opening_amount) VALUES (?,?,?)`,
+        [f.empresaId, f.userId, 500.00]);
+    await sql(`INSERT INTO anticipo_payments (anticipo_id, amount, cash_session_id)
+               VALUES (?,?,?)`, [id, 60.00, c.insertId]);
+    await sql(`DELETE FROM cash_sessions WHERE id = ?`, [c.insertId]);
+    const [r] = await sql(`SELECT cash_session_id FROM anticipo_payments WHERE anticipo_id = ?`, [id]);
+    assertEqual(r.length, 1);
+    assertEqual(r[0].cash_session_id, null);
 });

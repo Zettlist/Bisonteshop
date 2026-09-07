@@ -76,6 +76,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.anticipo_items     TO 'pos_ap
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.anticipo_payments  TO 'pos_app'@'%';
 -- Contador de folios: se lee y se incrementa, nunca se borra una fila.
 GRANT SELECT, INSERT, UPDATE         ON torlan_pos.apartado_sequences TO 'pos_app'@'%';
+-- Preventas: pedidos en camino. Solo el POS los toca; la tienda web no los
+-- muestra en ninguna parte todavia.
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.pre_orders         TO 'pos_app'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.pre_order_payments TO 'pos_app'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.pre_order_batches  TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.coupons            TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.tags               TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.product_tags       TO 'pos_app'@'%';

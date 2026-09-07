@@ -424,6 +424,12 @@ CREATE TABLE IF NOT EXISTS global_changes_log (
 --  distingue a esta tabla de una venta a plazos es que tiene fecha de caducidad:
 --  si no se liquida a tiempo, la mercancia vuelve al catalogo.
 --
+--  No confundir con las preventas (pre_orders, mas abajo). Aquello son pedidos
+--  que todavia vienen en camino: no hay producto en el catalogo ni stock que
+--  reservar, y el plazo cuenta desde que llegan. Un apartado es siempre
+--  mercancia que ya esta en la tienda, y por eso su plazo es de 15 dias, uno
+--  solo y para todos.
+--
 --  El stock se separa con `stock_reservado`, igual que un pedido web (FIX 14):
 --  el articulo sigue fisicamente en la tienda, pero deja de estar disponible.
 --  Bajar `products.stock` en su lugar mentiria en el inventario fisico y haria
@@ -446,9 +452,6 @@ CREATE TABLE IF NOT EXISTS anticipos (
     empresa_id     INT NOT NULL,
     -- Numero de pedido que se le dice al cliente: AP-000123.
     folio          VARCHAR(20) NOT NULL,
-    -- El plazo depende del tipo: la preventa tarda en llegar y 15 dias
-    -- empezarian a correr antes de que el articulo exista.
-    tipo           ENUM('normal','preventa') NOT NULL DEFAULT 'normal',
     -- Cuenta de la tienda web, cuando la persona tiene una. NULL para el
     -- apartado de mostrador de quien nunca se registro: por eso el nombre y el
     -- telefono siguen siendo columnas y no un join obligatorio.
@@ -522,13 +525,19 @@ CREATE TABLE IF NOT EXISTS anticipo_payments (
     anticipo_id INT NOT NULL,
     amount      DECIMAL(10,2) NOT NULL,
     payment_method ENUM('cash','card') NOT NULL DEFAULT 'cash',
+    -- Turno de caja en el que entro el dinero. No suma al corte, que cuenta
+    -- ventas y un abono no lo es; pero sin esto el dinero del cajon no se
+    -- puede atribuir a nadie ni salir en el reporte que lo cuadra.
+    cash_session_id INT NULL,
     created_by  INT NULL,
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
     notes       VARCHAR(255) NULL,
     CONSTRAINT fk_ap_anticipo FOREIGN KEY (anticipo_id) REFERENCES anticipos(id) ON DELETE CASCADE,
     CONSTRAINT fk_ap_user     FOREIGN KEY (created_by)  REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_ap_sesion   FOREIGN KEY (cash_session_id) REFERENCES cash_sessions(id) ON DELETE SET NULL,
     CONSTRAINT chk_ap_amount  CHECK (amount > 0),
-    INDEX idx_anticipo (anticipo_id, created_at)
+    INDEX idx_anticipo (anticipo_id, created_at),
+    INDEX idx_sesion   (cash_session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================================================
@@ -851,6 +860,15 @@ CREATE TABLE IF NOT EXISTS event_results (
 --  Estas tablas las creaba el backend al arrancar (routes/preventas.js,
 --  routes/storeCredits.js). Aparecieron al levantar el POS contra el esquema
 --  reconstruido: sin ellas, Preventas y Creditos de Tienda responden 500.
+--
+--  Una preventa (pre_orders) es un pedido que viene en camino o que aun hay que
+--  surtir. Por eso no tiene product_id ni reserva stock: el articulo todavia no
+--  existe en el catalogo. Es lo que la distingue del apartado, que es siempre
+--  mercancia que ya esta en la tienda.
+--
+--  El plazo cuenta desde que llega, no desde que se pide: hasta que alguien
+--  marca arrived_at el reloj no corre, porque no se le puede exigir a nadie que
+--  recoja lo que todavia no ha llegado.
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS pre_order_batches (
@@ -885,19 +903,38 @@ CREATE TABLE IF NOT EXISTS pre_orders (
     deposit                DECIMAL(10,2) NOT NULL DEFAULT 0,
     total_paid             DECIMAL(10,2) NOT NULL DEFAULT 0,
     balance                DECIMAL(10,2) NOT NULL DEFAULT 0,
-    status                 ENUM('pending','paid','cancelled','delivered') DEFAULT 'pending',
+    status                 ENUM('pending','paid','cancelled','delivered','expired') DEFAULT 'pending',
     is_paid_in_full        TINYINT(1) DEFAULT 0,
     last_payment_date      DATE NULL,
+    -- Cuando el pedido llego a la tienda. Mientras sea NULL el pedido no vence:
+    -- es lo unico que distingue "el cliente no ha venido a recoger" de "el
+    -- proveedor todavia no lo ha mandado".
+    arrived_at             DATETIME NULL,
+    -- Se calcula al marcar la llegada y se guarda en la fila: si manana la
+    -- tienda pasa a 20 dias, los pedidos ya avisados conservan lo prometido.
+    dias_plazo             SMALLINT UNSIGNED NOT NULL DEFAULT 30,
+    expires_at             DATETIME NULL,
+    aviso_previo_at        DATETIME NULL,
+    aviso_vencido_at       DATETIME NULL,
+    expired_at             DATETIME NULL,
     international_order    TINYINT(1) DEFAULT 0,
     international_country  VARCHAR(50) NULL,
     created_at             DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at             DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_po_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
     CONSTRAINT fk_po_batch   FOREIGN KEY (batch_id)   REFERENCES pre_order_batches(id) ON DELETE SET NULL,
+    CONSTRAINT chk_po_plazo  CHECK (dias_plazo > 0),
+    -- El vencimiento nace de la llegada. Una fecha limite sin llegada marcada
+    -- seria un reloj que arranco solo, y vencerle el pedido a quien todavia
+    -- espera es justo lo que no puede pasar.
+    CONSTRAINT chk_po_arribo CHECK (expires_at IS NULL OR arrived_at IS NOT NULL),
     UNIQUE KEY uniq_order_empresa (empresa_id, order_number),
     INDEX idx_empresa (empresa_id),
     INDEX idx_batch   (batch_id),
-    INDEX idx_status  (status)
+    INDEX idx_status  (status),
+    -- La consulta del panel y la del job nocturno: pedidos de una empresa
+    -- ordenados por lo que esta mas cerca de vencer.
+    INDEX idx_vencimiento (empresa_id, status, expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pre_order_payments (
@@ -906,10 +943,18 @@ CREATE TABLE IF NOT EXISTS pre_order_payments (
     amount         DECIMAL(10,2) NOT NULL,
     payment_date   DATE NULL,
     payment_number INT NOT NULL,
+    -- Las mismas tres columnas que anticipo_payments, con los mismos nombres:
+    -- el reporte de abonos une los dos modulos y no deberia traducir nada.
+    payment_method  ENUM('cash','card') NOT NULL DEFAULT 'cash',
+    cash_session_id INT NULL,
+    created_by      INT NULL,
     notes          TEXT NULL,
     created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_pop_order FOREIGN KEY (pre_order_id) REFERENCES pre_orders(id) ON DELETE CASCADE,
-    INDEX idx_pre_order (pre_order_id)
+    CONSTRAINT fk_pop_order  FOREIGN KEY (pre_order_id)    REFERENCES pre_orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pop_sesion FOREIGN KEY (cash_session_id) REFERENCES cash_sessions(id) ON DELETE SET NULL,
+    CONSTRAINT fk_pop_user   FOREIGN KEY (created_by)      REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_pre_order (pre_order_id),
+    INDEX idx_sesion    (cash_session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Vale de tienda con codigo, emitido en el POS. Distinto de clientes.store_credit,

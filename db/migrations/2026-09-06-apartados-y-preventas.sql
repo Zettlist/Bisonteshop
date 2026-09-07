@@ -1,9 +1,19 @@
 -- =============================================================================
---  Apartados con vencimiento
---  2026-09-05
+--  Apartados y preventas con vencimiento
+--  2026-09-06
 --
---  Lleva la tabla `anticipos` de produccion al estado que describe schema.sql:
---  folio, tipo, cliente, plazo, vencimiento y avisos.
+--  Dos modulos que se parecen y no son lo mismo:
+--
+--    apartado (anticipos)  mercancia que ya esta en la tienda. Reserva stock.
+--                          15 dias desde el anticipo, para todos.
+--    preventa (pre_orders) pedido que viene en camino. No hay producto en el
+--                          catalogo ni stock que reservar. 30 dias, contados
+--                          desde que llega y no desde que se pide.
+--
+--  A anticipos le pone folio, cliente, plazo, vencimiento y avisos. A
+--  pre_orders, que hoy no caduca nunca, le pone fecha de llegada y de
+--  vencimiento. Y a los abonos de los dos, el turno de caja en el que se
+--  cobraron.
 --
 --  Se aplica UNA VEZ y a mano (ver db/README.md y backend/migrations/README.md:
 --  el esquema no se migra en el arranque de la aplicacion). Corre dentro de una
@@ -54,8 +64,7 @@ CREATE TABLE IF NOT EXISTS apartado_sequences (
 -- en el paso 4, cuando ya no queda ninguno vacio.
 ALTER TABLE anticipos
     ADD COLUMN folio            VARCHAR(20) NULL AFTER empresa_id,
-    ADD COLUMN tipo             ENUM('normal','preventa') NOT NULL DEFAULT 'normal' AFTER folio,
-    ADD COLUMN cliente_id       INT NULL AFTER tipo,
+    ADD COLUMN cliente_id       INT NULL AFTER folio,
     ADD COLUMN customer_email   VARCHAR(255) NULL AFTER customer_phone,
     ADD COLUMN dias_plazo       SMALLINT UNSIGNED NOT NULL DEFAULT 15 AFTER paid_amount,
     ADD COLUMN expires_at       DATETIME NULL AFTER dias_plazo,
@@ -81,13 +90,16 @@ CREATE TABLE IF NOT EXISTS anticipo_payments (
     anticipo_id    INT NOT NULL,
     amount         DECIMAL(10,2) NOT NULL,
     payment_method ENUM('cash','card') NOT NULL DEFAULT 'cash',
+    cash_session_id INT NULL,
     created_by     INT NULL,
     created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
     notes          VARCHAR(255) NULL,
     CONSTRAINT fk_ap_anticipo FOREIGN KEY (anticipo_id) REFERENCES anticipos(id) ON DELETE CASCADE,
     CONSTRAINT fk_ap_user     FOREIGN KEY (created_by)  REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_ap_sesion   FOREIGN KEY (cash_session_id) REFERENCES cash_sessions(id) ON DELETE SET NULL,
     CONSTRAINT chk_ap_amount  CHECK (amount > 0),
-    INDEX idx_anticipo (anticipo_id, created_at)
+    INDEX idx_anticipo (anticipo_id, created_at),
+    INDEX idx_sesion   (cash_session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -136,6 +148,9 @@ UPDATE anticipos a
 -- Un renglon de abono por lo ya cobrado, para que el detalle no muestre un
 -- pagado sin ningun pago detras. No se inventa fecha ni cajero: created_at del
 -- apartado y `created_by` en NULL.
+-- El turno se queda en NULL a proposito: de este dinero no consta en que caja
+-- entro, y deducirlo de la fecha meteria en cortes ya cerrados importes que
+-- nadie conto esa noche.
 INSERT INTO anticipo_payments (anticipo_id, amount, payment_method, created_by, created_at, notes)
 SELECT id, paid_amount, 'cash', NULL, created_at, 'Saldo previo a la migracion'
   FROM anticipos
@@ -186,7 +201,50 @@ UPDATE products p
 COMMIT;
 
 
--- ── 6. Comprobacion ──────────────────────────────────────────────────────────
+-- ── 6. Preventas: fecha de llegada y vencimiento ─────────────────────────────
+-- Un pre_order no caducaba nunca: se quedaba en 'pending' hasta que alguien lo
+-- tocaba a mano. A partir de aqui hay reloj, pero solo arranca cuando se marca
+-- que el pedido llego.
+--
+-- Los pedidos que ya estan en la tabla se quedan SIN llegada, y por tanto sin
+-- vencimiento. No hay ninguna columna que diga cuales llegaron ya; ponerles
+-- fecha ahora seria empezar a vencerle el pedido a gente que lleva meses
+-- esperando y a la que nadie aviso de que existiera un plazo. Se les marca la
+-- llegada desde el panel, uno por uno, segun vayan entregandose.
+
+ALTER TABLE pre_orders
+    ADD COLUMN arrived_at       DATETIME NULL AFTER last_payment_date,
+    ADD COLUMN dias_plazo       SMALLINT UNSIGNED NOT NULL DEFAULT 30 AFTER arrived_at,
+    ADD COLUMN expires_at       DATETIME NULL AFTER dias_plazo,
+    ADD COLUMN aviso_previo_at  DATETIME NULL AFTER expires_at,
+    ADD COLUMN aviso_vencido_at DATETIME NULL AFTER aviso_previo_at,
+    ADD COLUMN expired_at       DATETIME NULL AFTER aviso_vencido_at;
+
+-- El mismo estado nuevo que en los apartados y por el mismo motivo:
+-- 'cancelled' es una decision de la tienda, 'expired' es que se acabo el plazo.
+ALTER TABLE pre_orders
+    MODIFY COLUMN status ENUM('pending','paid','cancelled','delivered','expired') DEFAULT 'pending';
+
+ALTER TABLE pre_orders
+    ADD CONSTRAINT chk_po_plazo  CHECK (dias_plazo > 0),
+    ADD CONSTRAINT chk_po_arribo CHECK (expires_at IS NULL OR arrived_at IS NOT NULL),
+    ADD INDEX idx_vencimiento (empresa_id, status, expires_at);
+
+-- El abono de una preventa pasa a guardarse como el de un apartado, con los
+-- mismos nombres de columna: el reporte de caja une los dos modulos y no
+-- deberia tener que traducir nada.
+ALTER TABLE pre_order_payments
+    ADD COLUMN payment_method  ENUM('cash','card') NOT NULL DEFAULT 'cash' AFTER payment_number,
+    ADD COLUMN cash_session_id INT NULL AFTER payment_method,
+    ADD COLUMN created_by      INT NULL AFTER cash_session_id;
+
+ALTER TABLE pre_order_payments
+    ADD CONSTRAINT fk_pop_sesion FOREIGN KEY (cash_session_id) REFERENCES cash_sessions(id) ON DELETE SET NULL,
+    ADD CONSTRAINT fk_pop_user   FOREIGN KEY (created_by)      REFERENCES users(id) ON DELETE SET NULL,
+    ADD INDEX idx_sesion (cash_session_id);
+
+
+-- ── 7. Comprobacion ──────────────────────────────────────────────────────────
 -- Ningun apartado sin folio ni vencimiento:
 -- SELECT COUNT(*) FROM anticipos WHERE folio IS NULL OR expires_at IS NULL;
 --
@@ -202,3 +260,12 @@ COMMIT;
 -- Que hay que revisar a mano:
 -- SELECT folio, customer_name, created_at, expires_at, total_amount, paid_amount
 --   FROM anticipos WHERE revisar_manual = 1 ORDER BY expires_at;
+--
+-- Ninguna preventa con vencimiento sin llegada (lo impide el CHECK, pero si el
+-- ALTER se aplico a medias conviene verlo):
+-- SELECT COUNT(*) FROM pre_orders WHERE expires_at IS NOT NULL AND arrived_at IS NULL;
+--
+-- Preventas vivas que siguen sin marcar llegada. Es el trabajo pendiente en el
+-- mostrador, no un error: hasta que no se marquen, ninguna vence.
+-- SELECT order_number, client_name, title, created_at, balance
+--   FROM pre_orders WHERE status = 'pending' ORDER BY created_at;

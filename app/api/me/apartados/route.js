@@ -23,7 +23,7 @@ export async function GET() {
     }
 
     const [apartados] = await pool.query(`
-        SELECT a.id, a.folio, a.tipo, a.status, a.created_at, a.expires_at,
+        SELECT a.id, a.folio, a.status, a.created_at, a.expires_at,
                a.total_amount, a.paid_amount,
                (a.total_amount - a.paid_amount) AS saldo,
                DATEDIFF(DATE(a.expires_at), CURDATE()) AS dias_restantes
@@ -64,7 +64,6 @@ export async function GET() {
         apartados: apartados.map((a) => ({
             id: a.id,
             folio: a.folio,
-            tipo: a.tipo,
             status: a.status,
             created_at: a.created_at,
             expires_at: a.expires_at,

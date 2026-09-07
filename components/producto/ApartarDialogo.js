@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { X, BookmarkPlus, CalendarClock, Wallet } from 'lucide-react';
 import styles from './ApartarDialogo.module.css';
 import { useCurrency } from '@/context/CurrencyContext';
-import { calcularApartado, fechaLimite, tipoDeApartado } from '@/lib/apartado';
+import { calcularApartado, diasDePlazo, fechaLimite, tipoDeApartado } from '@/lib/apartado';
 
 export default function ApartarDialogo({ producto, onCerrar }) {
     const { formatPrice, currency } = useCurrency();
@@ -15,7 +15,10 @@ export default function ApartarDialogo({ producto, onCerrar }) {
     // el anticipo no es el mismo.
     const tipo = tipoDeApartado(producto);
     const { total, anticipo, saldo, porcentaje } = calcularApartado(producto.price, tipo);
+    // En una preventa no hay fecha: el plazo cuenta desde que el pedido llega
+    // a la tienda, y eso lo marca el POS. Se dice el plazo, no un dia.
     const limite = fechaLimite(new Date(), tipo);
+    const dias = diasDePlazo(tipo);
 
     useEffect(() => {
         document.body.style.overflow = 'hidden';
@@ -83,13 +86,20 @@ export default function ApartarDialogo({ producto, onCerrar }) {
                     </li>
                     <li>
                         <CalendarClock size={15} />
-                        <span>
-                            Te lo guardamos hasta el{' '}
-                            <strong>
-                                {limite.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
-                            </strong>
-                            . Pasada esa fecha vuelve al catálogo.
-                        </span>
+                        {limite ? (
+                            <span>
+                                Te lo guardamos hasta el{' '}
+                                <strong>
+                                    {limite.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                </strong>
+                                . Pasada esa fecha vuelve al catálogo.
+                            </span>
+                        ) : (
+                            <span>
+                                Te avisamos en cuanto llegue a la tienda, y a partir de ese día
+                                tienes <strong>{dias} días</strong> para liquidarlo y recogerlo.
+                            </span>
+                        )}
                     </li>
                 </ul>
 
