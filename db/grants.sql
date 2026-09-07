@@ -23,7 +23,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.coupon_redemptions  TO 'bison
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.credit_history      TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.user_notifications  TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.event_votes         TO 'bisonte_app'@'%';
-GRANT SELECT                          ON torlan_pos.event_results      TO 'bisonte_app'@'%';
+
+-- event_results guarda el ganador del evento y el codigo de descuento que se
+-- reparte. Lo escribe /api/eventos/mundial (PATCH), que pide la clave de admin,
+-- con INSERT ... ON DUPLICATE KEY UPDATE -- de ahi las dos, INSERT y UPDATE.
+-- Con solo SELECT, como estaba, cerrar el evento habria fallado.
+GRANT SELECT, INSERT, UPDATE          ON torlan_pos.event_results      TO 'bisonte_app'@'%';
 
 -- Opiniones de producto. La tabla es solo de la tienda: el POS no la lee ni la
 -- necesita, y por eso `pos_app` no recibe nada sobre ella mas abajo. Quien vota
@@ -65,6 +70,23 @@ GRANT SELECT ON torlan_pos.product_tags      TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.anticipos         TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.anticipo_items    TO 'bisonte_app'@'%';
 
+-- Tercera excepcion por columna, y la mas incomoda. La venta web se registra a
+-- nombre de un usuario del POS, y el checkout lo busca asi:
+--
+--   SELECT id FROM users WHERE empresa_id = ? ORDER BY id ASC LIMIT 1
+--
+-- (app/api/checkout/confirm/route.js). No es un camino raro: es el que se toma
+-- siempre, porque WEB_USER_ID no esta puesta en el servicio de Cloud Run. Sin
+-- este permiso NINGUN checkout se completa.
+--
+-- Se concede por columna a proposito. `users` guarda el personal del POS con
+-- sus hashes de contraseña, y la tienda no tiene por que verlos: con (id,
+-- empresa_id) le basta para lo unico que hace.
+--
+-- Lo limpio seria poner WEB_USER_ID en el servicio y retirar hasta esto. Queda
+-- apuntado; mientras no este, este GRANT es obligatorio.
+GRANT SELECT (id, empresa_id) ON torlan_pos.users TO 'bisonte_app'@'%';
+
 -- ── App POS (backend Express) ───────────────────────────────────────────────
 CREATE USER IF NOT EXISTS 'pos_app'@'%' IDENTIFIED BY 'CAMBIAR_ANTES_DE_EJECUTAR';
 
@@ -105,5 +127,42 @@ GRANT SELECT, INSERT, UPDATE         ON torlan_pos.integration_outbox TO 'pos_ap
 -- Datos personales de compradores: solo lectura para atencion a clientes.
 GRANT SELECT ON torlan_pos.clientes       TO 'pos_app'@'%';
 GRANT SELECT ON torlan_pos.user_addresses TO 'pos_app'@'%';
+
+-- ── Modulos del POS que faltaban por completo ───────────────────────────────
+-- Once tablas que el backend usa en rutas vivas y que este archivo no nombraba.
+-- No es que estuvieran mal concedidas: no estaban. Con los permisos tal y como
+-- estaban escritos, Cotizaciones, ERP, Formatos, Creditos de Tienda y el
+-- generador de codigos de barras respondian 500 en cuanto se tocaban.
+
+-- Cotizaciones. Cinco tablas y un contador de folios. La tienda no las ve.
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.cotizaciones                    TO 'pos_app'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.cotizacion_items                TO 'pos_app'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.cotizacion_proveedores          TO 'pos_app'@'%';
+GRANT SELECT, INSERT                 ON torlan_pos.cotizacion_proveedor_conceptos  TO 'pos_app'@'%';
+-- Contador de folios: se lee y se incrementa, nunca se borra una fila. Mismo
+-- criterio que apartado_sequences.
+GRANT SELECT, INSERT, UPDATE         ON torlan_pos.cotizacion_folios               TO 'pos_app'@'%';
+
+-- Pedidos al proveedor (routes/erp.js).
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.erp_pedidos        TO 'pos_app'@'%';
+
+-- Formatos de producto (tomo, tapa dura, edicion especial...).
+GRANT SELECT, INSERT, DELETE         ON torlan_pos.product_formats     TO 'pos_app'@'%';
+
+-- Creditos de tienda: el saldo a favor y donde se gasto.
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.store_credits       TO 'pos_app'@'%';
+GRANT SELECT, INSERT                 ON torlan_pos.store_credit_uses   TO 'pos_app'@'%';
+
+-- Contador de codigos de barras (utils/barcodeGenerator.js). Solo crece.
+GRANT SELECT, INSERT, UPDATE         ON torlan_pos.barcode_sequences   TO 'pos_app'@'%';
+
+-- Votos de eventos: el POS los LEE para ver el reparto, la tienda es quien los
+-- recibe. De ahi que aqui solo haya SELECT.
+GRANT SELECT                         ON torlan_pos.event_votes         TO 'pos_app'@'%';
+
+-- Nota sobre lo que deliberadamente NO se concede: `DELETE ON bisonte_orders`.
+-- Lo usa backend/clean_web_orders.js, que es una herramienta de mantenimiento
+-- que corre una persona a mano, no el servidor. Si alguna vez hace falta, se
+-- corre con una cuenta administrativa; la aplicacion no borra pedidos web.
 
 FLUSH PRIVILEGES;
