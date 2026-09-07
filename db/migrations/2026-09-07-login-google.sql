@@ -22,15 +22,26 @@
 --  Se aplica UNA VEZ y a mano (ver db/README.md: el esquema no se migra en el
 --  arranque de la aplicacion).
 --
---  IMPORTANTE: en la base de produccion esto YA ESTA APLICADO, porque el ALTER
---  en caliente llevaba meses corriendo. Se conserva por dos razones: para que
---  una base nueva salga igual que la de produccion, y para dejar constancia de
---  cuando y por que aparecieron estas columnas.
+--  IMPORTANTE -- ESTO HACE FALTA DE VERDAD, no es papeleo.
+--
+--  El ALTER en caliente NUNCA llego a correr en produccion. El servicio
+--  `bisonte-manga` no tiene puesta NEXT_PUBLIC_GOOGLE_CLIENT_ID, asi que la
+--  ruta devuelve 503 («El acceso con Google no esta configurado») antes de
+--  tocar la base, y ensureGoogleCols() quedaba detras de esa comprobacion. Es
+--  decir: el login con Google esta apagado en produccion y estas columnas
+--  seguramente NO existen alli. Comprobarlo con la consulta del paso 0.
+--
+--  Que nada este roto hoy es por eso mismo: la ruta corta antes. Pero el dia
+--  que se encienda el acceso con Google -- basta con poner esa variable -- sin
+--  haber aplicado esto, el primer intento de entrar revienta con
+--  «Unknown column 'google_sub'». La migracion va ANTES de encender nada.
 -- =============================================================================
 
 -- ── 0. Antes de tocar nada ───────────────────────────────────────────────────
--- Comprobar que hay que hacer. Si las tres devuelven fila, no hay nada que
--- aplicar y esta migracion ya esta puesta:
+-- Comprobar que hay que hacer. Lo esperado, por lo dicho arriba, es que solo
+-- salga `fecha_nac` -- las otras dos no deberian existir todavia. Si salen las
+-- tres, alguien encendio el acceso con Google en algun momento y esta migracion
+-- ya esta puesta:
 --
 --   SELECT COLUMN_NAME, IS_NULLABLE, COLUMN_TYPE, COLUMN_DEFAULT
 --     FROM information_schema.COLUMNS
