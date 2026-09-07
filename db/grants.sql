@@ -25,6 +25,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.user_notifications  TO 'bison
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.event_votes         TO 'bisonte_app'@'%';
 GRANT SELECT                          ON torlan_pos.event_results      TO 'bisonte_app'@'%';
 
+-- Opiniones de producto. La tabla es solo de la tienda: el POS no la lee ni la
+-- necesita, y por eso `pos_app` no recibe nada sobre ella mas abajo. Quien vota
+-- puede cambiar su nota o retirarla, de ahi el UPDATE y el DELETE.
+GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.product_reviews     TO 'bisonte_app'@'%';
+
 -- La venta web nace en la tienda, por eso necesita INSERT en sales/sale_items.
 GRANT SELECT, INSERT, UPDATE          ON torlan_pos.sales              TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT                  ON torlan_pos.sale_items         TO 'bisonte_app'@'%';
@@ -43,6 +48,12 @@ GRANT SELECT ON torlan_pos.publishers TO 'bisonte_app'@'%';
 -- stock_reservado y NADA mas de products -- ni el stock fisico ni el precio.
 -- El CHECK (stock_reservado <= stock) impide que reserve de mas.
 GRANT UPDATE (stock_reservado) ON torlan_pos.products TO 'bisonte_app'@'%';
+
+-- Segunda excepcion, tambien por columna: al guardar una opinion la tienda
+-- recalcula el promedio del producto en la misma transaccion. Son columnas
+-- derivadas de `product_reviews`, que es suya, asi que le tocan a ella. Sigue
+-- sin poder cambiar precio, stock ni nada mas de la ficha.
+GRANT UPDATE (rating, rating_count) ON torlan_pos.products TO 'bisonte_app'@'%';
 
 GRANT SELECT ON torlan_pos.suppliers         TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.empresas          TO 'bisonte_app'@'%';
