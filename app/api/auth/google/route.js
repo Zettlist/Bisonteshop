@@ -24,24 +24,13 @@ const JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/ce
 
 const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET);
 
-// Columnas para saber de donde salio la cuenta y poder ligarla por sub de
-// Google (el correo puede cambiar de dueño en un dominio corporativo; el sub no).
-async function ensureGoogleCols() {
-    for (const ddl of [
-        "ALTER TABLE clientes ADD COLUMN auth_provider VARCHAR(20) NOT NULL DEFAULT 'password'",
-        'ALTER TABLE clientes ADD COLUMN google_sub VARCHAR(64) NULL',
-    ]) {
-        try {
-            await pool.query(ddl);
-        } catch (e) {
-            if (e.code !== 'ER_DUP_FIELDNAME') throw e;
-        }
-    }
-    // Google no comparte la fecha de nacimiento, asi que la cuenta nace sin
-    // ella y el cliente la completa despues. Volver la columna nullable no
-    // toca ningun dato existente.
-    await pool.query('ALTER TABLE clientes MODIFY COLUMN fecha_nac DATE NULL');
-}
+// `auth_provider` y `google_sub` dicen de donde salio la cuenta y permiten
+// ligarla por el sub de Google (el correo puede cambiar de dueño en un dominio
+// corporativo; el sub no). Y `fecha_nac` es nullable porque Google no la
+// comparte: la cuenta nace sin ella y el cliente la completa despues.
+//
+// Las tres cosas las hacia un ensureGoogleCols() con ALTER TABLE en cada login.
+// Estan en db/schema.sql y en db/migrations/2026-09-07-login-google.sql.
 
 async function generateClientCode() {
     let code;
@@ -140,7 +129,6 @@ export async function POST(req) {
             );
         }
 
-        await ensureGoogleCols();
 
         const email = String(claims.email).toLowerCase();
         const sub = String(claims.sub);

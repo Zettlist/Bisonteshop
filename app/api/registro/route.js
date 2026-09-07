@@ -22,17 +22,11 @@ async function generateClientCode() {
     return code;
 }
 
-async function ensureNacionalidadCol() {
-    try {
-        await pool.query(`ALTER TABLE clientes ADD COLUMN nacionalidad VARCHAR(100) NULL DEFAULT NULL`);
-    } catch (e) {
-        if (e.code !== 'ER_DUP_FIELDNAME') throw e;
-    }
-}
+// `nacionalidad` se anadia aqui con ALTER TABLE en cada alta de cliente. Esta
+// en db/schema.sql.
 
 export async function POST(req) {
     try {
-        await ensureNacionalidadCol();
         const { nombre, apellido, fechaNacimiento, nacionalidad, email, password, telefono } = await req.json();
 
         // Basic server-side validation

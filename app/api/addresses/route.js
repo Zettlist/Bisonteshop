@@ -3,40 +3,18 @@ import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 import { isValidText, isValidOptionalText, firstError } from '@/lib/validate';
 
-const addCol = async (col, def) => {
-    try { await pool.query(`ALTER TABLE user_addresses ADD COLUMN ${col} ${def}`); }
-    catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') throw e; }
-};
-
-const modifyCol = async (col, def) => {
-    try { await pool.query(`ALTER TABLE user_addresses MODIFY COLUMN ${col} ${def}`); }
-    catch (e) { /* ignore if column doesn't exist */ }
-};
-
-async function ensureTable() {
-    // Create base table if not exists (minimal schema for old installs)
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS user_addresses (
-            id              INT AUTO_INCREMENT PRIMARY KEY,
-            cliente_id      INT NOT NULL,
-            is_default      TINYINT(1) DEFAULT 0,
-            INDEX idx_cliente (cliente_id)
-        )
-    `);
-    // Fix old 'numero' column if it exists — make nullable so it stops blocking INSERTs
-    await modifyCol('numero', 'VARCHAR(30) NULL DEFAULT NULL');
-    // Add all columns safely (no-op if they already exist)
-    await addCol('nombre_recibe', 'VARCHAR(200) NULL');
-    await addCol('calle',         'VARCHAR(300) NULL');
-    await addCol('numero_ext',    'VARCHAR(30) NULL');
-    await addCol('numero_int',    'VARCHAR(30) NULL');
-    await addCol('colonia',       'VARCHAR(200) NULL');
-    await addCol('municipio',     'VARCHAR(200) NULL');
-    await addCol('estado',        'VARCHAR(100) NULL');
-    await addCol('cp',            'VARCHAR(10) NULL');
-    await addCol('referencias',   'VARCHAR(500) NULL');
-    await addCol('created_at',    'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
-}
+// Aqui vivia un ensureTable() que en CADA peticion creaba `user_addresses` y le
+// anadia once columnas con ALTER TABLE. Se ha quitado: la tabla esta en
+// db/schema.sql, completa y con mas de lo que este codigo ponia (clave foranea
+// a clientes, NOT NULL donde toca, indice por (cliente_id, is_default)).
+//
+// Ademas creaba la version pobre -- solo id, cliente_id e is_default -- y luego
+// la parcheaba a golpe de ALTER. La columna `numero` que intentaba ablandar no
+// existe en el esquema actual.
+//
+// El esquema se aplica desde db/schema.sql y los cambios van en db/migrations/.
+// La app no crea ni altera tablas: con permisos por tabla no podria, y ese es
+// justamente el punto.
 
 // GET — todas las direcciones del usuario
 export async function GET() {
@@ -44,7 +22,6 @@ export async function GET() {
     if (!clienteId) return NextResponse.json({ addresses: [] });
 
     try {
-        await ensureTable();
 
         const [rows] = await pool.query(
             'SELECT * FROM user_addresses WHERE cliente_id = ? ORDER BY is_default DESC, created_at DESC',
@@ -73,7 +50,6 @@ export async function POST(request) {
     const clienteId = await getClienteId();
     if (!clienteId) return NextResponse.json({ success: false, error: 'No autenticado' }, { status: 401 });
 
-    await ensureTable();
 
     const { nombre_recibe, calle, numero_ext, numero_int, colonia, cp, municipio, estado, referencias } = await request.json();
 

@@ -6,32 +6,19 @@ import { EVENTOS, votacionAbierta } from '@/lib/eventos';
 const EVENTO = EVENTOS.mundial2026.id;
 const OPCIONES = Object.keys(EVENTOS.mundial2026.opciones);
 
-let tablesReady = false;
-async function ensureTables() {
-    if (tablesReady) return;
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS event_votes (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            evento VARCHAR(64) NOT NULL,
-            cliente_id INT NOT NULL,
-            opcion VARCHAR(32) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY uniq_evento_cliente (evento, cliente_id)
-        )`);
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS event_results (
-            evento VARCHAR(64) PRIMARY KEY,
-            ganador VARCHAR(32) NOT NULL,
-            codigo VARCHAR(64) NULL,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )`);
-    tablesReady = true;
-}
+// Aqui habia un ensureTables() que corria CREATE TABLE IF NOT EXISTS en cada
+// llamada a esta ruta. Sobraba y ademas mentia: `event_votes` y `event_results`
+// viven en db/schema.sql, y la version de aqui era la vieja -- sin `is_demo` ni
+// los indices. Como nunca se ejecutaba de verdad (las tablas ya existen) nadie
+// lo noto, pero el dia que faltara una habria creado la forma equivocada y las
+// queries que filtran por is_demo habrian empezado a fallar.
+//
+// El esquema se aplica desde db/schema.sql y los cambios van en db/migrations/.
+// La app no crea tablas.
 
 // GET — conteos, voto del usuario (si hay sesión) y resultado/código si ya terminó
 export async function GET() {
     try {
-        await ensureTables();
 
         const [rows] = await pool.query(
             'SELECT opcion, COUNT(*) AS total FROM event_votes WHERE evento = ? GROUP BY opcion',
@@ -76,7 +63,6 @@ export async function GET() {
 // POST — registrar voto (requiere sesión, uno por usuario)
 export async function POST(req) {
     try {
-        await ensureTables();
 
         const session = await getSession();
         if (!session) {
@@ -114,7 +100,6 @@ export async function POST(req) {
 // PATCH — registrar el ganador y el código de descuento (solo admin, al terminar el partido)
 export async function PATCH(req) {
     try {
-        await ensureTables();
 
         const adminKey = req.headers.get('x-admin-key');
         if (!adminKey || adminKey !== process.env.CAPTURE_API_KEY) {

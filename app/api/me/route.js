@@ -54,14 +54,8 @@ export async function PUT(req) {
             }
         }
 
-        // Ensure extra columns exist (IF NOT EXISTS not supported in older MySQL)
-        const addCol = async (col, def) => {
-            try { await pool.query(`ALTER TABLE clientes ADD COLUMN ${col} ${def}`); }
-            catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') throw e; }
-        };
-        await addCol('avatar', 'VARCHAR(500) NULL');
-        await addCol('telefono', 'VARCHAR(30) NULL');
-        await addCol('contacto_preferido', "VARCHAR(20) NULL DEFAULT 'email'");
+        // `avatar`, `telefono` y `contacto_preferido` se anadian aqui con ALTER
+        // TABLE en cada guardado de perfil. Las tres estan en db/schema.sql.
 
         if (avatar) {
             await pool.query('UPDATE clientes SET avatar = ? WHERE id = ?', [avatar, payload.id]);

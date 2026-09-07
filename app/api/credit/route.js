@@ -2,24 +2,13 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 
-async function ensureHistoryTable() {
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS credit_history (
-            id          INT AUTO_INCREMENT PRIMARY KEY,
-            cliente_id  INT NOT NULL,
-            amount      DECIMAL(10,2) NOT NULL,
-            description VARCHAR(300),
-            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_cliente (cliente_id)
-        )
-    `);
-}
+// `credit_history` se creaba aqui en cada GET. Vive en db/schema.sql. La app no
+// crea tablas.
 
 export async function GET() {
     const clienteId = await getClienteId();
     if (!clienteId) return NextResponse.json({ balance: 0, history: [] });
 
-    await ensureHistoryTable();
 
     const [clienteRows] = await pool.query(
         'SELECT store_credit FROM clientes WHERE id = ? LIMIT 1',

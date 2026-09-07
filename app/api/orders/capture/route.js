@@ -87,15 +87,8 @@ export async function POST(request) {
         //    y un mismo cliente podía reusar un cupón global en varios pedidos.
         const couponId = parseInt(md.couponId) || null;
         if (couponId && clienteId) {
-          await pool.query(`
-            CREATE TABLE IF NOT EXISTS coupon_redemptions (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                coupon_id INT NOT NULL,
-                cliente_id INT NOT NULL,
-                sale_id INT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY uniq_coupon_cliente (coupon_id, cliente_id)
-            )`);
+          // `coupon_redemptions` esta en db/schema.sql; ya no se crea aqui.
+          // El INSERT IGNORE de abajo se apoya en su UNIQUE (coupon_id, cliente_id).
           const [ins] = await pool.query(
             'INSERT IGNORE INTO coupon_redemptions (coupon_id, cliente_id, sale_id) VALUES (?, ?, ?)',
             [couponId, clienteId, saleId]

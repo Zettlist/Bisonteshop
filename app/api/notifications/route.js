@@ -2,26 +2,11 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 
-const addCol = async (col, def) => {
-    try { await pool.query(`ALTER TABLE user_notifications ADD COLUMN ${col} ${def}`); }
-    catch (e) { if (e.code !== 'ER_DUP_FIELDNAME') throw e; }
-};
-
-async function ensureTable() {
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS user_notifications (
-            id          INT AUTO_INCREMENT PRIMARY KEY,
-            cliente_id  INT NOT NULL,
-            type        VARCHAR(50) DEFAULT 'info',
-            title       VARCHAR(200) NOT NULL,
-            body        VARCHAR(500),
-            read_at     TIMESTAMP NULL DEFAULT NULL,
-            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_cliente (cliente_id)
-        )
-    `);
-    await addCol('ref_id', 'VARCHAR(100) NULL');
-}
+// `user_notifications` se creaba aqui, y `ref_id` se anadia con ALTER TABLE en
+// cada peticion. La tabla esta en db/schema.sql, y alli `ref_id` forma parte de
+// UNIQUE KEY (cliente_id, ref_id) -- que es lo que impide avisar dos veces del
+// mismo pedido. El ALTER de aqui la anadia suelta, sin esa clave. La app no
+// crea ni altera tablas.
 
 // Config por estado — usa los valores de bisonte_orders.estado
 const STATUS_CFG = {
@@ -102,7 +87,6 @@ export async function GET() {
     const clienteId = await getClienteId();
     if (!clienteId) return NextResponse.json({ notifications: [], unread: 0 });
 
-    await ensureTable();
     await syncOrderNotifications(clienteId);
 
     const [rows] = await pool.query(

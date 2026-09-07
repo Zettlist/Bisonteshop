@@ -551,9 +551,17 @@ CREATE TABLE IF NOT EXISTS clientes (
     empresa_id         INT NOT NULL,
     nombre             VARCHAR(100) NOT NULL,
     apellido           VARCHAR(100) NOT NULL,
-    fecha_nac          DATE NOT NULL,
+    -- Nullable porque Google no comparte la fecha de nacimiento: la cuenta nace
+    -- sin ella y el cliente la completa despues. Hasta entonces no puede
+    -- comprar, lo corta /api/checkout.
+    fecha_nac          DATE NULL,
     email              VARCHAR(255) NOT NULL,
     password           VARCHAR(255) NOT NULL,
+    -- De donde salio la cuenta, y el identificador estable de Google. Se liga
+    -- por el sub y no por el correo: en un dominio corporativo un correo puede
+    -- cambiar de dueño, el sub no.
+    auth_provider      VARCHAR(20)  NOT NULL DEFAULT 'password',
+    google_sub         VARCHAR(64)  NULL,
     client_code        VARCHAR(20)  NOT NULL,
     telefono           VARCHAR(30)  NULL,
     nacionalidad       VARCHAR(100) NULL,
@@ -570,6 +578,9 @@ CREATE TABLE IF NOT EXISTS clientes (
     CONSTRAINT chk_clientes_credit CHECK (store_credit >= 0),
     UNIQUE KEY uniq_email       (email),
     UNIQUE KEY uniq_client_code (client_code),
+    -- Un mismo Google no puede quedar ligado a dos cuentas. El indice unico
+    -- admite varios NULL, que es lo que hace falta para el resto de clientes.
+    UNIQUE KEY uniq_google_sub  (google_sub),
     INDEX idx_verification_token (verification_token),
     INDEX idx_stripe_customer    (stripe_customer_id),
     INDEX idx_empresa            (empresa_id)
