@@ -182,6 +182,34 @@ CREATE TABLE IF NOT EXISTS products (
     stock            INT NOT NULL DEFAULT 0,
     stock_reservado  INT NOT NULL DEFAULT 0,
     stock_disponible INT AS (stock - stock_reservado) VIRTUAL,
+    -- En que momento de su vida esta el articulo.
+    --
+    --   normal    esta en la tienda (o se agoto). Es el caso de siempre.
+    --   preventa  se pidio al proveedor y viene en camino. Se puede vender y
+    --             apartar, pero no hay ni una pieza en el local.
+    --
+    -- Hasta aqui esto no era una columna: la tienda deducia la preventa de una
+    -- ETIQUETA llamada 'preventa' (lib/apartado.js, esPreventa). Una etiqueta la
+    -- borra cualquiera desde el alta de producto sin enterarse de que con eso
+    -- cambio el anticipo del 50% al 30% y desaparecio el articulo de la
+    -- preventa. El estado manda en el dinero, asi que es una columna.
+    --
+    -- 'Novedades' NO esta aqui a proposito: eso vive en `events.novedad`, que
+    -- ademas lleva tipo y fecha de fin. Al llegar el pedido el articulo pasa a
+    -- 'normal' y se le enciende ese evento; son dos ejes, no cuatro estados.
+    estado           ENUM('normal','preventa') NOT NULL DEFAULT 'normal',
+    -- Las piezas que vienen en camino y las que ya tienen dueño, con la misma
+    -- forma que stock/stock_reservado y por la misma razon (FIX 14): el catalogo
+    -- pregunta "¿queda preventa?" en cada tarjeta, y sumar `pre_orders` en cada
+    -- consulta es la subquery por item que ya se quito una vez.
+    --
+    -- Ojo con la diferencia: `stock_reservado` separa mercancia que existe;
+    -- `preventa_reservada` compromete mercancia que todavia no llega. Por eso
+    -- son dos pares de contadores y no uno — el CHECK (stock_reservado <= stock)
+    -- rechazaria, con razon, reservar sobre un stock de cero.
+    preventa_cantidad   INT NOT NULL DEFAULT 0,
+    preventa_reservada  INT NOT NULL DEFAULT 0,
+    preventa_disponible INT AS (preventa_cantidad - preventa_reservada) VIRTUAL,
     category         VARCHAR(100) NULL,
     barcode          VARCHAR(100) NULL,
     -- FIX 19 — un solo identificador de editor.
@@ -262,6 +290,14 @@ CREATE TABLE IF NOT EXISTS products (
     CONSTRAINT chk_products_reservado CHECK (stock_reservado >= 0),
     -- No se puede comprometer mas de lo que hay: la base rechaza la sobreventa.
     CONSTRAINT chk_products_disponible CHECK (stock_reservado <= stock),
+    CONSTRAINT chk_products_pv_cantidad  CHECK (preventa_cantidad  >= 0),
+    CONSTRAINT chk_products_pv_reservada CHECK (preventa_reservada >= 0),
+    -- No se puede vender mas preventa de la que se pidio al proveedor.
+    CONSTRAINT chk_products_pv_disponible CHECK (preventa_reservada <= preventa_cantidad),
+    -- Piezas en camino en un articulo que no esta en preventa serian piezas que
+    -- nadie va a recibir: al marcar la llegada el contador baja a cero y el
+    -- estado pasa a 'normal', y las dos cosas tienen que ocurrir juntas.
+    CONSTRAINT chk_products_pv_estado CHECK (preventa_cantidad = 0 OR estado = 'preventa'),
     -- Una calificacion fuera de 0-5 solo puede venir de un error de calculo;
     -- la base la rechaza antes de que la ficha pinte seis estrellas.
     CONSTRAINT chk_products_rating CHECK (rating IS NULL OR (rating >= 0 AND rating <= 5)),
@@ -280,7 +316,10 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_format        (format_id),
     -- FIX 22 — «continuar serie». Es la consulta que prellena el alta y la que
     -- ordena la ficha de serie en la tienda; sin indice recorre el catalogo.
-    INDEX idx_empresa_serie (empresa_id, series, volume)
+    INDEX idx_empresa_serie (empresa_id, series, volume),
+    -- La consulta de la tienda: que hay en preventa ahora mismo. Sin indice
+    -- recorre el catalogo entero para encontrar las pocas filas que lo estan.
+    INDEX idx_empresa_estado (empresa_id, estado)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- FIX 18 — contador real para los codigos de barra.
@@ -425,10 +464,10 @@ CREATE TABLE IF NOT EXISTS global_changes_log (
 --  si no se liquida a tiempo, la mercancia vuelve al catalogo.
 --
 --  No confundir con las preventas (pre_orders, mas abajo). Aquello son pedidos
---  que todavia vienen en camino: no hay producto en el catalogo ni stock que
---  reservar, y el plazo cuenta desde que llegan. Un apartado es siempre
---  mercancia que ya esta en la tienda, y por eso su plazo es de 15 dias, uno
---  solo y para todos.
+--  que todavia vienen en camino: no hay una sola pieza en la tienda que
+--  reservar, el anticipo es del 50% y el plazo cuenta desde que llegan. Un
+--  apartado es siempre mercancia que ya esta aqui, con anticipo del 30%, y por
+--  eso su plazo es de 15 dias, uno solo y para todos.
 --
 --  El stock se separa con `stock_reservado`, igual que un pedido web (FIX 14):
 --  el articulo sigue fisicamente en la tienda, pero deja de estar disponible.
@@ -873,14 +912,240 @@ CREATE TABLE IF NOT EXISTS event_results (
 --  reconstruido: sin ellas, Preventas y Creditos de Tienda responden 500.
 --
 --  Una preventa (pre_orders) es un pedido que viene en camino o que aun hay que
---  surtir. Por eso no tiene product_id ni reserva stock: el articulo todavia no
---  existe en el catalogo. Es lo que la distingue del apartado, que es siempre
---  mercancia que ya esta en la tienda.
+--  surtir. Es lo que la distingue del apartado, que es siempre mercancia que ya
+--  esta en la tienda y por eso reserva `stock_reservado`.
+--
+--  Nacieron sin product_id, cuando la unica forma de registrar una era teclear
+--  el titulo en el mostrador. Ahora hay dos maneras y las dos viven aqui:
+--
+--    de mostrador     un encargo suelto. Sin producto y sin pedido: `title` es
+--                     texto libre y la llegada se marca en esa fila.
+--    de cotizacion    el articulo existe en el catalogo en estado 'preventa' y
+--                     cuelga de un `cotizacion_pedidos`. La llegada se marca una
+--                     vez para el pedido entero.
+--
+--  Lo que compromete no es `stock_reservado` sino `products.preventa_reservada`:
+--  son piezas que todavia no estan, y reservar sobre un stock de cero lo
+--  rechazaria el CHECK — con razon.
 --
 --  El plazo cuenta desde que llega, no desde que se pide: hasta que alguien
 --  marca arrived_at el reloj no corre, porque no se le puede exigir a nadie que
 --  recoja lo que todavia no ha llegado.
+--
+--  Y toda preventa viva mantiene su mercancia fuera de la venta: antes de
+--  llegar como `preventa_reservada`, y despues como una pieza que arribo pero
+--  no entro al stock porque ya tenia dueño. De ahi que cada forma de matarla
+--  tenga que devolverla, y exactamente una vez — cancelar y vencer la devuelven,
+--  entregar no (esa pieza sale por la puerta), y renovarle el plazo a una
+--  vencida vuelve a retirarla. La cuenta esta en utils/preventas.js.
 -- =============================================================================
+
+-- ─── Cotizaciones ───────────────────────────────────────────────────────────
+--  Las creaba `TorlanPOS/backend/migrations/migrate_cotizaciones.js`, un script
+--  que se corre a mano y que ya iba por la version 10 a base de ALTER. Este
+--  archivo decia ser la unica fuente de verdad y no las nombraba, mientras
+--  grants.sql si les daba permisos: cargar el esquema en limpio dejaba a
+--  Cotizaciones sin sus cinco tablas.
+--
+--  Una cotizacion es una LISTA con nombre. Dentro hay dos cosas distintas:
+--
+--    items       lo que se quiere comprar. El precio de compra va en JPY y el
+--                de venta en MXN, de ahi `tipo_cambio` en la cabecera.
+--    proveedores las propuestas recibidas. Cada una desglosada en conceptos
+--                (mercancia, envio, aduana...) y con `item_ids`: que renglones
+--                de la lista cubre esa propuesta y cuales no.
+--
+--  Elegir proveedor es lo que convierte la lista en un pedido real; eso vive en
+--  `cotizacion_pedidos`, mas abajo.
+CREATE TABLE IF NOT EXISTS cotizaciones (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id  INT NOT NULL,
+    nombre      VARCHAR(255) NOT NULL,
+    estado      ENUM('borrador','confirmada') NOT NULL DEFAULT 'confirmada',
+    -- MXN por 1 JPY, congelado al crear la cotizacion. Se guarda y no se
+    -- consulta al vuelo: comparar propuestas de hace un mes con la tasa de hoy
+    -- cambiaria el ganador sin que nadie tocara un numero.
+    tipo_cambio DECIMAL(10,4) NOT NULL DEFAULT 0,
+    notas       TEXT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cotiz_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
+    INDEX idx_cotiz_empresa (empresa_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- `unidades` y `piezas` no son lo mismo y el dinero solo mira a una:
+--   unidades -> cuantas veces se compra el renglon.
+--   piezas   -> cuantos articulos trae CADA unidad (un paquete, un lote, un set).
+-- costo_compra y precio_venta son de UNA unidad, con las piezas ya dentro. Los
+-- articulos que se reciben son unidades * piezas, y eso es lo que despues pasa
+-- a preventa.
+CREATE TABLE IF NOT EXISTS cotizacion_items (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    cotizacion_id INT NOT NULL,
+    empresa_id    INT NOT NULL,
+    producto      VARCHAR(255) NOT NULL,
+    unidades      INT NOT NULL DEFAULT 1,
+    piezas        INT NOT NULL DEFAULT 1,
+    peso_kg       DECIMAL(10,3) NOT NULL DEFAULT 0,
+    tipo          ENUM('offline','online') NOT NULL DEFAULT 'offline',
+    link          VARCHAR(1024) NULL,
+    costo_compra  DECIMAL(12,2) NOT NULL DEFAULT 0,
+    precio_venta  DECIMAL(12,2) NOT NULL DEFAULT 0,
+    imagen_url    VARCHAR(1024) NULL,
+    orden         INT NOT NULL DEFAULT 0,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_citem_cotiz   FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id) ON DELETE CASCADE,
+    CONSTRAINT fk_citem_empresa FOREIGN KEY (empresa_id)    REFERENCES empresas(id)     ON DELETE CASCADE,
+    -- Un renglon de cero unidades o de cero piezas no se puede comprar, y al
+    -- pasarlo a preventa daria una cantidad de cero.
+    CONSTRAINT chk_citem_unidades CHECK (unidades > 0),
+    CONSTRAINT chk_citem_piezas   CHECK (piezas   > 0),
+    INDEX idx_citem_cotiz (cotizacion_id, orden)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS cotizacion_proveedores (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    cotizacion_id INT NOT NULL,
+    empresa_id    INT NOT NULL,
+    nombre        VARCHAR(255) NOT NULL,
+    moneda        ENUM('JPY','MXN') NOT NULL DEFAULT 'JPY',
+    -- Ya no se usa: el total de una propuesta es la suma de sus conceptos. La
+    -- columna sigue porque la migracion v6 volco los valores viejos a un
+    -- concepto llamado 'Precio base' y dejo esto en cero.
+    precio_base   DECIMAL(12,2) NOT NULL DEFAULT 0,
+    -- Que renglones de la lista cubre esta propuesta. Es lo que permite pedirle
+    -- la mitad a un proveedor y la otra mitad a otro.
+    item_ids      JSON NULL,
+    notas         TEXT NULL,
+    orden         INT NOT NULL DEFAULT 0,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cprov_cotiz   FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cprov_empresa FOREIGN KEY (empresa_id)    REFERENCES empresas(id)     ON DELETE CASCADE,
+    INDEX idx_cprov_cotiz (cotizacion_id, orden)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS cotizacion_proveedor_conceptos (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    proveedor_id INT NOT NULL,
+    empresa_id   INT NOT NULL,
+    concepto     VARCHAR(255) NOT NULL,
+    monto        DECIMAL(12,2) NOT NULL DEFAULT 0,
+    orden        INT NOT NULL DEFAULT 0,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cconc_prov    FOREIGN KEY (proveedor_id) REFERENCES cotizacion_proveedores(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cconc_empresa FOREIGN KEY (empresa_id)   REFERENCES empresas(id)               ON DELETE CASCADE,
+    CONSTRAINT chk_cconc_monto  CHECK (monto >= 0),
+    INDEX idx_cconc_prov (proveedor_id, orden)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cada PDF emitido deja folio: [45|88]-Q[n]-COT[##]-[01|02]. La seleccion de
+-- productos que iba en ese PDF se guarda 20 dias (`item_ids` se vacia despues,
+-- la fila no se borra) para poder recuperarla al registrar al proveedor.
+CREATE TABLE IF NOT EXISTS cotizacion_folios (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id      INT NOT NULL,
+    cotizacion_id   INT NOT NULL,
+    folio           INT NOT NULL,
+    folio_str       VARCHAR(40) NULL,
+    anio            INT NULL,
+    trimestre       INT NULL,
+    num_cotizacion  INT NULL,
+    nombre_snapshot VARCHAR(255) NULL,
+    item_ids        JSON NULL,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at      TIMESTAMP NOT NULL,
+    CONSTRAINT fk_cfolio_cotiz   FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cfolio_empresa FOREIGN KEY (empresa_id)    REFERENCES empresas(id)     ON DELETE CASCADE,
+    INDEX idx_cfolio_cotiz   (cotizacion_id, id),
+    INDEX idx_cfolio_expires (expires_at),
+    INDEX idx_cfolio_trim    (empresa_id, anio, trimestre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ─── El pedido que nace de una cotizacion ───────────────────────────────────
+--  Aqui es donde una lista de precios se vuelve mercancia comprometida.
+--
+--  Se elige UNA propuesta de proveedor y sus renglones se dan de alta como
+--  productos en estado 'preventa': existen en el catalogo, se pueden vender y
+--  apartar, y no suman ni una pieza al stock, porque todavia no estan.
+--
+--  El pedido es el que arriba, no cada preventa por separado. Un contenedor
+--  llega entero: marcarlo fila por fila era pedirle a alguien que repitiera
+--  cuarenta veces el mismo dato, con la garantia de que a la cuarentena se le
+--  olvidaria una.
+CREATE TABLE IF NOT EXISTS cotizacion_pedidos (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id    INT NOT NULL,
+    cotizacion_id INT NOT NULL,
+    -- La propuesta aceptada. ON DELETE SET NULL y no CASCADE: si alguien
+    -- reescribe la lista de proveedores (PUT la reemplaza entera), el pedido ya
+    -- hecho no puede desaparecer — hay mercancia pagada detras.
+    proveedor_id  INT NULL,
+    -- Copias del momento en que se acepto. La propuesta se puede reescribir; lo
+    -- que se pidio y a cuanto, no.
+    proveedor_nombre VARCHAR(255) NOT NULL,
+    folio_str     VARCHAR(40) NULL,
+    costo_total   DECIMAL(12,2) NOT NULL DEFAULT 0,
+    moneda        ENUM('JPY','MXN') NOT NULL DEFAULT 'JPY',
+    tipo_cambio   DECIMAL(10,4) NOT NULL DEFAULT 0,
+    estado        ENUM('en_camino','arribado','cancelado') NOT NULL DEFAULT 'en_camino',
+    arribado_at   DATETIME NULL,
+    arribado_por  INT NULL,
+    notas         TEXT NULL,
+    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cped_empresa FOREIGN KEY (empresa_id)    REFERENCES empresas(id)               ON DELETE CASCADE,
+    CONSTRAINT fk_cped_cotiz   FOREIGN KEY (cotizacion_id) REFERENCES cotizaciones(id)           ON DELETE CASCADE,
+    CONSTRAINT fk_cped_prov    FOREIGN KEY (proveedor_id)  REFERENCES cotizacion_proveedores(id) ON DELETE SET NULL,
+    CONSTRAINT fk_cped_user    FOREIGN KEY (arribado_por)  REFERENCES users(id)                  ON DELETE SET NULL,
+    -- Arribado sin fecha de arribo seria no saber cuando empezaron a correr los
+    -- plazos de todos los clientes que esperan este pedido.
+    CONSTRAINT chk_cped_arribo CHECK (estado <> 'arribado' OR arribado_at IS NOT NULL),
+    INDEX idx_cped_cotiz   (cotizacion_id),
+    INDEX idx_cped_abiertos (empresa_id, estado, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Un renglon del pedido: el producto que se creo y cuantas piezas trae.
+CREATE TABLE IF NOT EXISTS cotizacion_pedido_items (
+    id                 INT AUTO_INCREMENT PRIMARY KEY,
+    pedido_id          INT NOT NULL,
+    -- De que renglon de la cotizacion salio. SET NULL porque la cotizacion se
+    -- puede seguir editando y el pedido no depende de ella para nada mas.
+    cotizacion_item_id INT NULL,
+    product_id         INT NOT NULL,
+    -- unidades * piezas del renglon: los articulos que se van a recibir.
+    cantidad           INT NOT NULL,
+    -- Cuando este renglon dejo de estar vivo, por lo que sea: porque el pedido
+    -- llego o porque se cancelo. NO es la fecha de llegada -- esa es
+    -- `cotizacion_pedidos.arribado_at`, y solo existe cuando de verdad llego.
+    -- Guardar aqui una llegada al cancelar seria dejar escrito que entro por la
+    -- puerta mercancia que nunca se mando.
+    --
+    -- Existe unicamente para sostener el UNIQUE de abajo.
+    cerrado_at         DATETIME NULL,
+    -- Un producto no puede estar en dos pedidos abiertos a la vez.
+    --
+    -- De esto depende que la llegada cuadre. Al arribar, las piezas que pasan al
+    -- stock son `cantidad - products.preventa_reservada`, y esa resta solo es
+    -- correcta si el contador del producto pertenece a UN pedido. Con dos
+    -- abiertos, lo vendido de uno se descontaria del otro.
+    --
+    -- MySQL no tiene indices parciales, asi que la condicion viaja en una
+    -- columna generada: mientras el renglon sigue vivo vale el product_id (y el
+    -- UNIQUE lo bloquea), al cerrarse pasa a NULL — y en un indice UNIQUE los
+    -- NULL no chocan entre si, de modo que el mismo titulo se puede volver a
+    -- pedir la temporada que viene.
+    producto_abierto   INT AS (IF(cerrado_at IS NULL, product_id, NULL)) VIRTUAL,
+    created_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cpitem_pedido  FOREIGN KEY (pedido_id)          REFERENCES cotizacion_pedidos(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cpitem_citem   FOREIGN KEY (cotizacion_item_id) REFERENCES cotizacion_items(id)   ON DELETE SET NULL,
+    CONSTRAINT fk_cpitem_product FOREIGN KEY (product_id)         REFERENCES products(id)           ON DELETE CASCADE,
+    CONSTRAINT chk_cpitem_cantidad CHECK (cantidad > 0),
+    UNIQUE KEY uniq_cpitem_pedido_producto (pedido_id, product_id),
+    UNIQUE KEY uniq_cpitem_abierto (producto_abierto),
+    INDEX idx_cpitem_pedido (pedido_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pre_order_batches (
     id           INT AUTO_INCREMENT PRIMARY KEY,
@@ -898,6 +1163,32 @@ CREATE TABLE IF NOT EXISTS pre_orders (
     id                     INT AUTO_INCREMENT PRIMARY KEY,
     empresa_id             INT NOT NULL,
     batch_id               INT NULL,
+    -- De que pedido al proveedor forma parte. NULL en las preventas de toda la
+    -- vida, las que se capturan a mano en el mostrador para un encargo suelto:
+    -- esas siguen marcando su llegada una por una.
+    pedido_id              INT NULL,
+    -- El articulo del catalogo. NULL tambien por lo mismo: hasta ahora una
+    -- preventa era un titulo escrito a mano (`title`) porque el producto no
+    -- existia en ninguna parte. Cuando nace de una cotizacion si existe, y
+    -- entonces esta columna es la que permite descontar `preventa_reservada` y
+    -- saber, al llegar el pedido, cuantas piezas quedan libres para el stock.
+    product_id             INT NULL,
+    quantity               INT NOT NULL DEFAULT 1,
+    -- Las dos formas de llevarse una preventa, que es la separacion que pide el
+    -- panel:
+    --
+    --   compra    se pago completa por adelantado. No debe nada; solo espera.
+    --   apartado  se dejo el 50% y se liquida cuando llegue. Es el que tiene
+    --             plazo, y por eso el reloj de `expires_at` es suyo.
+    --
+    -- El 50% (y no el 30% del apartado normal) esta en lib/apartado.js: la
+    -- mercancia hay que pagarsela al proveedor por adelantado, asi que el
+    -- anticipo cubre mas.
+    modalidad              ENUM('compra','apartado') NOT NULL DEFAULT 'apartado',
+    origen                 ENUM('mostrador','tienda') NOT NULL DEFAULT 'mostrador',
+    -- Cuenta de la tienda web, cuando la hay. Mismo criterio que anticipos: el
+    -- nombre y el telefono siguen siendo columnas para quien nunca se registro.
+    cliente_id             INT NULL,
     order_number           VARCHAR(50) NOT NULL,
     client_number          VARCHAR(50) NULL,
     client_name            VARCHAR(255) NULL,
@@ -914,6 +1205,11 @@ CREATE TABLE IF NOT EXISTS pre_orders (
     deposit                DECIMAL(10,2) NOT NULL DEFAULT 0,
     total_paid             DECIMAL(10,2) NOT NULL DEFAULT 0,
     balance                DECIMAL(10,2) NOT NULL DEFAULT 0,
+    -- 'cancelled' y 'delivered' existieron aqui desde el principio sin que nada
+    -- los escribiera. Ahora si: son las dos formas de cerrar una preventa a
+    -- mano, y hacen falta porque de ellas depende el inventario. Cancelar antes
+    -- de que llegue el pedido devuelve las piezas a `preventa_reservada`;
+    -- cancelar despues las devuelve al `stock`, que es donde estan fisicamente.
     status                 ENUM('pending','paid','cancelled','delivered','expired') DEFAULT 'pending',
     is_paid_in_full        TINYINT(1) DEFAULT 0,
     last_payment_date      DATE NULL,
@@ -928,24 +1224,51 @@ CREATE TABLE IF NOT EXISTS pre_orders (
     aviso_previo_at        DATETIME NULL,
     aviso_vencido_at       DATETIME NULL,
     expired_at             DATETIME NULL,
+    -- Cuando se cerro a mano, sea por entrega o por cancelacion; cual de las dos
+    -- lo dice `status`. El vencimiento no pasa por aqui: tiene `expired_at`, y
+    -- vencer no es cerrar — una preventa vencida sigue en el panel porque la
+    -- clausula 7.6 tiene una excepcion que una persona tiene que reconocer.
+    cerrado_at             DATETIME NULL,
     international_order    TINYINT(1) DEFAULT 0,
     international_country  VARCHAR(50) NULL,
     created_at             DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at             DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_po_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
     CONSTRAINT fk_po_batch   FOREIGN KEY (batch_id)   REFERENCES pre_order_batches(id) ON DELETE SET NULL,
+    CONSTRAINT fk_po_pedido  FOREIGN KEY (pedido_id)  REFERENCES cotizacion_pedidos(id) ON DELETE SET NULL,
+    -- SET NULL y no CASCADE: borrar un producto del catalogo no puede borrar el
+    -- compromiso con quien ya pago. Queda `title`, que es texto y sobrevive.
+    CONSTRAINT fk_po_product FOREIGN KEY (product_id) REFERENCES products(id)  ON DELETE SET NULL,
+    CONSTRAINT fk_po_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id)  ON DELETE SET NULL,
     CONSTRAINT chk_po_plazo  CHECK (dias_plazo > 0),
+    CONSTRAINT chk_po_cantidad CHECK (quantity > 0),
+    -- Una compra es, por definicion, lo que ya no debe nada. Si quedara saldo
+    -- seria un apartado con otro nombre, y el panel le reclamaria un pago a
+    -- quien ya pago todo.
+    CONSTRAINT chk_po_compra CHECK (modalidad <> 'compra' OR balance = 0),
     -- El vencimiento nace de la llegada. Una fecha limite sin llegada marcada
     -- seria un reloj que arranco solo, y vencerle el pedido a quien todavia
     -- espera es justo lo que no puede pasar.
     CONSTRAINT chk_po_arribo CHECK (expires_at IS NULL OR arrived_at IS NOT NULL),
+    -- Cerrar una preventa mueve inventario: la pieza vuelve a `preventa_reservada`
+    -- o al `stock` segun haya llegado o no. Sin fecha no hay forma de auditar
+    -- ese movimiento, ni de distinguir la fila cerrada hoy de la que lleva medio
+    -- año cerrada.
+    CONSTRAINT chk_po_cierre CHECK (status NOT IN ('cancelled','delivered')
+                                    OR cerrado_at IS NOT NULL),
     UNIQUE KEY uniq_order_empresa (empresa_id, order_number),
     INDEX idx_empresa (empresa_id),
     INDEX idx_batch   (batch_id),
     INDEX idx_status  (status),
     -- La consulta del panel y la del job nocturno: pedidos de una empresa
     -- ordenados por lo que esta mas cerca de vencer.
-    INDEX idx_vencimiento (empresa_id, status, expires_at)
+    INDEX idx_vencimiento (empresa_id, status, expires_at),
+    -- Al marcar la llegada del pedido hay que recorrer todo lo que colgaba de
+    -- el, y por producto para saber cuantas piezas tienen dueño.
+    INDEX idx_pedido  (pedido_id, product_id),
+    INDEX idx_product (product_id, status),
+    -- El listado del perfil en la tienda web.
+    INDEX idx_cliente (cliente_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS pre_order_payments (

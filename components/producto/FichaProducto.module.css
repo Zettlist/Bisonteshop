@@ -113,6 +113,23 @@
     letter-spacing: 1px;
 }
 
+/* Mismo sitio y misma forma que el sello de agotado, en ambar: es el otro
+   motivo por el que el articulo no sale hoy del estante. Nunca coinciden. */
+.selloPreventa {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(255, 214, 10, 0.92);
+    border: 1px solid rgba(10, 6, 9, 0.25);
+    color: #1a1206;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
 /* ── Columna de datos ──────────────────────────────────────────────────── */
 .columnaDatos {
     min-width: 0;
@@ -214,6 +231,20 @@
     font-size: 0.78rem;
     color: var(--muted);
     margin-bottom: 1.4rem;
+}
+
+/* Que es una preventa, antes de los botones. Va destacado porque cambia lo que
+   el cliente recibe y cuando: pulsar "apartar" aqui no es lo mismo que en un
+   articulo que esta en el estante. */
+.avisoPreventa {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text);
+    background: rgba(255, 214, 10, 0.1);
+    border: 1px solid rgba(255, 214, 10, 0.3);
+    border-radius: 10px;
+    padding: 0.7rem 0.85rem;
+    margin-bottom: 1rem;
 }
 
 /* ── Acciones ──────────────────────────────────────────────────────────── */

@@ -6,6 +6,7 @@ import { ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import RatingStars from './RatingStars';
 import { rutaDeProducto } from '@/lib/slug';
+import { esPreventa, disponiblesDe } from '@/lib/apartado';
 
 // La tarjeta es un enlace, no un div que escucha clics: antes abria un modal y
 // no habia forma de compartir un producto, abrirlo en otra pestana ni de que un
@@ -14,7 +15,12 @@ export default function MangaCard({ manga }) {
     const { formatPrice } = useCurrency();
     const addItem = useCartStore(state => state.addItem);
     const imageUrl = manga.image_url || null;
-    const isOutOfStock = manga.stock <= 0;
+    // Una preventa tiene el stock en cero siempre: la mercancia viene en camino.
+    // Contra el stock saldria "Agotado" el dia que se publica, que es justo lo
+    // contrario de lo que pasa.
+    const preventa = esPreventa(manga);
+    const disponibles = disponiblesDe(manga);
+    const isOutOfStock = disponibles <= 0;
     const [imgLoaded, setImgLoaded] = useState(false);
     const [imgError, setImgError] = useState(false);
 
@@ -52,8 +58,12 @@ export default function MangaCard({ manga }) {
                     <div className={styles.imagePlaceholder}>📚</div>
                 )}
 
-                {/* Quick Add To Cart Button */}
-                {!isOutOfStock && (
+                {/* Quick Add To Cart Button.
+                    En una preventa no: el carrito normal escribe en
+                    `bisonte_orders` y descuenta de un stock que aqui vale cero,
+                    y una preventa tiene que quedar en `pre_orders`, que es la
+                    tabla del panel. Se entra por la ficha, que lo explica. */}
+                {!isOutOfStock && !preventa && (
                     <button
                         className={styles.quickAddBtn}
                         onClick={(e) => {
@@ -79,7 +89,11 @@ export default function MangaCard({ manga }) {
                         </span>
                     )}
                     <span className={`${styles.stockBadge} ${isOutOfStock ? styles.outOfStockBadge : styles.inStock}`}>
-                        {isOutOfStock ? 'Agotado' : `${manga.stock} disp.`}
+                        {isOutOfStock
+                            ? 'Agotado'
+                            : preventa
+                                ? 'Preventa'
+                                : `${disponibles} disp.`}
                     </span>
                 </div>
             </div>

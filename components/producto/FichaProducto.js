@@ -16,6 +16,7 @@ import { useCurrency } from '@/context/CurrencyContext';
 import { useCartStore } from '@/store/cartStore';
 import { describirDimensiones } from '@/lib/dimensiones';
 import { verProducto } from '@/lib/analytics';
+import { esPreventa, disponiblesDe, porcentajeAnticipo, DIAS_PREVENTA } from '@/lib/apartado';
 
 export default function FichaProducto({ producto, similares = [] }) {
     const { formatPrice, currency } = useCurrency();
@@ -41,7 +42,13 @@ export default function FichaProducto({ producto, similares = [] }) {
         verProducto(producto);
     }, [producto]);
 
-    const agotado = (producto.stock ?? 0) <= 0;
+    // Una preventa tiene el stock en cero siempre — la mercancia viene en
+    // camino — asi que mirar el stock la dejaria "agotada" desde el primer dia.
+    // Lo que la limita es cuanto se pidio al proveedor menos lo que ya se
+    // vendio, y de eso se encarga `disponiblesDe`.
+    const preventa = esPreventa(producto);
+    const disponibles = disponiblesDe(producto);
+    const agotado = disponibles <= 0;
     const precio = producto.price != null ? Number(producto.price) : null;
     const tags = Array.isArray(producto.tags) ? producto.tags.filter(t => t?.trim()) : [];
     const editorial = producto.publisher?.toLowerCase() !== 'undefined' ? producto.publisher : null;
@@ -116,6 +123,7 @@ export default function FichaProducto({ producto, similares = [] }) {
                             <div className={styles.sinPortada}>📚</div>
                         )}
                         {agotado && <span className={styles.selloAgotado}>Agotado</span>}
+                        {!agotado && preventa && <span className={styles.selloPreventa}>Preventa</span>}
                     </figure>
                 </div>
 
@@ -148,22 +156,54 @@ export default function FichaProducto({ producto, similares = [] }) {
                             {precio != null && <small> {currency}</small>}
                         </span>
                         <span className={`${styles.stock} ${agotado ? styles.stockAgotado : styles.stockHay}`}>
-                            {agotado ? 'Agotado' : `${producto.stock} disponibles`}
+                            {agotado
+                                ? 'Agotado'
+                                : preventa
+                                    // Sin contador (los articulos marcados solo con la
+                                    // etiqueta vieja) no se inventa una cifra.
+                                    ? (Number.isFinite(disponibles) ? `${disponibles} en camino` : 'En camino')
+                                    : `${disponibles} disponibles`}
                         </span>
                     </div>
 
+                    {/* Que es una preventa, dicho antes de los botones: quien
+                        pulsa "Comprar" tiene que saber que no le llega mañana. */}
+                    {preventa && !agotado && (
+                        <p className={styles.avisoPreventa}>
+                            Todavía no está en la tienda: se pidió al proveedor y viene en camino.
+                            Se puede pagar completa, o apartar con el{' '}
+                            <strong>{porcentajeAnticipo('preventa')}%</strong>. Te avisamos cuando
+                            llegue, y desde ese día tienes <strong>{DIAS_PREVENTA} días</strong> para
+                            liquidarla y recogerla.
+                        </p>
+                    )}
+
                     {/* El envio no es un numero fijo: lo cotiza Envia contra la
                         direccion. Prometer una cifra aqui seria inventarla. */}
-                    <p className={styles.notaEnvio}>Envío calculado al finalizar la compra</p>
+                    {!preventa && (
+                        <p className={styles.notaEnvio}>Envío calculado al finalizar la compra</p>
+                    )}
 
                     <div className={styles.acciones}>
+                        {/* Las dos rutas de la preventa estan apagadas, y las dos
+                            por el mismo motivo: una preventa tiene que quedar
+                            escrita en `pre_orders`, que es la tabla que el POS lee
+                            en Preventas y donde se separan las compradas de las
+                            apartadas. El carrito normal no escribe ahi -- escribe
+                            en `bisonte_orders` y descuenta de un stock que en una
+                            preventa vale cero -- asi que dejarlo pasar crearia un
+                            pedido web que el mostrador no puede surtir y que nadie
+                            veria en el panel. Se encienden juntas cuando exista la
+                            ruta de cobro. */}
                         <button
                             onClick={() => addItem(producto)}
-                            disabled={agotado}
+                            disabled={agotado || preventa}
                             className={`${styles.btn} ${styles.btnPrimario}`}
                         >
                             <ShoppingBag size={17} />
-                            {agotado ? 'No disponible' : 'Agregar al carrito'}
+                            {agotado
+                                ? 'No disponible'
+                                : preventa ? 'Comprar preventa' : 'Agregar al carrito'}
                         </button>
                         <button
                             onClick={() => setApartando(true)}
@@ -171,9 +211,16 @@ export default function FichaProducto({ producto, similares = [] }) {
                             className={`${styles.btn} ${styles.btnSecundario}`}
                         >
                             <BookmarkPlus size={17} />
-                            Apartar
+                            {preventa ? `Apartar (${porcentajeAnticipo('preventa')}%)` : 'Apartar'}
                         </button>
                     </div>
+
+                    {preventa && !agotado && (
+                        <p className={styles.notaEnvio}>
+                            La compra en línea de preventas todavía no está habilitada.
+                            Escríbenos y te la apartamos mientras tanto.
+                        </p>
+                    )}
 
                     {tags.length > 0 && (
                         <div className={styles.tags}>

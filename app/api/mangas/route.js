@@ -15,6 +15,11 @@ export async function GET(request) {
         p.name as title,
         p.sale_price as price,
         p.stock,
+        -- Preventa: viene en camino, el stock es cero y lo que la limita es
+        -- cuanto se pidio al proveedor menos lo que ya tiene dueño. Quien pinta
+        -- la tarjeta lo resuelve con disponiblesDe() (lib/apartado.js).
+        p.estado,
+        p.preventa_disponible,
         p.category,
         p.gender,
         p.barcode,

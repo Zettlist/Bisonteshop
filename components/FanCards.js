@@ -17,6 +17,7 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCurrency } from '@/context/CurrencyContext';
 import styles from './FanCards.module.css';
+import { disponiblesDe } from '@/lib/apartado';
 
 const MAX_VISIBLE = 7;
 const HALF = 3;
@@ -212,7 +213,9 @@ export default function FanCards({ items = [], onSelect }) {
                                 <span className={styles.sinPortada}>📚</span>
                             )}
 
-                            {p.stock <= 0 && <span className={styles.agotado}>Agotado</span>}
+                            {/* Una preventa tiene el stock en cero y no esta
+                                agotada: viene en camino. Ver lib/apartado.js. */}
+                            {disponiblesDe(p) <= 0 && <span className={styles.agotado}>Agotado</span>}
 
                             {/* La ficha solo se pinta en la carta al frente: en
                                 las giradas el texto queda ilegible. */}

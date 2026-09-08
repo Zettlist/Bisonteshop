@@ -10,6 +10,7 @@ import { useSearchStore } from '@/store/searchStore';
 import LandingZineAdultos from '@/components/LandingZineAdultos';
 import { ShieldAlert, SlidersHorizontal, AlertTriangle, ArrowLeft, Tag, X } from 'lucide-react';
 import styles from './adultos.module.css';
+import { disponiblesDe } from '@/lib/apartado';
 
 const ADULT_TAGS = [
     'Furry', 'NTR', 'Milf', 'Shotacon', 'Futanari', 'Bara',
@@ -160,7 +161,9 @@ function AdultosPageInner() {
                 const pTags = (p.tags || []).map(t => t.trim().toLowerCase());
                 return selectedTags.every(tag => pTags.includes(tag.toLowerCase()));
             });
-        if (selectedStock === 'inStock') result = result.filter(p => p.stock > 0);
+        // Una preventa se puede comprar y apartar: cuenta como disponible
+        // aunque su stock sea cero. Ver app/mangas/page.js.
+        if (selectedStock === 'inStock') result = result.filter(p => disponiblesDe(p) > 0);
 
         result.sort((a, b) => {
             if (sortBy === 'recent') return b.id - a.id;

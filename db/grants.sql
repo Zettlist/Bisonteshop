@@ -52,7 +52,18 @@ GRANT SELECT ON torlan_pos.publishers TO 'bisonte_app'@'%';
 -- checkout, porque ahi es donde se compromete la mercancia. Puede tocar
 -- stock_reservado y NADA mas de products -- ni el stock fisico ni el precio.
 -- El CHECK (stock_reservado <= stock) impide que reserve de mas.
-GRANT UPDATE (stock_reservado) ON torlan_pos.products TO 'bisonte_app'@'%';
+-- `preventa_reservada` va en la misma excepcion y por el mismo motivo: es el
+-- contador de lo que la tienda compromete al vender un articulo que viene en
+-- camino. Sin el, la ruta de cobro del anticipo fallaria con un permiso
+-- denegado el dia que se encienda el boton de apartar.
+GRANT UPDATE (stock_reservado, preventa_reservada) ON torlan_pos.products TO 'bisonte_app'@'%';
+
+-- Preventas: SOLO LECTURA. La tienda las pinta en el catalogo y en el perfil de
+-- quien las tiene. Escribirlas es del POS -- y lo sera tambien de la ruta de
+-- cobro del anticipo, que todavia no existe: cuando entre, aqui hace falta
+-- INSERT, y esa linea se agrega junto con ella y no antes.
+GRANT SELECT ON torlan_pos.pre_orders          TO 'bisonte_app'@'%';
+GRANT SELECT ON torlan_pos.pre_order_payments  TO 'bisonte_app'@'%';
 
 -- Segunda excepcion, tambien por columna: al guardar una opinion la tienda
 -- recalcula el promedio del producto en la misma transaccion. Son columnas
@@ -109,8 +120,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.anticipo_items     TO 'pos_ap
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.anticipo_payments  TO 'pos_app'@'%';
 -- Contador de folios: se lee y se incrementa, nunca se borra una fila.
 GRANT SELECT, INSERT, UPDATE         ON torlan_pos.apartado_sequences TO 'pos_app'@'%';
--- Preventas: pedidos en camino. Solo el POS los toca; la tienda web no los
--- muestra en ninguna parte todavia.
+-- Preventas: pedidos en camino.
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.pre_orders         TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.pre_order_payments TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.pre_order_batches  TO 'pos_app'@'%';
@@ -142,6 +152,13 @@ GRANT SELECT, INSERT                 ON torlan_pos.cotizacion_proveedor_concepto
 -- Contador de folios: se lee y se incrementa, nunca se borra una fila. Mismo
 -- criterio que apartado_sequences.
 GRANT SELECT, INSERT, UPDATE         ON torlan_pos.cotizacion_folios               TO 'pos_app'@'%';
+
+-- El pedido que nace de aceptarle la propuesta a un proveedor, y sus renglones.
+-- Sin DELETE a proposito: detras de un pedido hay mercancia pagada y clientes
+-- esperandola. Se cancela cambiandole el estado, que deja rastro; borrarlo se
+-- llevaria por delante el `pedido_id` de cada preventa que colgaba de el.
+GRANT SELECT, INSERT, UPDATE         ON torlan_pos.cotizacion_pedidos              TO 'pos_app'@'%';
+GRANT SELECT, INSERT, UPDATE         ON torlan_pos.cotizacion_pedido_items         TO 'pos_app'@'%';
 
 -- Pedidos al proveedor (routes/erp.js).
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.erp_pedidos        TO 'pos_app'@'%';

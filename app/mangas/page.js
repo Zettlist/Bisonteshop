@@ -9,6 +9,7 @@ import MangaCard from '@/components/MangaCard';
 import { useSearchStore } from '@/store/searchStore';
 import { Filter, PackageX, X } from 'lucide-react';
 import styles from './mangas.module.css';
+import { disponiblesDe } from '@/lib/apartado';
 
 const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -184,8 +185,12 @@ function MangasPageInner() {
             );
         }
 
+        // El interruptor dice «Solo disponibles», no «solo lo que esta en el
+        // estante»: una preventa se puede comprar y apartar, asi que cuenta como
+        // disponible aunque su stock sea cero. Filtrar por `stock > 0` las
+        // escondia todas justo del cliente que pidio ver lo que puede llevarse.
         if (selectedStock === 'inStock') {
-            result = result.filter(m => m.stock > 0);
+            result = result.filter(m => disponiblesDe(m) > 0);
         }
 
         result = [...result].sort((a, b) => {

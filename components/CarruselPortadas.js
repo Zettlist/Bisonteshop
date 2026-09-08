@@ -9,6 +9,7 @@ import { useCartStore } from '@/store/cartStore';
 import RatingStars from './RatingStars';
 import { rutaDeProducto } from '@/lib/slug';
 import styles from './CarruselPortadas.module.css';
+import { esPreventa, disponiblesDe } from '@/lib/apartado';
 
 /**
  * Tira de tarjetas para el estante de una categoría.
@@ -205,7 +206,10 @@ export default function CarruselPortadas({ productos = [] }) {
                         </div>
                     ))
                     : productos.map(p => {
-                        const agotado = p.stock <= 0;
+                        // Una preventa tiene el stock en cero y no esta agotada:
+                        // viene en camino y se puede comprar. Ver lib/apartado.js.
+                        const preventa = esPreventa(p);
+                        const agotado = disponiblesDe(p) <= 0;
                         return (
                             <div key={p.id} className={`${styles.portada} ${agotado ? styles.sinStock : ''}`}>
                                 {/* El enlace envuelve portada, titulo y precio,
@@ -227,6 +231,7 @@ export default function CarruselPortadas({ productos = [] }) {
                                             <span className={styles.sinFoto}>📚</span>
                                         )}
                                         {agotado && <span className={styles.agotado}>Agotado</span>}
+                                        {!agotado && preventa && <span className={styles.agotado}>Preventa</span>}
                                     </div>
                                     <span className={styles.rotulo}>{p.title}</span>
                                     {/* El renglón se reserva aunque el producto
@@ -239,12 +244,18 @@ export default function CarruselPortadas({ productos = [] }) {
                                     <span className={styles.precio}>{formatPrice(p.price)}</span>
                                 </Link>
 
+                                {/* En una preventa no hay atajo: el carrito
+                                    normal escribe en `bisonte_orders` y descuenta
+                                    de un stock que aqui vale cero, y una preventa
+                                    tiene que quedar en `pre_orders`. Se entra por
+                                    la ficha, que explica el anticipo y el plazo
+                                    antes de que nadie pague. */}
                                 <div className={styles.botones}>
                                     <button
                                         type="button"
                                         className={`${styles.btn} ${styles.btnAgregar} ${agregado === p.id ? styles.btnListo : ''}`}
                                         onClick={() => agregar(p)}
-                                        disabled={agotado}
+                                        disabled={agotado || preventa}
                                         aria-label={`Agregar ${p.title} al carrito`}
                                     >
                                         {agregado === p.id
@@ -254,11 +265,11 @@ export default function CarruselPortadas({ productos = [] }) {
                                     <button
                                         type="button"
                                         className={`${styles.btn} ${styles.btnComprar}`}
-                                        onClick={() => comprar(p)}
+                                        onClick={() => (preventa ? router.push(rutaDeProducto(p)) : comprar(p))}
                                         disabled={agotado}
-                                        aria-label={`Comprar ${p.title} ahora`}
+                                        aria-label={preventa ? `Ver la preventa de ${p.title}` : `Comprar ${p.title} ahora`}
                                     >
-                                        Comprar
+                                        {preventa ? 'Ver preventa' : 'Comprar'}
                                     </button>
                                 </div>
                             </div>

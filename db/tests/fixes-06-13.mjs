@@ -294,6 +294,14 @@ const ESPERADAS = [
     'store_credits', 'store_credit_uses', 'barcode_sequences',
     'product_reviews', 'erp_pedidos',
     'apartado_sequences', 'anticipo_payments',
+    // Cotizaciones. Las creaba a mano migrate_cotizaciones.js, un script que ya
+    // iba por la version 10 a base de ALTER, mientras este archivo se llamaba a
+    // si mismo la unica fuente de verdad y no las nombraba.
+    'cotizaciones', 'cotizacion_items', 'cotizacion_proveedores',
+    'cotizacion_proveedor_conceptos', 'cotizacion_folios',
+    // El pedido que nace de aceptarle la propuesta a un proveedor: es lo que
+    // convierte una lista de precios en productos en preventa.
+    'cotizacion_pedidos', 'cotizacion_pedido_items',
 ];
 
 test(13, 'schema.sql crea todas las tablas de una sola pasada', async () => {

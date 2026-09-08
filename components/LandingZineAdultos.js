@@ -9,6 +9,7 @@ import AccordionGallery from '@/components/AccordionGallery';
 import { useCurrency } from '@/context/CurrencyContext';
 import { useSplash } from '@/context/SplashContext';
 import styles from './LandingZineAdultos.module.css';
+import { esPreventa, disponiblesDe } from '@/lib/apartado';
 
 const pop = {
     hidden: { opacity: 0, scale: 0.7, rotate: -6 },
@@ -162,7 +163,13 @@ function MasVendidos({ products, loading, onExplore, onSelectProduct }) {
                 renderMeta={(p) => (
                     <>
                         <strong className={styles.vendidoPrecio}>{formatPrice(p.price)}</strong>
-                        <span>{p.stock > 0 ? `${p.stock} disponibles` : 'Agotado'}</span>
+                        {/* Una preventa tiene el stock en cero y no esta
+                            agotada: viene en camino. Ver lib/apartado.js. */}
+                        <span>
+                            {esPreventa(p)
+                                ? 'Preventa'
+                                : disponiblesDe(p) > 0 ? `${disponiblesDe(p)} disponibles` : 'Agotado'}
+                        </span>
                         {(p.vendidos || 0) > 0 && <span>· {p.vendidos} vendidos</span>}
                     </>
                 )}

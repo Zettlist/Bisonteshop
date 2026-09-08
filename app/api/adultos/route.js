@@ -11,6 +11,9 @@ export async function GET() {
         p.name as title,
         p.sale_price as price,
         p.stock,
+        -- Preventa: viene en camino y el stock es cero. Ver /api/mangas.
+        p.estado,
+        p.preventa_disponible,
         p.category,
         p.gender,
         p.barcode,

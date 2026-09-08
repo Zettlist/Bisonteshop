@@ -97,11 +97,30 @@ test(G, 'la consulta del job nocturno usa el indice de vencimiento', async () =>
         [f.empresaId], 'idx_vencimiento');
 });
 
-test(G, 'una preventa no reserva stock', async () => {
-    // No puede: no hay producto en el catalogo al que apuntar. Es lo que la
-    // separa del apartado, y por eso pre_orders guarda el titulo en texto.
-    const [cols] = await sql(`SHOW COLUMNS FROM pre_orders LIKE 'product_id'`);
-    assertEqual(cols.length, 0);
+test(G, 'una preventa no reserva stock fisico', async () => {
+    // Es lo que la separa del apartado. Alli la mercancia esta en la tienda y
+    // se separa con `stock_reservado`; aqui no hay ni una pieza que separar, y
+    // el CHECK (stock_reservado <= stock) rechazaria -- con razon -- reservar
+    // sobre un stock de cero. Lo que compromete una preventa es
+    // `preventa_reservada`, que cuenta piezas que todavia vienen en camino.
+    const f = await seed();
+    await sql(`UPDATE products SET stock = 0, estado = 'preventa', preventa_cantidad = 5
+                WHERE id = ?`, [f.productId]);
+    await sql(`INSERT INTO pre_orders (empresa_id, order_number, client_name, product_id,
+                                       quantity, title, total_price, deposit, total_paid, balance)
+               VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [f.empresaId, 'PV-STOCK', 'Ana Lopez', f.productId, 2, 'Berserk Vol.1',
+            1000.00, 500.00, 500.00, 500.00]);
+    await sql(`UPDATE products SET preventa_reservada = preventa_reservada + 2 WHERE id = ?`,
+        [f.productId]);
+
+    const [r] = await sql(`SELECT stock, stock_reservado, preventa_cantidad,
+                                  preventa_reservada, preventa_disponible
+                             FROM products WHERE id = ?`, [f.productId]);
+    assertEqual(r[0].stock, 0);
+    assertEqual(r[0].stock_reservado, 0);
+    assertEqual(r[0].preventa_reservada, 2);
+    assertEqual(r[0].preventa_disponible, 3);
 });
 
 // ── El dinero: cada abono sabe en que turno de caja entro ───────────────────

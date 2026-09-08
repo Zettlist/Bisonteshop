@@ -6,6 +6,7 @@ import MangaCard from '@/components/MangaCard';
 import { useSearchStore } from '@/store/searchStore';
 import { Loader2, Filter, PackageX, X } from 'lucide-react';
 import styles from './figuras.module.css';
+import { disponiblesDe } from '@/lib/apartado';
 
 export default function FigurasPage() {
     const [figuras, setFiguras] = useState([]);
@@ -147,7 +148,9 @@ export default function FigurasPage() {
         }
 
         if (selectedStock === 'inStock') {
-            result = result.filter(m => m.stock > 0);
+            // Una preventa se puede comprar y apartar: cuenta como disponible
+            // aunque su stock sea cero. Ver app/mangas/page.js.
+            result = result.filter(m => disponiblesDe(m) > 0);
         }
 
         result = [...result].sort((a, b) => {
