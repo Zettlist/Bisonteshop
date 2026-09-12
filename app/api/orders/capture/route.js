@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { sendOrderConfirmation } from '@/lib/mailer';
 import { devolverCredito } from '@/lib/credito';
+import { esPedidoDeSaldo } from '@/lib/pedidoSaldo';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,11 +51,18 @@ export async function POST(request) {
 
     const paymentIntentId = order.payment_intent_id;
 
+    // Un pedido pagado entero con saldo no tiene cargo en Stripe: su
+    // `payment_intent_id` es una referencia propia (`saldo_...`), no un `pi_`.
+    // Todo lo demas del flujo es identico -- el POS confirma existencias igual
+    // y los dos ejes de estado se mueven igual -- pero no hay nada que
+    // capturar ni que liberar alla, y pedirselo a Stripe seria un 404.
+    const sinCargo = esPedidoDeSaldo(paymentIntentId);
+
     if (action === 'capture') {
       // ── CAPTURAR: cobrar al cliente ──────────────────────────────
       // Stock deduction is handled exclusively by TorlanPos (deductStock with stock_deducted guard).
       // Bisonte only handles the Stripe capture and status update.
-      await stripe.paymentIntents.capture(paymentIntentId);
+      if (!sinCargo) await stripe.paymentIntents.capture(paymentIntentId);
 
       // Solo se mueve el eje del cobro. El eje de la entrega (`estado`) lo
       // escribe el POS cuando confirma existencias y prepara el envio: si la
@@ -71,8 +79,16 @@ export async function POST(request) {
       );
 
       // Efectos que SOLO deben ocurrir cuando el dinero se cobra de verdad
-      // (no en autorizaciones abandonadas o canceladas):
+      // (no en autorizaciones abandonadas o canceladas).
+      //
+      // El pedido sin cargo no entra aqui: no hay PaymentIntent que consultar,
+      // y su cupon ya se registro en /api/checkout/confirm, que es donde vivia
+      // el unico metadata que ese camino llega a tener.
       try {
+        if (sinCargo) {
+          console.log(`[Capture] Pedido #${saleId} pagado con saldo: sin cargo que capturar en Stripe.`);
+          return NextResponse.json({ success: true, action: 'captured', saleId, sinCargo: true, stockErrors: [] });
+        }
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
         const md = pi.metadata || {};
         // El cliente autoritativo lo fijó /checkout en el metadata (no confiar en order.cliente_id,
@@ -115,7 +131,10 @@ export async function POST(request) {
 
     } else {
       // ── CANCELAR: liberar autorización, no cobrar ────────────────
-      await stripe.paymentIntents.cancel(paymentIntentId);
+      // El pedido pagado con saldo no tiene autorizacion que liberar; toda su
+      // reversion es la devolucion del saldo, que ocurre abajo igual que en
+      // cualquier otra cancelacion.
+      if (!sinCargo) await stripe.paymentIntents.cancel(paymentIntentId);
 
       // Aqui si se mueven los dos ejes: una autorizacion liberada no deja
       // pedido que entregar, y `cancelled_at` es lo que fecha la cancelacion.

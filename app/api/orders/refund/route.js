@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { devolverCredito } from '@/lib/credito';
+import { esPedidoDeSaldo } from '@/lib/pedidoSaldo';
 
 export const dynamic = 'force-dynamic';
 
@@ -116,6 +117,15 @@ export async function POST(request) {
     }
 
     const paymentIntentId = order.payment_intent_id;
+
+    // El pedido pagado entero con saldo no tuvo cargo: en Stripe no hay nada
+    // que devolver y pedirselo seria un 404. Su reembolso es, literalmente,
+    // que el saldo vuelva a la cuenta -- y de eso se encarga cerrarReembolso.
+    if (esPedidoDeSaldo(paymentIntentId)) {
+      await cerrarReembolso(saleId, null);
+      console.log(`[Refund] Pedido #${saleId} pagado con saldo: devuelto a la cuenta, sin cargo que reembolsar.`);
+      return NextResponse.json({ success: true, saleId, sinCargo: true, creditoDevuelto: Number(order.credito_aplicado) });
+    }
 
     // Issue full refund via Stripe
     const refund = await stripe.refunds.create({

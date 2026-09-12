@@ -378,6 +378,17 @@ function CheckoutFlow() {
                     setPaymentError(data.error || 'Error al preparar el pago.');
                     return;
                 }
+                // El saldo cubrio la compra entera: no hay tarjeta que
+                // confirmar. Se registra el pedido con el token que firmo el
+                // servidor y se termina aqui. Antes este caso ni existia --
+                // /api/checkout intentaba cobrar $0, Stripe lo rechazaba por
+                // debajo de su minimo y el cliente con saldo de sobra veia un
+                // error al pagar.
+                if (data.sinCargo) {
+                    await registrarPedido({ pedidoToken: data.pedidoToken, referencia: data.referencia });
+                    return;
+                }
+
                 activeSecret = data.clientSecret;
                 setClientSecret(activeSecret);
             }
@@ -413,15 +424,30 @@ function CheckoutFlow() {
             }
 
             if (paymentIntent.status === 'requires_capture') {
-                const totals = getTotals();
+                await registrarPedido({ paymentIntentId: paymentIntent.id, referencia: paymentIntent.id });
+            }
+        } catch (err) {
+            setPaymentError(err.message || 'Error procesando el pago. Intenta nuevamente.');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
-                // Direcciones se gestionan desde perfil/ajustes, no desde checkout
+    // Registra el pedido ya pagado. Sirve a los dos caminos: con tarjeta llega
+    // el id del PaymentIntent, y pagando entero con saldo el token firmado. El
+    // servidor saca de uno u otro los mismos importes; lo de aqui es no repetir
+    // dos veces el cierre de la compra.
+    const registrarPedido = async ({ paymentIntentId, pedidoToken, referencia }) => {
+        const totals = getTotals();
 
-                const confirmRes = await fetch('/api/checkout/confirm', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        paymentIntentId: paymentIntent.id,
+        // Direcciones se gestionan desde perfil/ajustes, no desde checkout
+
+        const confirmRes = await fetch('/api/checkout/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                        ...(paymentIntentId && { paymentIntentId }),
+                        ...(pedidoToken && { pedidoToken }),
                         items: cartItems,
                         userId: user?.id || null,
                         userEmail: user?.email || null,
@@ -431,34 +457,37 @@ function CheckoutFlow() {
                         shipping: totals.shippingCost || 220,
                         total: totals.totalToPayNow || 0,
                         shippingMethod: 'envia',
-                        envia_quote_data: selectedShipping || null,
-                        shipping_address: shippingForm,
-                    })
-                });
-                const confirmData = await confirmRes.json();
-                const saleId = confirmData?.saleId;
+                envia_quote_data: selectedShipping || null,
+                shipping_address: shippingForm,
+            })
+        });
+        const confirmData = await confirmRes.json();
 
-                // Se mide despues de que /confirm respondio: si se disparara al
-                // autorizar la tarjeta, GA contaria ventas que el POS todavia
-                // puede cancelar por falta de existencias.
-                compra({
-                    pedidoId: saleId,
-                    total: totals.totalToPayNow || 0,
-                    envio: totals.shippingCost || 0,
-                    descuento: totals.promoDiscount || 0,
-                    productos: cartItems,
-                });
-
-                const orderNumber = saleId ? `#${saleId}` : ('BS-' + paymentIntent.id.slice(-8).toUpperCase());
-                setOrderNumber(orderNumber);
-                clearCart();
-                setStep(5);
-            }
-        } catch (err) {
-            setPaymentError(err.message || 'Error procesando el pago. Intenta nuevamente.');
-        } finally {
-            setIsProcessing(false);
+        // Pagando solo con saldo esto si puede fallar de forma recuperable: si
+        // el saldo se gasto en otra pestaña, el servidor rechaza el pedido en
+        // vez de registrarlo sin cobro que lo respalde. Hay que decirlo, no
+        // dejar al cliente en una pantalla de exito por un pedido que no existe.
+        if (!confirmData?.success) {
+            setPaymentError(confirmData?.error || 'No pudimos registrar tu pedido. Intenta nuevamente.');
+            return;
         }
+
+        const saleId = confirmData.saleId;
+
+        // Se mide despues de que /confirm respondio: si se disparara al
+        // autorizar la tarjeta, GA contaria ventas que el POS todavia
+        // puede cancelar por falta de existencias.
+        compra({
+            pedidoId: saleId,
+            total: totals.totalToPayNow || 0,
+            envio: totals.shippingCost || 0,
+            descuento: totals.promoDiscount || 0,
+            productos: cartItems,
+        });
+
+        setOrderNumber(saleId ? `#${saleId}` : ('BS-' + String(referencia || '').slice(-8).toUpperCase()));
+        clearCart();
+        setStep(5);
     };
 
     const handleApplyDiscount = async () => {

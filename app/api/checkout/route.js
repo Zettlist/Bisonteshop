@@ -5,8 +5,13 @@ import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 import { priceCart, priceCoupon, round2 } from '@/lib/pricing';
 import { getUsdRate } from '@/lib/fx';
+import { firmarPedidoSaldo } from '@/lib/pedidoSaldo';
 
 export const dynamic = 'force-dynamic';
+
+// Lo minimo que Stripe acepta cobrar, por moneda. No es una politica de la
+// tienda: es un limite de la pasarela, y por debajo contesta `amount_too_small`.
+const MINIMO_STRIPE = { mxn: 10, usd: 0.5 };
 
 export async function POST(request) {
   // Auth guard — rechaza peticiones sin sesión (valida firma + revocación)
@@ -52,17 +57,75 @@ export async function POST(request) {
     }
     if (appliedDiscount > 0) totalCharge = round2(totalCharge - appliedDiscount);
 
-    // ── 3. Crédito de tienda (el saldo real lo tiene la BD) ──────────────
-    // Se "aplica" para reducir el cargo; se DESCUENTA del saldo en la captura.
+    // ── 3. Moneda y tipo de cambio SERVER-SIDE ───────────────────────────
+    // Va antes del crédito porque el mínimo que Stripe acepta cobrar depende
+    // de la moneda, y ese mínimo condiciona cuánto saldo se puede aplicar.
+    const stripeCurrency = (clientCurrency === 'USD') ? 'usd' : 'mxn';
+    const usdRate = await getUsdRate();
+    // El mínimo, traído a pesos: es en MXN donde se decide el saldo a aplicar.
+    const minimoCobrableMXN = stripeCurrency === 'usd'
+      ? round2(MINIMO_STRIPE.usd / usdRate) + 0.01
+      : MINIMO_STRIPE.mxn;
+
+    // ── 4. Crédito de tienda (el saldo real lo tiene la BD) ──────────────
+    // Se "aplica" para reducir el cargo; se DESCUENTA del saldo al registrar
+    // el pedido, en /api/checkout/confirm.
+    //
+    // El saldo puede dejar el cargo en cero, y ese es su caso de uso central:
+    // comprar sin poner tarjeta. Lo que NO puede es dejarlo en una cifra que
+    // Stripe rechace — por debajo de su mínimo contesta `amount_too_small` y
+    // el checkout entero se cae con un error que no dice nada. Así que hay
+    // tres desenlaces y no dos:
+    //
+    //   · el saldo cubre todo          → cargo 0, sin PaymentIntent
+    //   · el saldo deja menos del mín. → se aplica un poco menos de saldo y
+    //                                    la tarjeta paga el mínimo
+    //   · el saldo no llega            → lo de siempre
+    //
+    // El del medio le deja al cliente unos pesos de saldo sin gastar, que es
+    // preferible a cobrarle de más o a no dejarle comprar.
     let appliedCreditFinal = 0;
     const [creditRows] = await pool.query(`SELECT store_credit FROM clientes WHERE id = ?`, [userId]);
     const saldo = parseFloat(creditRows[0]?.store_credit) || 0;
     if (saldo > 0) {
-      appliedCreditFinal = round2(Math.min(saldo, totalCharge));
+      if (saldo >= totalCharge) {
+        appliedCreditFinal = totalCharge;
+      } else {
+        const resto = round2(totalCharge - saldo);
+        appliedCreditFinal = resto < minimoCobrableMXN
+          ? round2(totalCharge - minimoCobrableMXN)
+          : saldo;
+      }
+      appliedCreditFinal = round2(Math.max(0, appliedCreditFinal));
       totalCharge = round2(totalCharge - appliedCreditFinal);
     }
 
-    // ── 4. Stripe Customer (para tarjetas guardadas) ─────────────────────
+    // ── 5. El pedido que no pasa por la tarjeta ──────────────────────────
+    // Sin cargo no hay PaymentIntent que crear, y sin PaymentIntent no hay
+    // metadata donde apoyar los totales. Ese papel lo hace un token firmado
+    // por el servidor: mismo efecto, cero dependencia de Stripe.
+    if (totalCharge <= 0) {
+      const { token, ref } = await firmarPedidoSaldo({
+        clienteId: userId,
+        subtotal,
+        discount: appliedDiscount,
+        credit: appliedCreditFinal,
+        shipping: shippingCost,
+        total: 0,
+        couponId: coupon?.id || null,
+      });
+      return NextResponse.json({
+        success: true,
+        sinCargo: true,
+        pedidoToken: token,
+        referencia: ref,
+        appliedDiscount,
+        appliedCredit: appliedCreditFinal,
+        totalCharge: 0,
+      });
+    }
+
+    // ── 6. Stripe Customer (para tarjetas guardadas) ─────────────────────
     let stripeCustomerId = null;
     const [clienteRows] = await pool.query('SELECT stripe_customer_id, nombre, apellido, email FROM clientes WHERE id = ? LIMIT 1', [userId]);
     if (clienteRows.length) {
@@ -80,11 +143,13 @@ export async function POST(request) {
       }
     }
 
-    // ── 5. Moneda y tipo de cambio SERVER-SIDE ───────────────────────────
-    const stripeCurrency = (clientCurrency === 'USD') ? 'usd' : 'mxn';
-    const usdRate = await getUsdRate();
+    // ── 7. El importe que ve la tarjeta ──────────────────────────────────
+    // Sin el `Math.max(..., 10)` que habia aqui: aquel clamp eran 10 CENTAVOS
+    // y el minimo de Stripe en MXN son $10.00 — mil centavos. No salvaba nada;
+    // solo convertia un cargo demasiado pequeño en un error de Stripe. Ahora el
+    // minimo se respeta arriba, al decidir cuanto saldo se aplica.
     const chargeAmount = stripeCurrency === 'usd' ? totalCharge * usdRate : totalCharge;
-    const amountInCents = Math.max(Math.round(chargeAmount * 100), 10);
+    const amountInCents = Math.round(chargeAmount * 100);
 
     // ── Idempotencia: doble-clic / reintento no debe crear PaymentIntents duplicados.
     // La llave depende del usuario + carrito + cupón + envío + moneda: mismo pedido →

@@ -4,6 +4,7 @@ import pool from '@/lib/db';
 import { sendOrderConfirmation } from '@/lib/mailer';
 import { priceCart, round2 } from '@/lib/pricing';
 import { gastarCredito } from '@/lib/credito';
+import { leerPedidoSaldo } from '@/lib/pedidoSaldo';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,21 +14,38 @@ export async function POST(request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   try {
     // `userId` ya no se lee del body a proposito: ver el comentario de clienteId.
-    const { paymentIntentId, items, userEmail, userName, shippingMethod, envia_quote_data, shipping_address } = await request.json();
+    const { paymentIntentId, pedidoToken, items, userEmail, userName, shippingMethod, envia_quote_data, shipping_address } = await request.json();
 
-    if (!paymentIntentId || !items?.length) {
+    if ((!paymentIntentId && !pedidoToken) || !items?.length) {
       return NextResponse.json({ success: false, error: 'Datos incompletos' }, { status: 400 });
     }
 
-    // 1. Verificar con Stripe que la autorización fue exitosa
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-    if (paymentIntent.status !== 'requires_capture') {
-      return NextResponse.json({ success: false, error: `Estado de pago inválido: ${paymentIntent.status}` }, { status: 400 });
+    // 1. Comprobar que el pago existe y esta en regla.
+    //
+    //    Hay dos formas de llegar aqui con un pedido pagado, y las dos acaban
+    //    en el mismo sitio: un `md` con los totales que fijo el servidor.
+    //
+    //      · con tarjeta — el metadata lo devuelve Stripe
+    //      · pagado entero con saldo — no hay cargo ni PaymentIntent, y el
+    //        metadata viaja en un token que firmo /api/checkout
+    //
+    //    Lo que importa de las dos es lo mismo: los importes NO los pone el
+    //    navegador. Alli lo garantiza Stripe; aqui, la firma.
+    let md, referencia;
+    if (pedidoToken) {
+      md = await leerPedidoSaldo(pedidoToken);
+      if (!md) {
+        return NextResponse.json({ success: false, error: 'Pedido no válido o expirado.' }, { status: 400 });
+      }
+      referencia = md.ref;
+    } else {
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (paymentIntent.status !== 'requires_capture') {
+        return NextResponse.json({ success: false, error: `Estado de pago inválido: ${paymentIntent.status}` }, { status: 400 });
+      }
+      md = paymentIntent.metadata || {};
+      referencia = paymentIntentId;
     }
-
-    // 2. Montos AUTORITATIVOS: del metadata del PaymentIntent (lo fijó el server en /checkout),
-    //    nunca de lo que mande el cliente aquí.
-    const md = paymentIntent.metadata || {};
     const subtotal = parseFloat(md.subtotalMXN) || 0;
     const discount = parseFloat(md.appliedDiscount) || 0;
     const credit = parseFloat(md.appliedCredit) || 0;
@@ -104,6 +122,22 @@ export async function POST(request) {
       //    que es lo unico que separa un descuadre de un misterio.
       const creditoAplicado = await gastarCredito(conn, clienteId, credit, saleId);
       if (credit > 0 && creditoAplicado < credit) {
+        // El pedido pagado ENTERO con saldo no tiene tarjeta detras. Si el
+        // saldo ya no esta -- se gasto en otra pestaña entre preparar y
+        // confirmar -- registrarlo seria regalar la mercancia: no hay cobro
+        // que lo respalde. Se tira atras, que aqui no cuesta nada porque no se
+        // ha cobrado un peso.
+        if (pedidoToken) {
+          await conn.rollback();
+          console.warn(`[Confirm] Pedido sin cargo rechazado (cliente ${clienteId}): pedia $${credit.toFixed(2)} de saldo y hay $${creditoAplicado.toFixed(2)}.`);
+          return NextResponse.json(
+            { success: false, saldoInsuficiente: true, error: 'Tu saldo cambió mientras completabas la compra. Vuelve a intentarlo.' },
+            { status: 409 }
+          );
+        }
+        // Con tarjeta si sigue adelante: ya esta autorizada por el total con el
+        // descuento puesto y ese importe no se puede subir. La diferencia va al
+        // log, que es lo unico que separa un descuadre de un misterio.
         console.error(
           `[Confirm] Pedido #${saleId} (cliente ${clienteId}): se cobro de menos. ` +
           `Aplico $${credit.toFixed(2)} de saldo y solo habia $${creditoAplicado.toFixed(2)}.`
@@ -128,7 +162,7 @@ export async function POST(request) {
         [
           saleId,
           clienteId,
-          paymentIntentId,
+          referencia,
           creditoAplicado,
           shippingMethod || 'envia',
           shipping_address ? JSON.stringify(shipping_address) : null,
@@ -136,9 +170,30 @@ export async function POST(request) {
         ]
       );
 
+      // 8. Cupón, SOLO en el pedido sin cargo.
+      //    En el camino con tarjeta esto lo hace /api/orders/capture leyendo el
+      //    metadata del PaymentIntent, y se deja para entonces a proposito: un
+      //    carrito abandonado no debe quemar el cupon. Aqui no hay metadata que
+      //    leer luego, y tampoco hay carrito que abandonar -- el saldo ya salio
+      //    de la cuenta y el pedido esta hecho -- asi que el canje se registra
+      //    ahora, en la misma transaccion.
+      const couponId = pedidoToken ? (parseInt(md.couponId) || null) : null;
+      if (couponId && clienteId) {
+        const [ins] = await conn.query(
+          'INSERT IGNORE INTO coupon_redemptions (coupon_id, cliente_id, sale_id) VALUES (?, ?, ?)',
+          [couponId, clienteId, saleId]
+        );
+        if (ins.affectedRows === 1) {
+          await conn.query(
+            'UPDATE coupons SET usage_count = usage_count + 1 WHERE id = ? AND (usage_limit IS NULL OR usage_count < usage_limit)',
+            [couponId]
+          );
+        }
+      }
+
       await conn.commit();
 
-      // 8. Correo de confirmación
+      // 9. Correo de confirmación
       if (userEmail) {
         sendOrderConfirmation({
           to: userEmail,
@@ -152,7 +207,7 @@ export async function POST(request) {
         }).catch(err => console.error('[Mailer]', err.message));
       }
 
-      console.log(`[Confirm] Pedido #${saleId} registrado. PI ${paymentIntentId}`);
+      console.log(`[Confirm] Pedido #${saleId} registrado. pago ${referencia}`);
       // La guía Envia.com y la captura del cobro ocurren en el POS al confirmar existencia.
 
       return NextResponse.json({ success: true, saleId });
@@ -168,10 +223,10 @@ export async function POST(request) {
       if (dbError.code === 'ER_DUP_ENTRY') {
         const [previo] = await conn.query(
           'SELECT sale_id FROM bisonte_orders WHERE payment_intent_id = ? LIMIT 1',
-          [paymentIntentId]
+          [referencia]
         );
         if (previo.length) {
-          console.log(`[Confirm] PI ${paymentIntentId} ya estaba registrado como pedido #${previo[0].sale_id}`);
+          console.log(`[Confirm] pago ${referencia} ya estaba registrado como pedido #${previo[0].sale_id}`);
           return NextResponse.json({ success: true, saleId: previo[0].sale_id, repetido: true });
         }
       }
