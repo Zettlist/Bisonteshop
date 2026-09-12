@@ -21,3 +21,7 @@ pencil-welcome.pen
 # Env local: NO subir al build (su NEXT_PUBLIC_BASE_URL=localhost pisaria a .env.production)
 .env.local
 .env*.local
+
+# Copia entera del repo dentro del repo (368 MB, 439 archivos). No se usa para
+# nada; sin esta linea, cada `gcloud run deploy --source .` la sube al build.
+Bisonteshop/
