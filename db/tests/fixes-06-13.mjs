@@ -289,6 +289,10 @@ const ESPERADAS = [
     'cash_sessions', 'sales', 'sale_items', 'sales_goals', 'business_settings', 'global_changes_log',
     'anticipos', 'anticipo_items', 'clientes', 'user_addresses', 'carts', 'cart_items',
     'bisonte_orders', 'integration_outbox', 'coupons', 'coupon_redemptions', 'credit_history',
+    // El libro de recargas pagadas con tarjeta. Nacio con el boton "Comprar
+    // saldo" del perfil y esta lista no se entero: la cuenta de abajo fallaba
+    // por una tabla que si tenia que estar.
+    'credit_topups',
     'user_notifications', 'tags', 'product_tags', 'event_votes', 'event_results',
     'pre_orders', 'pre_order_batches', 'pre_order_payments',
     'store_credits', 'store_credit_uses', 'barcode_sequences',

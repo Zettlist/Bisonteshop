@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { sendOrderConfirmation } from '@/lib/mailer';
+import { devolverCredito } from '@/lib/credito';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,8 +60,13 @@ export async function POST(request) {
       // escribe el POS cuando confirma existencias y prepara el envio: si la
       // tienda lo adelantara aqui, el pedido se veria confirmado antes de que
       // nadie haya tocado el paquete. `updated_at` se actualiza sola.
+      //
+      // El `AND pago_estado = 'autorizado'` repite la comprobacion de arriba a
+      // proposito: aquella leyo y solto la fila, y dos llamadas del POS a la
+      // vez la pasan las dos. La condicion del UPDATE es la que de verdad deja
+      // pasar a una sola.
       await pool.query(
-        "UPDATE bisonte_orders SET pago_estado = 'capturado' WHERE sale_id = ?",
+        "UPDATE bisonte_orders SET pago_estado = 'capturado' WHERE sale_id = ? AND pago_estado = 'autorizado'",
         [saleId]
       );
 
@@ -73,16 +79,15 @@ export async function POST(request) {
         // que viene del body de /confirm y es manipulable).
         const clienteId = parseInt(md.userId) || order.cliente_id || null;
 
-        // a) Descontar el crédito de tienda usado (nunca se descontaba → saldo infinito)
-        const credit = parseFloat(md.appliedCredit) || 0;
-        if (credit > 0 && clienteId) {
-          await pool.query(
-            'UPDATE clientes SET store_credit = GREATEST(0, store_credit - ?) WHERE id = ?',
-            [credit, clienteId]
-          );
-        }
+        // El saldo de tienda YA NO se toca aqui. Se descuenta al registrar el
+        // pedido (/api/checkout/confirm), porque entre autorizar y capturar
+        // pasan dias y durante esos dias el saldo seguia entero en la cuenta:
+        // el mismo credito se aplicaba a un segundo pedido y a un tercero, y
+        // el GREATEST(0, ...) que habia aqui se tragaba la diferencia en
+        // silencio en vez de impedirla. Lo que este pedido consumio esta en
+        // `bisonte_orders.credito_aplicado`, y la rama de cancelar lo devuelve.
 
-        // b) Cupón: registrar el canje (un canje por cliente y cupón) e incrementar el uso
+        // Cupón: registrar el canje (un canje por cliente y cupón) e incrementar el uso
         //    SOLO si el canje es nuevo. Antes se quemaba al crear el PI (carritos abandonados)
         //    y un mismo cliente podía reusar un cupón global en varios pedidos.
         const couponId = parseInt(md.couponId) || null;
@@ -114,12 +119,39 @@ export async function POST(request) {
 
       // Aqui si se mueven los dos ejes: una autorizacion liberada no deja
       // pedido que entregar, y `cancelled_at` es lo que fecha la cancelacion.
-      await pool.query(
-        `UPDATE bisonte_orders
-            SET pago_estado = 'cancelado', estado = 'cancelado', cancelled_at = NOW()
-          WHERE sale_id = ?`,
-        [saleId]
-      );
+      //
+      // Y con ellos vuelve el saldo. El pedido se lo comio al nacer
+      // (/api/checkout/confirm) y ya no va a existir: dejarlo descontado seria
+      // quedarse con un dinero que el cliente pago hace semanas por un pedido
+      // que la tienda misma cancelo. Va en una transaccion con el cambio de
+      // estado, y el `AND pago_estado = 'autorizado'` es lo que hace que dos
+      // cancelaciones seguidas devuelvan el saldo UNA vez.
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        const [upd] = await conn.query(
+          `UPDATE bisonte_orders
+              SET pago_estado = 'cancelado', estado = 'cancelado', cancelled_at = NOW()
+            WHERE sale_id = ? AND pago_estado = 'autorizado'`,
+          [saleId]
+        );
+        if (upd.affectedRows === 1 && order.credito_aplicado > 0) {
+          await devolverCredito(
+            conn, order.cliente_id, order.credito_aplicado,
+            `Saldo devuelto: pedido #${saleId} cancelado`
+          );
+        }
+        await conn.commit();
+      } catch (e) {
+        await conn.rollback();
+        // La autorizacion ya se libero en Stripe. Si esto falla, el pedido
+        // queda marcado como autorizado sin nada que capturar y el saldo sin
+        // devolver: las dos cosas se arreglan a mano y hay que verlas.
+        console.error(`[Capture] Pedido #${saleId} liberado en Stripe pero sin cerrar en la base:`, e.message);
+        throw e;
+      } finally {
+        conn.release();
+      }
 
       console.log(`[Capture] Pedido #${saleId} CANCELADO. PI ${paymentIntentId} liberado.`);
       return NextResponse.json({ success: true, action: 'cancelled', saleId });

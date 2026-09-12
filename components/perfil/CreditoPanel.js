@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import styles from '@/app/perfil/CommonProfile.module.css';
 import cStyles from '@/app/perfil/credito/Credito.module.css';
+import ComprarSaldoDialogo from './ComprarSaldoDialogo';
+import { reintentarRecargaPendiente } from '@/lib/recargaPendiente';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Credito de tienda. Vivia en su propia pagina del menu; ahora es un bloque
@@ -19,8 +20,16 @@ export default function CreditoPanel({ onBalance }) {
     const [balance, setBalance] = useState(null);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [comprando, setComprando] = useState(false);
+    const [rescatada, setRescatada] = useState(null);   // monto de una recarga abonada al vuelo
 
-    useEffect(() => {
+    // `onBalance` se guarda en una ref porque el padre lo redefine en cada
+    // render: usarlo como dependencia de `cargar` volveria a pedir el saldo en
+    // bucle.
+    const avisar = useRef(onBalance);
+    avisar.current = onBalance;
+
+    const cargar = useCallback(() => {
         let vivo = true;
         fetch('/api/credit')
             .then(r => r.json())
@@ -29,15 +38,42 @@ export default function CreditoPanel({ onBalance }) {
                 const saldo = d.balance ?? 0;
                 setBalance(saldo);
                 setHistory(d.history || []);
-                onBalance?.(saldo);
+                avisar.current?.(saldo);
             })
             .catch(() => { if (vivo) setBalance(0); })
             .finally(() => { if (vivo) setLoading(false); });
         return () => { vivo = false; };
-        // onBalance se omite a proposito: si el padre lo redefine en cada render
-        // esto volveria a pedir el saldo en bucle.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => cargar(), [cargar]);
+
+    // Rescate de la recarga que se quedo a medias: cobrada por Stripe y sin
+    // abonar porque la pestaña murio antes de pedirlo. El apunte lo dejo el
+    // dialogo en este navegador; el reintento es idempotente en el servidor.
+    useEffect(() => {
+        let vivo = true;
+        reintentarRecargaPendiente()
+            .then(r => {
+                if (!vivo || !r.abonada) return;
+                setRescatada(r.amount);
+                if (typeof r.balance === 'number') {
+                    setBalance(r.balance);
+                    avisar.current?.(r.balance);
+                }
+                cargar();
+            })
+            .catch(() => { });
+        return () => { vivo = false; };
+    }, [cargar]);
+
+    // El dialogo ya devuelve el saldo nuevo, asi que se pinta al instante; la
+    // recarga completa es por el historial, donde tiene que aparecer el
+    // movimiento recien hecho.
+    const alRecargar = (nuevoSaldo) => {
+        setBalance(nuevoSaldo);
+        avisar.current?.(nuevoSaldo);
+        cargar();
+    };
 
     return (
         <>
@@ -54,12 +90,27 @@ export default function CreditoPanel({ onBalance }) {
                     El crédito se aplica automáticamente al siguiente checkout.
                 </p>
 
-                {/* Sin flujo propio de recarga todavia: el boton lleva a
-                    contacto, que es por donde hoy se compra el saldo. */}
-                <Link href="/contacto?asunto=saldo" className={cStyles.comprarBtn}>
+                {/* Una recarga que se habia quedado cobrada sin abonar y acaba
+                    de entrar. Se dice porque el cliente ya la habia dado por
+                    perdida: ver el saldo subir solo, sin explicacion, asusta
+                    tanto como no verlo subir. */}
+                {rescatada != null && (
+                    <p className={cStyles.balanceRescate}>
+                        Abonamos {fmt(rescatada)} de una recarga que había quedado pendiente.
+                    </p>
+                )}
+
+                {/* Antes era un enlace a /contacto: no habia flujo de recarga y
+                    el saldo lo abonaba la tienda a mano. Ahora se compra aqui
+                    mismo, sin salir del perfil. */}
+                <button
+                    type="button"
+                    className={cStyles.comprarBtn}
+                    onClick={() => setComprando(true)}
+                >
                     <Plus size={16} />
                     Comprar saldo
-                </Link>
+                </button>
             </div>
 
             <div className={styles.card}>
@@ -86,6 +137,13 @@ export default function CreditoPanel({ onBalance }) {
                     </div>
                 )}
             </div>
+
+            {comprando && (
+                <ComprarSaldoDialogo
+                    onCerrar={() => setComprando(false)}
+                    onRecarga={alRecargar}
+                />
+            )}
         </>
     );
 }

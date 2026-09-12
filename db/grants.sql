@@ -21,6 +21,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.bisonte_orders      TO 'bison
 GRANT SELECT, INSERT, UPDATE          ON torlan_pos.integration_outbox TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.coupon_redemptions  TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.credit_history      TO 'bisonte_app'@'%';
+-- Sin UPDATE ni DELETE a proposito: `credit_topups` es un libro de cobros, no
+-- un estado. Cada fila es "este PaymentIntent ya se acredito"; poder borrarla o
+-- reescribirla seria poder acreditar dos veces el mismo cargo.
+GRANT SELECT, INSERT                 ON torlan_pos.credit_topups       TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.user_notifications  TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.event_votes         TO 'bisonte_app'@'%';
 

@@ -32,6 +32,19 @@
     margin: 0;
 }
 
+/* Aviso de la recarga que se rescato: cobrada en su momento y abonada ahora.
+   Es una buena noticia sobre dinero, asi que va en el verde de los saldos a
+   favor y no en el rojo de la marca, que aqui se leeria como un error. */
+.balanceRescate {
+    margin: 0.75rem 0 0;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid #4ade80;
+    background: rgba(74, 222, 128, 0.08);
+    color: #86efac;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
 /* Este boton se quedo sin estilo al volver al diseno anterior: la clase nacio
    con el rediseno, asi que el enlace se dibujaba como texto suelto. Va en el
    mismo lenguaje que "Editar perfil" — rojo, contorno negro y sombra dura que
@@ -52,6 +65,9 @@
     letter-spacing: 1.5px;
     text-decoration: none;
     box-shadow: 3px 3px 0 #000;
+    /* Dejo de ser un enlace a /contacto y paso a ser el boton que abre el
+       dialogo de recarga: un <button> no trae el cursor de mano de serie. */
+    cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 

@@ -1,0 +1,360 @@
+/* Dialogo de compra de saldo. No sigue el vidrio del resto de la tienda: se
+   abre desde la tarjeta de saldo del perfil, que es zine — borde negro grueso,
+   sombra dura y Bebas Neue — y un dialogo translucido encima se leeria como si
+   viniera de otra pagina. */
+
+.telon {
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.dialogo {
+    position: relative;
+    width: min(440px, 100%);
+    /* El formulario de tarjeta es alto y en un movil no cabe entero: el
+       dialogo se queda dentro de la pantalla y hace scroll por dentro, en vez
+       de empujar el boton de pagar fuera de la vista. */
+    max-height: calc(100vh - 2.5rem);
+    overflow-y: auto;
+    padding: 1.6rem;
+    background: #141414;
+    border: 3px solid #000;
+    border-radius: 16px;
+    box-shadow: 8px 8px 0 rgba(230, 57, 70, 0.55);
+    color: #fff;
+    animation: aparecer 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes aparecer {
+    from { opacity: 0; transform: scale(0.85) rotate(-2deg); }
+    to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dialogo { animation: none; }
+}
+
+.cerrar {
+    position: absolute;
+    top: 0.9rem;
+    right: 0.9rem;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.cerrar:hover:not(:disabled) {
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+.cerrar:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.titulo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 2px;
+    color: #ffd60a;
+    margin: 0 2.5rem 0.35rem 0;
+}
+
+.titulo svg {
+    color: #ffd60a;
+}
+
+.bajada {
+    font-family: 'Caveat', cursive;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 1.25rem;
+}
+
+/* ── Montos ─────────────────────────────────────────────────────────────── */
+.montos {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.55rem;
+    margin-bottom: 1.1rem;
+}
+
+.chip {
+    padding: 0.6rem 0.4rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.chip:hover:not(:disabled):not(.chipActivo) {
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* El monto elegido se marca con el amarillo del saldo, no con el rojo de las
+   acciones: es el mismo numero que la tarjeta de arriba muestra en grande. */
+.chipActivo {
+    background: rgba(255, 214, 10, 0.12);
+    border-color: #ffd60a;
+    color: #ffd60a;
+}
+
+.chip:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Campos ─────────────────────────────────────────────────────────────── */
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 0.9rem;
+    min-width: 0;
+}
+
+.fila {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.7rem;
+}
+
+.etiqueta {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.entrada,
+.stripeCampo {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-family: inherit;
+}
+
+.entrada:focus {
+    outline: none;
+    border-color: #ffd60a;
+}
+
+/* Stripe pinta su propio input dentro: la caja solo pone el marco y la altura,
+   que si no la fija salta al montar el iframe.
+
+   Bloque y no flex, igual que los contenedores de tarjeta del checkout. Stripe
+   envuelve su iframe en un div propio (.__PrivateStripeElement) que no lleva
+   ancho: como item flexible encogeria a su contenido, y el iframe nace de un
+   pixel. En bloque hereda el ancho completo sin depender de eso. */
+.stripeCampo {
+    display: block;
+    min-height: 46px;
+}
+
+.tarjetas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.opcion {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.87rem;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.opcionActiva {
+    border-color: #ffd60a;
+    color: #fff;
+}
+
+.opcion:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.guardar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+}
+
+.guardar input {
+    accent-color: #e63946;
+    width: 15px;
+    height: 15px;
+}
+
+/* ── Resumen y pago ─────────────────────────────────────────────────────── */
+.resumen {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    margin-top: 0.3rem;
+    border-top: 2px dashed rgba(255, 255, 255, 0.15);
+    font-size: 0.87rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.resumen strong {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 1px;
+    color: #2ecc71;
+}
+
+.aviso {
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0 0 0.6rem;
+}
+
+.error {
+    display: block;
+    padding: 0.6rem 0.75rem;
+    margin: 0 0 0.8rem;
+    background: rgba(230, 57, 70, 0.12);
+    border: 2px solid rgba(230, 57, 70, 0.45);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #ff9aa2;
+}
+
+.errorEnlace {
+    color: #ffd60a;
+    text-decoration: underline;
+    white-space: nowrap;
+}
+
+.pagar {
+    width: 100%;
+    height: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #e63946;
+    color: #fff;
+    border: 2.5px solid #000;
+    border-radius: 10px;
+    box-shadow: 3px 3px 0 #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pagar:hover:not(:disabled) {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 #000;
+}
+
+.pagar:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 #000;
+}
+
+.pagar:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pagar { transition: none; }
+}
+
+.seguro {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin: 0.7rem 0 0;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Recarga hecha ──────────────────────────────────────────────────────── */
+.exito {
+    text-align: center;
+    padding: 0.75rem 0 0;
+}
+
+.exito .titulo {
+    justify-content: center;
+    margin-right: 0;
+}
+
+.exitoIcono {
+    color: #2ecc71;
+    margin-bottom: 0.5rem;
+}
+
+.exitoMonto {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.8rem;
+    letter-spacing: 2px;
+    line-height: 1;
+    color: #2ecc71;
+    margin: 0.3rem 0 0.6rem;
+}
+
+.exitoNota {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 1.3rem;
+}
+
+.exitoNota strong {
+    color: #ffd60a;
+}

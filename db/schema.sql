@@ -711,6 +711,18 @@ CREATE TABLE IF NOT EXISTS bisonte_orders (
                               NOT NULL DEFAULT 'autorizado',
     refund_id             VARCHAR(255) NULL,
 
+    -- Saldo de tienda que este pedido se comio, en MXN. Se descuenta de
+    -- `clientes.store_credit` al registrar el pedido, no al capturarlo: entre
+    -- una cosa y la otra pueden pasar dias (el POS verifica existencias a
+    -- mano) y mientras tanto el saldo seguia entero en la cuenta, asi que el
+    -- mismo credito se podia gastar en un segundo pedido, y en un tercero.
+    --
+    -- Esta columna es lo que hace reversible ese descuento. Un pedido que se
+    -- cancela o se reembolsa tiene que devolver el saldo, y la cifra a
+    -- devolver es esta -- no la del metadata de Stripe, que dice lo que se
+    -- pidio aplicar y no lo que de verdad salio de la cuenta.
+    credito_aplicado      DECIMAL(10,2) NOT NULL DEFAULT 0,
+
     -- Eje entrega (operacion). Los valores son los que ya usa el POS en
     -- VALID_STATUSES; `reclamo` es un estado del pedido, no una bandera aparte.
     estado                ENUM('pendiente','confirmado','envio','entregado','reclamo','cancelado')
@@ -742,6 +754,10 @@ CREATE TABLE IF NOT EXISTS bisonte_orders (
 
     CONSTRAINT fk_bo_sale    FOREIGN KEY (sale_id)    REFERENCES sales(id)    ON DELETE CASCADE,
     CONSTRAINT fk_bo_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
+    -- Un credito aplicado negativo seria un pedido que REGALA saldo. No hay
+    -- ningun camino que lo escriba, y por eso mismo conviene que la base lo
+    -- rechace si alguna vez aparece uno.
+    CONSTRAINT chk_bo_credito CHECK (credito_aplicado >= 0),
     UNIQUE KEY uniq_payment_intent (payment_intent_id),
     UNIQUE KEY uniq_sale           (sale_id),
     INDEX idx_estado         (estado),
@@ -825,6 +841,32 @@ CREATE TABLE IF NOT EXISTS credit_history (
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_ch_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE,
     INDEX idx_cliente_created (cliente_id, created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cada recarga de saldo pagada con tarjeta deja aqui su rastro. La tabla existe
+-- por una sola razon: `payment_intent_id` es UNIQUE, y ese UNIQUE es lo unico
+-- que impide acreditar dos veces el mismo cobro. Quien dispara el abono es el
+-- navegador (POST /api/credit/confirm) en cuanto Stripe aprueba la tarjeta, y
+-- un doble clic, un reintento o un F5 repiten esa llamada con el MISMO
+-- PaymentIntent: sin el UNIQUE, la segunda sumaria otra vez.
+--
+-- `amount` es el credito en MXN, que es la moneda en la que vive
+-- `clientes.store_credit` y en la que /api/checkout lo descuenta.
+-- `charged_amount` y `currency` son lo que la tarjeta vio de verdad: si el
+-- cliente tenia la tienda en dolares, el cargo salio en USD al tipo de cambio
+-- del servidor, y sin guardarlo no habria como cuadrar el abono con Stripe.
+CREATE TABLE IF NOT EXISTS credit_topups (
+    id                INT AUTO_INCREMENT PRIMARY KEY,
+    cliente_id        INT NOT NULL,
+    payment_intent_id VARCHAR(64) NOT NULL,
+    amount            DECIMAL(10,2) NOT NULL,
+    currency          ENUM('MXN','USD') NOT NULL DEFAULT 'MXN',
+    charged_amount    DECIMAL(10,2) NOT NULL,
+    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ct_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE,
+    CONSTRAINT chk_ct_amount CHECK (amount > 0),
+    UNIQUE KEY uniq_ct_payment_intent (payment_intent_id),
+    INDEX idx_ct_cliente_created (cliente_id, created_at DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS user_notifications (

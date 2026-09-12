@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { sendOrderConfirmation } from '@/lib/mailer';
 import { priceCart, round2 } from '@/lib/pricing';
+import { gastarCredito } from '@/lib/credito';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,22 +88,48 @@ export async function POST(request) {
         );
       }
 
-      // 6. bisonte_orders: el pedido web. Dos ejes separados, no uno solo
+      // 6. Saldo de tienda: se descuenta AQUI, al nacer el pedido.
+      //    Antes se descontaba en /api/orders/capture, y entre autorizar y
+      //    capturar pasan dias -- el POS verifica existencias a mano. Durante
+      //    esos dias `store_credit` seguia entero, asi que /api/checkout volvia
+      //    a aplicarlo al pedido siguiente, y al siguiente: un saldo de $500 se
+      //    gastaba tres veces y solo se cobraba una (el GREATEST(0, ...) de la
+      //    captura se comia el descuadre sin decir nada).
+      //
+      //    `gastarCredito` devuelve lo que de verdad salio de la cuenta. Puede
+      //    ser menos de lo aplicado si dos pedidos se confirman en el mismo
+      //    segundo: el candado de la fila deja pasar a uno primero. Cuando eso
+      //    pasa el pedido sigue adelante -- la tarjeta ya esta autorizada por
+      //    el total con descuento y no se puede subir -- pero queda en el log,
+      //    que es lo unico que separa un descuadre de un misterio.
+      const creditoAplicado = await gastarCredito(conn, clienteId, credit, saleId);
+      if (credit > 0 && creditoAplicado < credit) {
+        console.error(
+          `[Confirm] Pedido #${saleId} (cliente ${clienteId}): se cobro de menos. ` +
+          `Aplico $${credit.toFixed(2)} de saldo y solo habia $${creditoAplicado.toFixed(2)}.`
+        );
+      }
+
+      // 7. bisonte_orders: el pedido web. Dos ejes separados, no uno solo
       //    (`status`) como antes: `pago_estado` es lo que pasa en Stripe y
       //    `estado` es donde va el paquete. Aqui nace autorizado y pendiente:
       //    el dinero esta retenido y el POS aun no confirma existencias.
       //    Los renglones no se copian a items_json (columna que ya no existe);
       //    estan normalizados en sale_items, que es de donde los lee todo lo
       //    demas.
+      //
+      //    `credito_aplicado` guarda el saldo que este pedido se comio: es lo
+      //    que hay que devolver si se cancela o se reembolsa.
       await conn.query(
         `INSERT INTO bisonte_orders
             (sale_id, cliente_id, payment_intent_id, pago_estado, estado,
-             shipping_method, shipping_address_json, envia_quote_data)
-         VALUES (?, ?, ?, 'autorizado', 'pendiente', ?, ?, ?)`,
+             credito_aplicado, shipping_method, shipping_address_json, envia_quote_data)
+         VALUES (?, ?, ?, 'autorizado', 'pendiente', ?, ?, ?, ?)`,
         [
           saleId,
           clienteId,
           paymentIntentId,
+          creditoAplicado,
           shippingMethod || 'envia',
           shipping_address ? JSON.stringify(shipping_address) : null,
           envia_quote_data ? JSON.stringify(envia_quote_data) : null,
@@ -111,7 +138,7 @@ export async function POST(request) {
 
       await conn.commit();
 
-      // 7. Correo de confirmación
+      // 8. Correo de confirmación
       if (userEmail) {
         sendOrderConfirmation({
           to: userEmail,
