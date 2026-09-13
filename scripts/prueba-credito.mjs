@@ -87,6 +87,31 @@ async function carritoQueSupere(objetivo) {
     return { items, subtotal: round2(suma) };
 }
 
+/**
+ * Sube el saldo hasta al menos `minimo`, con recargas de verdad.
+ *
+ * Las pruebas del pedido sin cargo necesitan que el saldo CUBRA el carrito, y
+ * las del hueco del minimo de Stripe que lo cubra casi entero. El saldo de esta
+ * cuenta cambia en cada corrida —las recargas suben, los reembolsos devuelven—,
+ * asi que sin esto la misma prueba medía una cosa un dia y otra al siguiente:
+ * con poco saldo el checkout devolvia un clientSecret donde la prueba esperaba
+ * un token, y el fallo no señalaba a ningun bug.
+ */
+async function asegurarSaldo(minimo) {
+    let s = await saldo();
+    while (s < minimo) {
+        const falta = Math.min(10000, Math.max(100, Math.ceil(minimo - s)));
+        const t = await api('/api/credit/topup', { amount: falta, currency: 'MXN' });
+        if (!t.clientSecret) throw new Error(`no se pudo recargar: ${t.error || t.http}`);
+        const pi = t.clientSecret.split('_secret_')[0];
+        await cobrar(pi);
+        const c = await api('/api/credit/confirm', { paymentIntentId: pi });
+        if (!c.success) throw new Error(`no se pudo abonar: ${c.error || c.http}`);
+        s = await saldo();
+    }
+    return s;
+}
+
 /** Cobra un PaymentIntent con la tarjeta de prueba de Stripe.
  *  El return_url es obligatorio al confirmar desde el SERVIDOR con
  *  automatic_payment_methods; en el navegador lo pone Stripe.js solo. */
@@ -320,9 +345,15 @@ await prueba('el pedido sin cargo se registra y no inventa un pago en Stripe', a
 });
 
 await prueba('un token manipulado no registra ningun pedido', async () => {
+    // El saldo tiene que cubrir el pedido entero: es lo que hace que /checkout
+    // devuelva un token en vez de un clientSecret, y el token es lo que esta
+    // prueba manipula.
+    const p = await uno('SELECT sale_price FROM products WHERE id = ?', [PRODUCTO]);
+    await asegurarSaldo(round2(Number(p.sale_price) + 220 + 50));
     const c = await api('/api/checkout', {
         items: [{ id: PRODUCTO, quantity: 1 }], currency: 'MXN', shippingCost: 220, saveCard: false,
     });
+    debe(c.sinCargo && c.pedidoToken, c.error || 'el saldo deberia cubrir el pedido entero');
     // Se cambia un caracter de la firma: el cuerpo sigue diciendo lo mismo pero
     // ya no lo avala nadie. Es la unica defensa que tiene este camino.
     const roto = c.pedidoToken.slice(0, -3) + (c.pedidoToken.endsWith('AAA') ? 'BBB' : 'AAA');
@@ -359,17 +390,116 @@ await prueba('si al saldo le falta poco, la tarjeta paga el minimo y no menos', 
     // `amount_too_small` seguro. Ahora se aplica un poco menos de saldo.
     // El carrito se arma para dejar exactamente $5 por cobrar, que cae dentro
     // de ese hueco.
-    const disponible = await saldo();
-    const c = await carritoQueSupere(disponible - 500);
-    const envio = round2(disponible + 5 - c.subtotal);
+    //
+    // El carrito se arma con el articulo MAS BARATO y no con `carritoQueSupere`:
+    // aquel apila los caros primero, y con articulos de $750 el salto entre una
+    // cantidad y la siguiente es mayor que la ventana de envio que la tienda
+    // acepta ($10–$2000). El envio salia negativo y la prueba fallaba sin que
+    // hubiera nada roto.
+    const disponible = await asegurarSaldo(1500);
+    const art = await uno(
+        'SELECT id, sale_price, stock FROM products WHERE stock > 0 AND sale_price > 0 ORDER BY sale_price ASC LIMIT 1');
+    const precio = Number(art.sale_price);
+    const cant = Math.max(1, Math.min(99, Number(art.stock), Math.floor((disponible - 500) / precio)));
+    const subtotal = round2(precio * cant);
+    const envio = round2(disponible + 5 - subtotal);
     debe(envio >= 10 && envio <= 2000, `el envio calculado (${envio}) se sale del rango permitido`);
     const r = await api('/api/checkout', {
-        items: c.items, currency: 'MXN', shippingCost: envio, saveCard: false,
+        items: [{ id: art.id, quantity: cant }], currency: 'MXN', shippingCost: envio, saveCard: false,
     });
     debe(r.success, r.error || 'deberia prepararse');
     igual(r.totalCharge, 10, 'la tarjeta paga el minimo de Stripe');
-    igual(r.appliedCredit, round2(c.subtotal + envio - 10), 'y el saldo cubre el resto');
+    igual(r.appliedCredit, round2(subtotal + envio - 10), 'y el saldo cubre el resto');
     debe(r.appliedCredit < disponible, 'se aplica un poco menos de saldo del que hay');
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  LO QUE SE PAGA Y LO QUE SE EMPACA — tienen que ser el mismo carrito
+// ═════════════════════════════════════════════════════════════════════════════
+
+await prueba('confirmar un pedido exige sesion', async () => {
+    // /api/checkout/confirm registra pedidos y gasta saldo, y durante mucho
+    // tiempo no miro la cookie: le bastaba un PaymentIntent valido. El id de un
+    // PaymentIntent viaja al navegador dentro del clientSecret, asi que no es
+    // ningun secreto.
+    const r = await fetch(BASE + '/api/checkout/confirm', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentIntentId: 'pi_loquesea', items: [{ id: PRODUCTO, quantity: 1 }] }),
+    });
+    igual(r.status, 401, 'status');
+});
+
+await prueba('no se puede confirmar un carrito distinto al que se pago', async () => {
+    // El agujero: los importes venian del servidor pero los RENGLONES venian
+    // del navegador. Se cotizaba un carrito, se autorizaba su importe y se
+    // confirmaba otro; la venta quedaba por lo cotizado y el POS empacaba lo
+    // confirmado. Medido: $470 cobrados, $1,500 de mercancia.
+    //
+    // El carrito tiene que SUPERAR el saldo para que el pago pase por la
+    // tarjeta: si el saldo lo cubre entero no hay PaymentIntent, y ese camino
+    // (el del token firmado) ya lo cubre la prueba del token manipulado.
+    const c = await carritoQueSupere(await saldo());
+    const ck = await api('/api/checkout', {
+        items: c.items, currency: 'MXN', shippingCost: 220, saveCard: false,
+    });
+    debe(ck.clientSecret, ck.error || 'deberia crear el PaymentIntent');
+    const pi = ck.clientSecret.split('_secret_')[0];
+    await cobrar(pi);
+
+    // Se confirma el mismo carrito con una unidad de mas: mercancia que nadie
+    // pago. Es la forma exacta del ataque.
+    const inflado = c.items.map((it, k) => k === 0 ? { ...it, quantity: it.quantity + 1 } : it);
+    const r = await api('/api/checkout/confirm', {
+        paymentIntentId: pi, items: inflado,
+        userEmail: EMAIL, userName: 'Prueba', shippingMethod: 'envia',
+    });
+    igual(r.http, 409, 'status');
+    debe(!r.success, 'un carrito cambiado no puede registrar pedido');
+    const hay = await uno('SELECT COUNT(*) n FROM bisonte_orders WHERE payment_intent_id = ?', [pi]);
+    igual(hay.n, 0, 'no debe quedar ningun pedido registrado');
+    await stripe.paymentIntents.cancel(pi).catch(() => { });
+});
+
+await prueba('el carrito que SI se pago se confirma sin problema', async () => {
+    // El reverso de la anterior: la comprobacion nueva no puede estorbar al
+    // pedido honesto.
+    //
+    // El envio va distinto del de la prueba anterior a proposito: entra en la
+    // llave de idempotencia, y con el mismo carrito y el mismo envio Stripe
+    // devolveria aquel PaymentIntent — que aquella prueba dejo cancelado.
+    const c = await carritoQueSupere(await saldo());
+    const ck = await api('/api/checkout', {
+        items: c.items, currency: 'MXN', shippingCost: 230, saveCard: false,
+    });
+    debe(ck.clientSecret, ck.error || 'deberia crear el PaymentIntent');
+    const pi = ck.clientSecret.split('_secret_')[0];
+    await cobrar(pi);
+    const r = await api('/api/checkout/confirm', {
+        paymentIntentId: pi, items: c.items,
+        userEmail: EMAIL, userName: 'Prueba', shippingMethod: 'envia',
+    });
+    debe(r.success, r.error || 'el pedido legitimo deberia registrarse');
+
+    // Y lo que quedo en sale_items es lo que se cotizo, renglon por renglon.
+    const [renglones] = await db.query(
+        'SELECT product_id, quantity FROM sale_items WHERE sale_id = ? ORDER BY product_id', [r.saleId]);
+    const esperado = [...c.items].map(i => `${i.id}x${i.quantity}`).sort().join('|');
+    const llego = renglones.map(x => `${x.product_id}x${x.quantity}`).sort().join('|');
+    igual(llego, esperado, 'los renglones guardados');
+
+    await api('/api/orders/capture', { saleId: r.saleId, action: 'cancel', apiKey: process.env.CAPTURE_API_KEY });
+});
+
+await prueba('la clave del POS no se compara caracter por caracter', async () => {
+    // Con una clave mala la respuesta tiene que ser 401 igual de rapido sea
+    // cual sea el prefijo acertado: si el tiempo dependiera de cuantos
+    // caracteres coinciden, la clave se adivina de izquierda a derecha.
+    const real = process.env.CAPTURE_API_KEY;
+    const casi = real.slice(0, -1) + (real.endsWith('z') ? 'y' : 'z');
+    for (const mala of ['x', casi, '']) {
+        const r = await api('/api/orders/capture', { saleId: 1, action: 'cancel', apiKey: mala });
+        igual(r.http, 401, `clave "${String(mala).slice(0, 4)}..." deberia dar 401`);
+    }
 });
 
 await prueba('el historial explica el saldo hasta el ultimo centavo', async () => {

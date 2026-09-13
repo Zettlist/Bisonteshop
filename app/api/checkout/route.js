@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
-import { priceCart, priceCoupon, round2 } from '@/lib/pricing';
+import { priceCart, priceCoupon, round2, huellaCarrito } from '@/lib/pricing';
 import { getUsdRate } from '@/lib/fx';
 import { firmarPedidoSaldo } from '@/lib/pedidoSaldo';
 
@@ -104,9 +104,16 @@ export async function POST(request) {
     // Sin cargo no hay PaymentIntent que crear, y sin PaymentIntent no hay
     // metadata donde apoyar los totales. Ese papel lo hace un token firmado
     // por el servidor: mismo efecto, cero dependencia de Stripe.
+    // La mercancia cotizada, resumida en un hash. Viaja con los totales (en el
+    // metadata o en el token) y /api/checkout/confirm la vuelve a calcular
+    // sobre lo que le manden: sin esto el carrito que se paga y el que se
+    // empaca podian ser dos carritos distintos.
+    const itemsHash = huellaCarrito(lines);
+
     if (totalCharge <= 0) {
       const { token, ref } = await firmarPedidoSaldo({
         clienteId: userId,
+        itemsHash,
         subtotal,
         discount: appliedDiscount,
         credit: appliedCreditFinal,
@@ -154,13 +161,26 @@ export async function POST(request) {
     // ── Idempotencia: doble-clic / reintento no debe crear PaymentIntents duplicados.
     // La llave depende del usuario + carrito + cupón + envío + moneda: mismo pedido →
     // Stripe devuelve el MISMO PaymentIntent. Si el carrito cambia, la llave cambia.
+    //
+    // `v` es la version de la FORMA del PaymentIntent, y sube cada vez que
+    // cambia lo que se le manda a Stripe con la misma llave. Sin ella, un
+    // carrito cotizado antes de un despliegue que toque el metadata da la
+    // misma llave con parametros distintos, y Stripe contesta
+    // `idempotency_error`: un 500 y "Error al procesar el pago" para un
+    // cliente que no hizo nada raro. Paso de verdad al añadir `itemsHash`.
+    //
+    // `saveCard` va dentro por lo mismo: cambia `setup_future_usage`, asi que
+    // dos intentos del mismo carrito que solo se diferencian en la casilla de
+    // guardar la tarjeta son dos peticiones distintas.
     const fingerprint = JSON.stringify({
+      v: 2,
       u: userId,
       items: lines.map(l => [l.id, l.quantity, l.unitPrice]).sort(),
       cupon: coupon?.code || '',
       envio: shippingCost,
       cur: stripeCurrency,
       cents: amountInCents,
+      guardar: Boolean(saveCard),
     });
     const idempotencyKey = `checkout:${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 48)}`;
 
@@ -177,6 +197,8 @@ export async function POST(request) {
         couponId: coupon ? String(coupon.id) : '',
         appliedDiscount: appliedDiscount.toFixed(2),
         appliedCredit: appliedCreditFinal.toFixed(2),
+        // La mercancia que se cotizo. /confirm la exige y la compara.
+        itemsHash,
         // Totales MXN autoritativos (para el registro del pedido en la confirmación)
         subtotalMXN: subtotal.toFixed(2),
         shippingMXN: shippingCost.toFixed(2),

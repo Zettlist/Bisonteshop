@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { sendOrderConfirmation } from '@/lib/mailer';
-import { priceCart, round2 } from '@/lib/pricing';
+import { priceCart, round2, huellaCarrito } from '@/lib/pricing';
+import { getClienteId } from '@/lib/auth';
 import { gastarCredito } from '@/lib/credito';
 import { leerPedidoSaldo } from '@/lib/pedidoSaldo';
 
@@ -12,6 +13,18 @@ const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
 export async function POST(request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
+
+  // Esta ruta registra pedidos y gasta saldo, y hasta ahora no miraba la
+  // sesion: se apoyaba entera en que el pago fuera valido. El id de un
+  // PaymentIntent no es un secreto —viaja al navegador dentro del
+  // clientSecret—, asi que quien lo tuviera podia registrar el pedido desde
+  // fuera de la sesion. El dueño autoritativo sigue siendo el del metadata;
+  // esto es la puerta de antes.
+  const sesionId = await getClienteId();
+  if (!sesionId) {
+    return NextResponse.json({ success: false, error: 'Debes iniciar sesión para comprar.' }, { status: 401 });
+  }
+
   try {
     // `userId` ya no se lee del body a proposito: ver el comentario de clienteId.
     const { paymentIntentId, pedidoToken, items, userEmail, userName, shippingMethod, envia_quote_data, shipping_address } = await request.json();
@@ -57,9 +70,37 @@ export async function POST(request) {
     // el credito de tienda en /capture. El del metadata lo fijo el servidor.
     const clienteId = parseInt(md.userId) || null;
 
+    // El pago tiene dueño y la sesion tambien: tienen que ser el mismo. Sin
+    // esto, un pago ajeno registraria un pedido a nombre de su dueño con la
+    // direccion de envio de quien manda la peticion.
+    if (clienteId !== sesionId) {
+      return NextResponse.json({ success: false, error: 'Este pago no es tuyo.' }, { status: 403 });
+    }
+
     // Precios reales por línea desde la BD (para sale_items)
     const { lines } = await priceCart(items);
     const lineById = new Map(lines.map(l => [l.id, l]));
+
+    // ── La mercancia tiene que ser la que se pago ────────────────────────
+    // Los importes venian del servidor, pero `items` llega en el cuerpo y era
+    // lo unico que decidia que se empaca. Cotizar un manga de $250, autorizar
+    // $470 y confirmar dos figuras de $750 daba una venta de $470 con $1,500
+    // de mercancia: el POS empacaba lo segundo. La huella la fijo /api/checkout
+    // sobre el carrito que de verdad cotizo.
+    //
+    // Se exige presente: un metadata sin huella es un pago que no salio de
+    // /api/checkout, o uno anterior a esta comprobacion. En ambos casos no hay
+    // nada contra que contrastar y el pedido no se registra.
+    if (!md.itemsHash || md.itemsHash !== huellaCarrito(lines)) {
+      console.error(
+        `[Confirm] Carrito distinto al pagado (cliente ${clienteId}, pago ${referencia}). ` +
+        `Esperaba ${md.itemsHash || '(sin huella)'} y llego ${huellaCarrito(lines)}.`
+      );
+      return NextResponse.json(
+        { success: false, error: 'El carrito no coincide con el pago. Vuelve a intentarlo.' },
+        { status: 409 }
+      );
+    }
 
     const conn = await pool.getConnection();
     try {
