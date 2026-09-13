@@ -130,12 +130,30 @@ const valeEnvio = (items, precio) => new SignJWT({
  * con poco saldo el checkout devolvia un clientSecret donde la prueba esperaba
  * un token, y el fallo no señalaba a ningun bug.
  */
+/**
+ * Pide una recarga esperando al freno si hace falta.
+ *
+ * /api/credit/topup corta a 10 por minuto y por cliente. La suite hace mas que
+ * eso desde que las pruebas del webhook necesitan cobros REALES —un `pi_`
+ * inventado ya no sirve de nada, porque el webhook le pide el objeto a Stripe—,
+ * y un 429 a mitad de la suite hacia fallar una prueba que no tenia nada roto.
+ */
+async function pedirRecarga(monto) {
+    for (let intento = 0; intento < 4; intento++) {
+        const t = await api('/api/credit/topup', { amount: monto, currency: 'MXN' });
+        if (t.clientSecret) return t;
+        if (t.http !== 429) throw new Error(`no se pudo recargar: ${t.error || t.http}`);
+        const espera = (Number(String(t.error).match(/(\d+)/)?.[1]) || 10) + 2;
+        await new Promise(r => setTimeout(r, espera * 1000));
+    }
+    throw new Error('el freno de recargas no se soltó');
+}
+
 async function asegurarSaldo(minimo) {
     let s = await saldo();
     while (s < minimo) {
         const falta = Math.min(10000, Math.max(100, Math.ceil(minimo - s)));
-        const t = await api('/api/credit/topup', { amount: falta, currency: 'MXN' });
-        if (!t.clientSecret) throw new Error(`no se pudo recargar: ${t.error || t.http}`);
+        const t = await pedirRecarga(falta);
         const pi = t.clientSecret.split('_secret_')[0];
         await cobrar(pi);
         const c = await api('/api/credit/confirm', { paymentIntentId: pi });
@@ -615,8 +633,7 @@ async function webhook(tipo, objeto, { secreto = process.env.STRIPE_WEBHOOK_SECR
  *  y solo usa el id del cuerpo, asi que una prueba con un `pi_` de mentira solo
  *  probaria que Stripe contesta 404. */
 async function recargaPagada(monto) {
-    const t = await api('/api/credit/topup', { amount: monto, currency: 'MXN' });
-    if (!t.clientSecret) throw new Error(`no se pudo preparar la recarga: ${t.error || t.http}`);
+    const t = await pedirRecarga(monto);
     const pi = t.clientSecret.split('_secret_')[0];
     await cobrar(pi);
     return pi;
@@ -714,6 +731,27 @@ await prueba('el navegador y el webhook no abonan el mismo cobro dos veces', asy
     debe(porNavegador.success, porNavegador.error || 'el navegador deberia poder abonar');
     igual(porStripe.http, 200, 'y el webhook contestar 200');
     igual(await saldo(), round2(antes + 400), 'pero el abono es UNO');
+});
+
+await prueba('dos avisos SIMULTANEOS del mismo cobro no rompen nada', async () => {
+    // La version dura de la prueba anterior: no seguidos, a la vez. Dos
+    // transacciones abiertas sobre la misma fila.
+    //
+    // Aqui salio un fallo de verdad, en produccion: la comprobacion de "¿ya
+    // estaba?" se hacia DENTRO de la transaccion, y en REPEATABLE READ la fila
+    // que otro proceso acababa de confirmar no se ve. El choque del UNIQUE se
+    // leia como "no se pudo guardar" y el webhook contestaba 500.
+    //
+    // Depende del reloj, asi que no siempre reproduce el caso. Cuando falla,
+    // falla por algo real.
+    const pi = await recargaPagada(200);
+    const antes = await saldo();
+    const dos = await Promise.all([
+        webhook('payment_intent.succeeded', eventoDe(pi)),
+        webhook('payment_intent.succeeded', eventoDe(pi)),
+    ]);
+    for (const [i, r] of dos.entries()) igual(r.http, 200, `el aviso ${i + 1} deberia contestar 200`);
+    igual(await saldo(), round2(antes + 200), 'y el abono es UNO');
 });
 
 await prueba('el cobro de un pedido no se convierte en saldo', async () => {
