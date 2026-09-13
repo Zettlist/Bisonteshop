@@ -60,6 +60,12 @@ function maintenanceHtml() {
 export async function middleware(request) {
     const { pathname, searchParams } = request.nextUrl;
 
+    // El webhook de Stripe NO pasa por el gate de mantenimiento. Es una llamada
+    // de servidor a servidor con su propia firma, no una visita a la tienda: si
+    // le contestamos 503, Stripe reintenta un rato y acaba rindiendose, y con
+    // ello se pierden los abonos de saldo que esta ruta existe para rescatar.
+    if (pathname === '/api/stripe/webhook') return NextResponse.next();
+
     // ── Gate de mantenimiento ───────────────────────────────────────────────
     if (MAINTENANCE) {
         const pase = searchParams.get('pase');

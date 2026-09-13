@@ -1,63 +1,11 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
-import { devolverCredito } from '@/lib/credito';
+import { cerrarReembolso } from '@/lib/credito';
 import { esPedidoDeSaldo } from '@/lib/pedidoSaldo';
 import { claveApiValida } from '@/lib/claveApi';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Cierra el pedido como reembolsado y devuelve a la cuenta el saldo de tienda
- * que se comio. Los dos pasos van juntos porque son el mismo hecho.
- *
- * El reembolso de Stripe solo devuelve lo que la TARJETA pago. Un pedido de
- * $800 cubierto con $300 de saldo cobro $500 a la tarjeta, y devolver solo esos
- * $500 le desaparece al cliente los $300 que ya habia comprado: dinero real que
- * entro por /api/credit/topup y sale por ningun lado.
- *
- * La devolucion se hace UNA vez porque cuelga de la transicion de estado: el
- * `AND pago_estado = 'capturado'` solo la cumple la primera llamada, y las
- * demas ven affectedRows = 0. Eso importa porque este endpoint se reintenta --
- * el POS lo llama y la red se cae a mitad.
- *
- * @returns {Promise<boolean>} true si esta llamada fue la que cerro el pedido
- */
-async function cerrarReembolso(saleId, refundId) {
-  const conn = await pool.getConnection();
-  try {
-    await conn.beginTransaction();
-
-    const [upd] = await conn.query(
-      `UPDATE bisonte_orders
-          SET pago_estado = 'reembolsado', refund_id = COALESCE(?, refund_id)
-        WHERE sale_id = ? AND pago_estado = 'capturado'`,
-      [refundId || null, saleId]
-    );
-
-    if (upd.affectedRows === 1) {
-      const [rows] = await conn.query(
-        'SELECT cliente_id, credito_aplicado FROM bisonte_orders WHERE sale_id = ? LIMIT 1',
-        [saleId]
-      );
-      const pedido = rows[0];
-      if (pedido && pedido.credito_aplicado > 0) {
-        await devolverCredito(
-          conn, pedido.cliente_id, pedido.credito_aplicado,
-          `Saldo devuelto: pedido #${saleId} reembolsado`
-        );
-      }
-    }
-
-    await conn.commit();
-    return upd.affectedRows === 1;
-  } catch (e) {
-    await conn.rollback();
-    throw e;
-  } finally {
-    conn.release();
-  }
-}
 
 /**
  * POST /api/orders/refund

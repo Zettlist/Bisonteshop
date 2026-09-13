@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 import { round2 } from '@/lib/pricing';
+import { acreditarRecarga } from '@/lib/credito';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,64 +83,29 @@ export async function POST(request) {
     const moneda = md.cargoMoneda === 'USD' ? 'USD' : 'MXN';
     const cargo = round2(Number(md.cargoMonto)) || amount;
 
-    const conn = await pool.getConnection();
+    // El abono vive en lib/credito.js porque esta ruta ya no es la unica que
+    // lo hace: /api/stripe/webhook llega al mismo sitio cuando Stripe avisa por
+    // su cuenta. Los dos caminos pueden llegar en cualquier orden, o a la vez;
+    // quien resuelve el empate es el UNIQUE de `credit_topups`, alla dentro.
     try {
-        await conn.beginTransaction();
-
-        // El libro va PRIMERO: si este INSERT choca con el UNIQUE, el cobro ya
-        // se acredito y no hay que sumar nada. Al reves — sumar y luego anotar —
-        // una segunda llamada abonaria el saldo antes de descubrir el choque.
-        const [ins] = await conn.query(
-            `INSERT IGNORE INTO credit_topups (cliente_id, payment_intent_id, amount, currency, charged_amount)
-                  VALUES (?, ?, ?, ?, ?)`,
-            [clienteId, paymentIntentId, amount, moneda, cargo]
-        );
-
-        if (ins.affectedRows !== 1) {
-            // El IGNORE se traga cualquier error de la fila, no solo el choque
-            // del UNIQUE. Antes de contestar "ya estaba abonado" -- que para el
-            // cliente significa "tu dinero llego" -- hay que ver la fila.
-            const [yaEsta] = await conn.query(
-                'SELECT id FROM credit_topups WHERE payment_intent_id = ? LIMIT 1',
-                [paymentIntentId]
-            );
-            await conn.rollback();
-            if (!yaEsta.length) throw new Error('El registro de la recarga no se pudo guardar');
-            return NextResponse.json({ success: true, yaAplicado: true, amount, balance: await saldoDe(clienteId) });
-        }
-
-        await conn.query(
-            'UPDATE clientes SET store_credit = store_credit + ? WHERE id = ?',
-            [amount, clienteId]
-        );
-
-        // El historial es lo que el cliente ve en su perfil. Va en la misma
-        // transaccion que el saldo a proposito: un saldo que sube sin un
-        // movimiento que lo explique es una llamada a atencion al cliente.
-        await conn.query(
-            'INSERT INTO credit_history (cliente_id, amount, description) VALUES (?, ?, ?)',
-            [clienteId, amount, 'Recarga de saldo con tarjeta']
-        );
-
-        const [rows] = await conn.query('SELECT store_credit FROM clientes WHERE id = ? LIMIT 1', [clienteId]);
-        await conn.commit();
-
+        const r = await acreditarRecarga({
+            clienteId, paymentIntentId, amount, moneda, cargo,
+            motivo: 'Recarga de saldo con tarjeta',
+        });
         return NextResponse.json({
             success: true,
-            amount,
-            balance: rows.length ? Number(rows[0].store_credit || 0) : amount,
+            ...(r.yaEstaba && { yaAplicado: true }),
+            amount: r.amount,
+            balance: r.balance,
         });
     } catch (e) {
-        await conn.rollback();
         // El dinero YA se cobro: esto no se puede quedar en un log y ya. Si esta
-        // linea aparece, hay un cargo en Stripe sin saldo abonado y hay que
-        // acreditarlo a mano (el id del PaymentIntent es la referencia).
+        // linea aparece, hay un cargo en Stripe sin saldo abonado -- aunque
+        // ahora el webhook lo reintenta solo, que es justo para lo que esta.
         console.error(`[credit/confirm] Cobro sin acreditar ${paymentIntentId} (cliente ${clienteId}):`, e.message);
         return NextResponse.json(
             { success: false, error: 'Tu pago se realizó, pero no pudimos abonarlo. Escríbenos y lo resolvemos.' },
             { status: 500 }
         );
-    } finally {
-        conn.release();
     }
 }
