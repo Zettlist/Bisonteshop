@@ -693,6 +693,23 @@ await prueba('un pago que no es recarga no se convierte en saldo', async () => {
     igual(await saldo(), antes, 'pero no abona nada');
 });
 
+await prueba('un evento "resumen" se completa pidiendoselo a Stripe', async () => {
+    // Al dar de alta el destino, Stripe deja elegir entre mandar el objeto
+    // entero o solo un resumen. Con el resumen no llega la metadata, que es de
+    // donde sale a quien abonar y cuanto. En vez de depender de esa casilla, el
+    // webhook pide el objeto cuando le llega escueto.
+    const t = await api('/api/credit/topup', { amount: 250, currency: 'MXN' });
+    debe(t.clientSecret, t.error || 'deberia prepararse');
+    const pi = t.clientSecret.split('_secret_')[0];
+    await cobrar(pi);
+
+    const antes = await saldo();
+    // Un evento con el id y nada mas: exactamente lo que manda el estilo resumen.
+    const r = await webhook('payment_intent.succeeded', { id: pi, object: 'payment_intent' });
+    igual(r.http, 200, 'status');
+    igual(await saldo(), round2(antes + 250), 'el saldo sube igual: fue a buscar la metadata');
+});
+
 await prueba('un evento que no nos interesa se acepta y se ignora', async () => {
     // 200 y no 4xx: si contestaramos error, Stripe marcaria el destino como
     // roto y dejaria de mandarnos tambien los que si importan.

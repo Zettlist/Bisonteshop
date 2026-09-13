@@ -63,15 +63,15 @@ export async function POST(request) {
     try {
         switch (evento.type) {
             case 'payment_intent.succeeded':
-                await recargaCobrada(evento.data.object);
+                await recargaCobrada(await completo(stripe, evento.data.object, 'paymentIntents'));
                 break;
 
             case 'charge.refunded':
-                await cargoDevuelto(evento.data.object);
+                await cargoDevuelto(await completo(stripe, evento.data.object, 'charges'));
                 break;
 
             case 'charge.dispute.created':
-                await contracargoAbierto(evento.data.object);
+                await contracargoAbierto(await completo(stripe, evento.data.object, 'disputes'));
                 break;
 
             default:
@@ -88,6 +88,30 @@ export async function POST(request) {
     }
 
     return NextResponse.json({ recibido: true });
+}
+
+/**
+ * El objeto entero, venga como venga en el evento.
+ *
+ * Al dar de alta el destino, Stripe deja elegir el "estilo de la carga util":
+ * uno manda el objeto completo y otro solo un resumen, y con el resumen no
+ * llega la metadata — que es de donde sale a quien abonar y cuanto. Depender de
+ * ese ajuste es depender de una casilla de un panel que cualquiera puede
+ * cambiar; si falta lo que hace falta, se le pide a Stripe y ya.
+ *
+ * La llamada extra solo ocurre cuando el evento llega escueto. Con el objeto
+ * completo esto no toca la red.
+ */
+async function completo(stripe, objeto, recurso) {
+    // `metadata` es el corte: los tres eventos que escuchamos la traen en el
+    // formato completo, y ninguno en el resumido.
+    if (objeto?.metadata !== undefined || !objeto?.id) return objeto;
+    try {
+        return await stripe[recurso].retrieve(objeto.id);
+    } catch (e) {
+        console.error(`[webhook] No se pudo recuperar ${recurso}/${objeto.id}:`, e.message);
+        throw e;   // 500 → Stripe reintenta
+    }
 }
 
 /**
