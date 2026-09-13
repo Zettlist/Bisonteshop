@@ -6,6 +6,7 @@ import { getClienteId } from '@/lib/auth';
 import { priceCart, priceCoupon, round2, huellaCarrito } from '@/lib/pricing';
 import { getUsdRate } from '@/lib/fx';
 import { firmarPedidoSaldo } from '@/lib/pedidoSaldo';
+import { leerEnvio } from '@/lib/envioFirmado';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,7 @@ export async function POST(request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
   try {
     const body = await request.json();
-    const { items, discountCode, saveCard, currency: clientCurrency, shippingCost: clientShippingCost } = body;
+    const { items, discountCode, saveCard, currency: clientCurrency, shippingToken } = body;
 
     // ── 1. Precios DESDE LA BD (nunca del cliente) ───────────────────────
     const { lines, subtotal, errors } = await priceCart(items);
@@ -42,13 +43,41 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: errors[0] }, { status: 400 });
     }
 
-    // Envío: acotado server-side (el cliente solo elige entre cotizaciones reales)
-    const rawShipping = parseFloat(clientShippingCost);
-    const shippingCost = (rawShipping >= 10 && rawShipping <= 2000) ? rawShipping : 220;
+    // La mercancia cotizada, resumida en un hash. Viaja con los totales (en el
+    // metadata o en el token) y /api/checkout/confirm la vuelve a calcular
+    // sobre lo que le manden: sin esto el carrito que se paga y el que se
+    // empaca podian ser dos carritos distintos.
+    const itemsHash = huellaCarrito(lines);
+
+    // ── 2. Envío: el precio lo pone la COTIZACION, no el navegador ───────
+    // Antes llegaba como un numero suelto (`shippingCost`) y aqui solo se
+    // comprobaba que cayera entre $10 y $2,000. Mandar `10` donde la
+    // cotizacion decia `220` salia gratis: la tienda le paga a la paqueteria
+    // los $220 igual. Ahora se exige el vale que firmo /api/shipping/quote.
+    //
+    // Se falla cerrado a proposito. Sin vale no hay pedido, y no se cae de
+    // vuelta a los $220 de antes: un valor por defecto es exactamente el
+    // agujero que esto viene a tapar.
+    const cotizacion = await leerEnvio(shippingToken);
+    if (!cotizacion) {
+      return NextResponse.json(
+        { success: false, envioInvalido: true, error: 'Vuelve a elegir el envío: la cotización expiró o no es válida.' },
+        { status: 400 }
+      );
+    }
+    // Y el vale tiene que ser de ESTE carrito: el precio depende del tamaño del
+    // paquete, asi que el de un solo manga no puede pagar una caja de veinte.
+    if (cotizacion.itemsHash !== itemsHash) {
+      return NextResponse.json(
+        { success: false, envioInvalido: true, error: 'Tu carrito cambió. Vuelve a elegir el envío.' },
+        { status: 409 }
+      );
+    }
+    const shippingCost = round2(cotizacion.precio);
 
     let totalCharge = round2(subtotal + shippingCost);
 
-    // ── 2. Cupón validado en BD (sobre el subtotal real) ─────────────────
+    // ── 3. Cupón validado en BD (sobre el subtotal real) ─────────────────
     // Nota: usage_count y el límite por usuario se aplican en la CAPTURA (no aquí),
     // para no quemar cupones en carritos abandonados o pagos fallidos.
     const { coupon, amount: appliedDiscount, error: couponError } = await priceCoupon(discountCode, subtotal, userId);
@@ -57,7 +86,7 @@ export async function POST(request) {
     }
     if (appliedDiscount > 0) totalCharge = round2(totalCharge - appliedDiscount);
 
-    // ── 3. Moneda y tipo de cambio SERVER-SIDE ───────────────────────────
+    // ── 4. Moneda y tipo de cambio SERVER-SIDE ───────────────────────────
     // Va antes del crédito porque el mínimo que Stripe acepta cobrar depende
     // de la moneda, y ese mínimo condiciona cuánto saldo se puede aplicar.
     const stripeCurrency = (clientCurrency === 'USD') ? 'usd' : 'mxn';
@@ -67,7 +96,7 @@ export async function POST(request) {
       ? round2(MINIMO_STRIPE.usd / usdRate) + 0.01
       : MINIMO_STRIPE.mxn;
 
-    // ── 4. Crédito de tienda (el saldo real lo tiene la BD) ──────────────
+    // ── 5. Crédito de tienda (el saldo real lo tiene la BD) ──────────────
     // Se "aplica" para reducir el cargo; se DESCUENTA del saldo al registrar
     // el pedido, en /api/checkout/confirm.
     //
@@ -100,16 +129,10 @@ export async function POST(request) {
       totalCharge = round2(totalCharge - appliedCreditFinal);
     }
 
-    // ── 5. El pedido que no pasa por la tarjeta ──────────────────────────
+    // ── 6. El pedido que no pasa por la tarjeta ──────────────────────────
     // Sin cargo no hay PaymentIntent que crear, y sin PaymentIntent no hay
     // metadata donde apoyar los totales. Ese papel lo hace un token firmado
     // por el servidor: mismo efecto, cero dependencia de Stripe.
-    // La mercancia cotizada, resumida en un hash. Viaja con los totales (en el
-    // metadata o en el token) y /api/checkout/confirm la vuelve a calcular
-    // sobre lo que le manden: sin esto el carrito que se paga y el que se
-    // empaca podian ser dos carritos distintos.
-    const itemsHash = huellaCarrito(lines);
-
     if (totalCharge <= 0) {
       const { token, ref } = await firmarPedidoSaldo({
         clienteId: userId,
@@ -132,7 +155,7 @@ export async function POST(request) {
       });
     }
 
-    // ── 6. Stripe Customer (para tarjetas guardadas) ─────────────────────
+    // ── 7. Stripe Customer (para tarjetas guardadas) ─────────────────────
     let stripeCustomerId = null;
     const [clienteRows] = await pool.query('SELECT stripe_customer_id, nombre, apellido, email FROM clientes WHERE id = ? LIMIT 1', [userId]);
     if (clienteRows.length) {
@@ -150,7 +173,7 @@ export async function POST(request) {
       }
     }
 
-    // ── 7. El importe que ve la tarjeta ──────────────────────────────────
+    // ── 8. El importe que ve la tarjeta ──────────────────────────────────
     // Sin el `Math.max(..., 10)` que habia aqui: aquel clamp eran 10 CENTAVOS
     // y el minimo de Stripe en MXN son $10.00 — mil centavos. No salvaba nada;
     // solo convertia un cargo demasiado pequeño en un error de Stripe. Ahora el

@@ -363,7 +363,11 @@ function CheckoutFlow() {
                         saveCard,
                         currency: currency || 'MXN',
                         usdRate: usdRate || 0.049,
-                        shippingCost: totals.shippingCost || 220,
+                        // El costo de envío ya no viaja como número: va el vale
+                        // que firmó /api/shipping/quote. Mandar la cifra suelta
+                        // dejaba elegirla al navegador, y $10 donde la
+                        // cotización decía $220 los acababa pagando la tienda.
+                        shippingToken: selectedShipping?.vale || null,
                         shippingMethod: 'envia',
                     }),
                 });
@@ -373,6 +377,19 @@ function CheckoutFlow() {
                     if (res.status === 401) {
                         clearUser();
                         router.replace('/?login=1');
+                        return;
+                    }
+                    // La cotización caducó (dura una hora) o el carrito cambió
+                    // desde que se pidió. No hay nada que el cliente pueda
+                    // arreglar desde aquí: se le devuelve al paso del envío con
+                    // las opciones recién pedidas.
+                    if (data.envioInvalido) {
+                        setShippingOptions(null);
+                        setSelectedShipping(null);
+                        setClientSecret(null);
+                        setStep(3);
+                        window.scrollTo(0, 0);
+                        setPaymentError(data.error || 'Vuelve a elegir el envío.');
                         return;
                     }
                     setPaymentError(data.error || 'Error al preparar el pago.');

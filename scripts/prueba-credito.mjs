@@ -24,6 +24,8 @@
  */
 import Stripe from 'stripe';
 import mysql from 'mysql2/promise';
+import crypto from 'crypto';
+import { SignJWT } from 'jose';
 
 process.loadEnvFile('.env.local');
 
@@ -86,6 +88,37 @@ async function carritoQueSupere(objetivo) {
     if (suma <= objetivo) throw new Error(`no hay catalogo suficiente para superar ${objetivo} (llego a ${suma})`);
     return { items, subtotal: round2(suma) };
 }
+
+/**
+ * Firma un vale de envio, como lo hace /api/shipping/quote.
+ *
+ * El costo de envio ya no viaja como numero: /api/checkout exige el vale
+ * firmado de la cotizacion. Aqui se firma en vez de pedirselo al endpoint real
+ * por dos razones: varias pruebas necesitan un costo EXACTO (la del hueco del
+ * minimo de Stripe lo calcula al centavo, y Envia devuelve lo que devuelve), y
+ * cotizar de verdad mete la disponibilidad de un tercero en cada corrida. La
+ * cotizacion real tiene su propia prueba, mas abajo.
+ *
+ * La huella se replica en vez de importarse: lib/pricing.js entra por el alias
+ * `@/lib/db`, que fuera de Next no resuelve. Si una cambia, la otra tiene que
+ * cambiar — y la prueba de la cotizacion real es la que lo cazaria.
+ */
+const huellaDe = (items) => crypto.createHash('sha256')
+    .update(items
+        .map(i => `${Number(i.id)}x${Math.max(1, Math.min(Math.floor(Number(i.quantity) || 1), 99))}`)
+        .sort().join('|'))
+    .digest('hex');
+
+const valeEnvio = (items, precio) => new SignJWT({
+    precio: Number(precio).toFixed(2),
+    carrier: 'prueba',
+    service: 'estandar',
+    itemsHash: huellaDe(items),
+})
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('60m')
+    .sign(new TextEncoder().encode(process.env.JWT_SECRET));
 
 /**
  * Sube el saldo hasta al menos `minimo`, con recargas de verdad.
@@ -258,7 +291,7 @@ await prueba('el checkout aplica el saldo disponible y baja el cobro', async () 
     // tarjeta, y el saldo tiene que quedarse corto para que haya algo que cobrar.
     carrito = await carritoQueSupere(disponible + 500);
     const r = await api('/api/checkout', {
-        items: carrito.items, currency: 'MXN', shippingCost: ENVIO, saveCard: false,
+        items: carrito.items, currency: 'MXN', shippingToken: await valeEnvio(carrito.items, ENVIO), saveCard: false,
     });
     debe(r.success, r.error || 'deberia prepararse');
     igual(r.appliedCredit, disponible, 'se aplica todo el saldo, que no alcanza');
@@ -289,7 +322,7 @@ await prueba('un segundo pedido no puede gastar el saldo otra vez', async () => 
     // viejo aqui volveria a aplicarse entero.
     igual(await saldo(), 0, 'el pedido anterior se llevo el saldo');
     const r = await api('/api/checkout', {
-        items: carrito.items, currency: 'MXN', shippingCost: ENVIO, saveCard: false,
+        items: carrito.items, currency: 'MXN', shippingToken: await valeEnvio(carrito.items, ENVIO), saveCard: false,
     });
     igual(r.appliedCredit, 0, 'no puede repetir el credito del pedido anterior');
     igual(r.totalCharge, round2(carrito.subtotal + ENVIO), 'la tarjeta paga el pedido entero');
@@ -312,7 +345,7 @@ await prueba('el saldo puede pagar un pedido ENTERO', async () => {
     const disponible = await saldo();
     debe(disponible >= 350 + 220, `esta prueba necesita saldo de sobra, hay ${disponible}`);
     const r = await api('/api/checkout', {
-        items: [{ id: PRODUCTO, quantity: 1 }], currency: 'MXN', shippingCost: 220, saveCard: false,
+        items: [{ id: PRODUCTO, quantity: 1 }], currency: 'MXN', shippingToken: await valeEnvio([{ id: PRODUCTO, quantity: 1 }], 220), saveCard: false,
     });
     debe(r.success, r.error || 'no se puede comprar pagando solo con saldo');
     igual(r.totalCharge, 0, 'a la tarjeta no le toca nada');
@@ -322,7 +355,7 @@ let saleSaldo, creditoSaldo;
 await prueba('el pedido sin cargo se registra y no inventa un pago en Stripe', async () => {
     const disponible = await saldo();
     const c = await api('/api/checkout', {
-        items: [{ id: PRODUCTO, quantity: 1 }], currency: 'MXN', shippingCost: 220, saveCard: false,
+        items: [{ id: PRODUCTO, quantity: 1 }], currency: 'MXN', shippingToken: await valeEnvio([{ id: PRODUCTO, quantity: 1 }], 220), saveCard: false,
     });
     debe(c.sinCargo, 'deberia venir marcado como sin cargo');
     debe(c.pedidoToken, 'y traer el token firmado');
@@ -351,7 +384,7 @@ await prueba('un token manipulado no registra ningun pedido', async () => {
     const p = await uno('SELECT sale_price FROM products WHERE id = ?', [PRODUCTO]);
     await asegurarSaldo(round2(Number(p.sale_price) + 220 + 50));
     const c = await api('/api/checkout', {
-        items: [{ id: PRODUCTO, quantity: 1 }], currency: 'MXN', shippingCost: 220, saveCard: false,
+        items: [{ id: PRODUCTO, quantity: 1 }], currency: 'MXN', shippingToken: await valeEnvio([{ id: PRODUCTO, quantity: 1 }], 220), saveCard: false,
     });
     debe(c.sinCargo && c.pedidoToken, c.error || 'el saldo deberia cubrir el pedido entero');
     // Se cambia un caracter de la firma: el cuerpo sigue diciendo lo mismo pero
@@ -403,9 +436,12 @@ await prueba('si al saldo le falta poco, la tarjeta paga el minimo y no menos', 
     const cant = Math.max(1, Math.min(99, Number(art.stock), Math.floor((disponible - 500) / precio)));
     const subtotal = round2(precio * cant);
     const envio = round2(disponible + 5 - subtotal);
-    debe(envio >= 10 && envio <= 2000, `el envio calculado (${envio}) se sale del rango permitido`);
+    // Ya no hay rango que respetar: el envio es el que diga la cotizacion
+    // firmada, y aqui la firma esta prueba. Antes el servidor lo acotaba entre
+    // $10 y $2,000 — precisamente porque se creia el numero del navegador.
+    debe(envio > 0, `el envio calculado (${envio}) tiene que ser positivo`);
     const r = await api('/api/checkout', {
-        items: [{ id: art.id, quantity: cant }], currency: 'MXN', shippingCost: envio, saveCard: false,
+        items: [{ id: art.id, quantity: cant }], currency: 'MXN', shippingToken: await valeEnvio([{ id: art.id, quantity: cant }], envio), saveCard: false,
     });
     debe(r.success, r.error || 'deberia prepararse');
     igual(r.totalCharge, 10, 'la tarjeta paga el minimo de Stripe');
@@ -440,7 +476,7 @@ await prueba('no se puede confirmar un carrito distinto al que se pago', async (
     // (el del token firmado) ya lo cubre la prueba del token manipulado.
     const c = await carritoQueSupere(await saldo());
     const ck = await api('/api/checkout', {
-        items: c.items, currency: 'MXN', shippingCost: 220, saveCard: false,
+        items: c.items, currency: 'MXN', shippingToken: await valeEnvio(c.items, 220), saveCard: false,
     });
     debe(ck.clientSecret, ck.error || 'deberia crear el PaymentIntent');
     const pi = ck.clientSecret.split('_secret_')[0];
@@ -469,7 +505,7 @@ await prueba('el carrito que SI se pago se confirma sin problema', async () => {
     // devolveria aquel PaymentIntent — que aquella prueba dejo cancelado.
     const c = await carritoQueSupere(await saldo());
     const ck = await api('/api/checkout', {
-        items: c.items, currency: 'MXN', shippingCost: 230, saveCard: false,
+        items: c.items, currency: 'MXN', shippingToken: await valeEnvio(c.items, 230), saveCard: false,
     });
     debe(ck.clientSecret, ck.error || 'deberia crear el PaymentIntent');
     const pi = ck.clientSecret.split('_secret_')[0];
@@ -488,6 +524,70 @@ await prueba('el carrito que SI se pago se confirma sin problema', async () => {
     igual(llego, esperado, 'los renglones guardados');
 
     await api('/api/orders/capture', { saleId: r.saleId, action: 'cancel', apiKey: process.env.CAPTURE_API_KEY });
+});
+
+await prueba('el envio no lo pone el navegador', async () => {
+    // El agujero: el costo de envio llegaba como numero suelto y aqui solo se
+    // comprobaba que cayera entre $10 y $2,000. Mandar 10 donde la cotizacion
+    // decia 220 le costaba a la tienda los $210 de diferencia, que se le pagan
+    // a la paqueteria igual.
+    const items = [{ id: PRODUCTO, quantity: 1 }];
+    const r = await api('/api/checkout', {
+        items, currency: 'MXN', shippingCost: 10, saveCard: false,   // como antes
+    });
+    igual(r.http, 400, 'status');
+    debe(r.envioInvalido, 'deberia decir que el envio no vale');
+});
+
+await prueba('un vale de envio inventado no cuela', async () => {
+    const items = [{ id: PRODUCTO, quantity: 1 }];
+    const bueno = await valeEnvio(items, 220);
+    // Se le cambia el final a la firma: el cuerpo sigue diciendo $220 pero ya
+    // no lo avala el servidor.
+    const roto = bueno.slice(0, -3) + (bueno.endsWith('AAA') ? 'BBB' : 'AAA');
+    const r = await api('/api/checkout', { items, currency: 'MXN', shippingToken: roto, saveCard: false });
+    igual(r.http, 400, 'status');
+    debe(r.envioInvalido, 'una firma rota no puede fijar el envio');
+});
+
+await prueba('el vale de un carrito no sirve para otro', async () => {
+    // El precio del envio depende del tamaño del paquete: el vale barato de un
+    // solo manga no puede pagar el envio de una caja de veinte.
+    const uno = [{ id: PRODUCTO, quantity: 1 }];
+    const veinte = [{ id: PRODUCTO, quantity: 20 }];
+    const r = await api('/api/checkout', {
+        items: veinte, currency: 'MXN', shippingToken: await valeEnvio(uno, 220), saveCard: false,
+    });
+    igual(r.http, 409, 'status');
+    debe(r.envioInvalido, 'deberia rechazar el vale de otro carrito');
+});
+
+await prueba('la cotizacion real viene firmada y el checkout la acepta', async () => {
+    // La unica prueba que pasa por Envia. Vale la pena aunque dependa de un
+    // tercero: es lo que caza que la huella que firma /api/shipping/quote y la
+    // que compara /api/checkout dejen de coincidir.
+    const items = [{ id: PRODUCTO, quantity: 1 }];
+    const q = await api('/api/shipping/quote', {
+        items,
+        destination: {
+            nombre_recibe: 'Prueba', telefono: '8110000000', calle: 'Reforma',
+            numero_exterior: '100', colonia: 'Centro', cp: '64000',
+            municipio: 'Monterrey', estado: 'Nuevo León',
+        },
+    });
+    debe(q.success && q.carriers?.length, q.error || 'Envia no devolvio opciones');
+    const opcion = q.carriers[0];
+    debe(opcion.vale, 'cada opcion tiene que venir firmada');
+
+    const r = await api('/api/checkout', {
+        items, currency: 'MXN', shippingToken: opcion.vale, saveCard: false,
+    });
+    debe(r.success, r.error || 'el vale de la cotizacion real deberia valer');
+    // Y el envio que se cobra es el cotizado, ni mas ni menos.
+    const esperado = round2(r.appliedCredit + r.totalCharge);
+    const p = await uno('SELECT sale_price FROM products WHERE id = ?', [PRODUCTO]);
+    igual(esperado, round2(Number(p.sale_price) + opcion.price), 'el total lleva el envio cotizado');
+    if (r.clientSecret) await stripe.paymentIntents.cancel(r.clientSecret.split('_secret_')[0]).catch(() => { });
 });
 
 await prueba('la clave del POS no se compara caracter por caracter', async () => {

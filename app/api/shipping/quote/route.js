@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { priceCart, huellaCarrito } from '@/lib/pricing';
+import { firmarEnvio } from '@/lib/envioFirmado';
 
 export const dynamic = 'force-dynamic';
 
@@ -149,15 +151,29 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'No hay opciones de paquetería disponibles para este destino.' }, { status: 200 });
     }
 
-    const carriers = unicos.map(c => ({
-      type: 'envia',
-      carrier: c.carrier,
-      service: c.service,
-      name: c.carrier.charAt(0).toUpperCase() + c.carrier.slice(1),
-      price: Math.ceil(c.totalPrice),
-      deliveryEstimate: c.deliveryEstimate || null,
-      raw: c,
-      pkg,
+    // Cada opcion sale firmada. El `vale` es lo que /api/checkout acepta como
+    // costo de envio; el `price` de al lado es solo para pintarlo en pantalla.
+    //
+    // La huella se calcula sobre `lines` y no sobre el `items` crudo para que
+    // sea LA MISMA que compara /api/checkout: alli el carrito pasa por
+    // priceCart antes de nada, y dos normalizaciones distintas del mismo
+    // carrito darian huellas distintas y tumbarian pedidos buenos.
+    const { lines } = await priceCart(items);
+    const itemsHash = huellaCarrito(lines);
+
+    const carriers = await Promise.all(unicos.map(async c => {
+      const price = Math.ceil(c.totalPrice);
+      return {
+        type: 'envia',
+        carrier: c.carrier,
+        service: c.service,
+        name: c.carrier.charAt(0).toUpperCase() + c.carrier.slice(1),
+        price,
+        deliveryEstimate: c.deliveryEstimate || null,
+        raw: c,
+        pkg,
+        vale: await firmarEnvio({ precio: price, carrier: c.carrier, service: c.service, itemsHash }),
+      };
     }));
 
     return NextResponse.json({ success: true, carriers });
