@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { devolverCredito } from '@/lib/credito';
 import { esPedidoDeSaldo } from '@/lib/pedidoSaldo';
+import { claveApiValida } from '@/lib/claveApi';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,7 +81,7 @@ export async function POST(request) {
     saleId = body.saleId;
 
     // Auth
-    if (!apiKey || apiKey !== process.env.CAPTURE_API_KEY) {
+    if (!claveApiValida(apiKey)) {
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
     }
     if (!saleId) {

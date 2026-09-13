@@ -2,6 +2,7 @@ import pool from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { EVENTOS, votacionAbierta } from '@/lib/eventos';
+import { claveApiValida } from '@/lib/claveApi';
 
 const EVENTO = EVENTOS.mundial2026.id;
 const OPCIONES = Object.keys(EVENTOS.mundial2026.opciones);
@@ -102,7 +103,7 @@ export async function PATCH(req) {
     try {
 
         const adminKey = req.headers.get('x-admin-key');
-        if (!adminKey || adminKey !== process.env.CAPTURE_API_KEY) {
+        if (!claveApiValida(adminKey)) {
             return NextResponse.json({ success: false, error: 'No autorizado.' }, { status: 401 });
         }
 

@@ -4,6 +4,7 @@ import pool from '@/lib/db';
 import { sendOrderConfirmation } from '@/lib/mailer';
 import { devolverCredito } from '@/lib/credito';
 import { esPedidoDeSaldo } from '@/lib/pedidoSaldo';
+import { claveApiValida } from '@/lib/claveApi';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,7 @@ export async function POST(request) {
     const { saleId, action, apiKey } = await request.json();
 
     // Verificar API key
-    if (!apiKey || apiKey !== process.env.CAPTURE_API_KEY) {
+    if (!claveApiValida(apiKey)) {
       return NextResponse.json({ success: false, error: 'No autorizado' }, { status: 401 });
     }
 

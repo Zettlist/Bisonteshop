@@ -1,12 +1,13 @@
 import pool from '@/lib/db';
 import { NextResponse } from 'next/server';
+import { claveApiValida } from '@/lib/claveApi';
 
 export const dynamic = 'force-dynamic';
 
 // Endpoint administrativo: requiere la clave interna (no es de uso público).
 export async function GET(request) {
     const key = request.headers.get('x-admin-key');
-    if (!key || key !== process.env.CAPTURE_API_KEY) {
+    if (!claveApiValida(key)) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
     try {
