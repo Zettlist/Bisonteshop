@@ -610,40 +610,80 @@ async function webhook(tipo, objeto, { secreto = process.env.STRIPE_WEBHOOK_SECR
     return { http: r.status, cuerpo: await r.text() };
 }
 
-const recargaFalsa = (id, monto) => ({
-    id,
-    object: 'payment_intent',
-    status: 'succeeded',
-    metadata: {
-        userId: String(CLIENTE), tipo: 'credit_topup',
-        creditMXN: Number(monto).toFixed(2), cargoMoneda: 'MXN', cargoMonto: Number(monto).toFixed(2),
-    },
-});
+/** Un cobro de recarga REAL, ya pagado. Devuelve su id.
+ *  Los eventos ya no se pueden inventar: el webhook le pide el objeto a Stripe
+ *  y solo usa el id del cuerpo, asi que una prueba con un `pi_` de mentira solo
+ *  probaria que Stripe contesta 404. */
+async function recargaPagada(monto) {
+    const t = await api('/api/credit/topup', { amount: monto, currency: 'MXN' });
+    if (!t.clientSecret) throw new Error(`no se pudo preparar la recarga: ${t.error || t.http}`);
+    const pi = t.clientSecret.split('_secret_')[0];
+    await cobrar(pi);
+    return pi;
+}
+
+/** El cuerpo tal cual lo manda Stripe en el estilo completo. */
+const eventoDe = (id, extra = {}) => ({ id, object: 'payment_intent', status: 'succeeded', ...extra });
 
 await prueba('sin firma el webhook no escucha a nadie', async () => {
+    const antes = await saldo();
     const r = await fetch(BASE + '/api/stripe/webhook', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'payment_intent.succeeded', data: { object: recargaFalsa('pi_sinfirma', 500) } }),
+        body: JSON.stringify({ type: 'payment_intent.succeeded', data: { object: eventoDe('pi_sinfirma') } }),
     });
     igual(r.status, 400, 'status');
-    igual(await saldo(), await saldo(), 'y desde luego no abona nada');
+    igual(await saldo(), antes, 'y desde luego no abona nada');
 });
 
 await prueba('una firma de otro secreto no cuela', async () => {
     // Es el caso real de mezclar el secreto de pruebas con el de produccion, y
     // el de alguien que descubra la URL — que es publica.
     const antes = await saldo();
-    const r = await webhook('payment_intent.succeeded', recargaFalsa('pi_secretomalo', 500),
+    const r = await webhook('payment_intent.succeeded', eventoDe('pi_secretomalo'),
         { secreto: 'whsec_este_no_es' });
     igual(r.http, 400, 'status');
     igual(await saldo(), antes, 'el saldo no se mueve');
 });
 
+await prueba('el secreto de firma filtrado no basta para regalarse saldo', async () => {
+    // Un secreto de firma es una cadena que vive en dos paneles y una variable
+    // de entorno: se copia mal, se pega donde no debe, se queda en un
+    // historial. Si el webhook se creyera la metadata del cuerpo, quien lo
+    // tuviera firmaria un cobro inventado por el monto que quisiera.
+    //
+    // El evento va firmado CORRECTAMENTE. Lo unico falso es el contenido.
+    const antes = await saldo();
+    const r = await webhook('payment_intent.succeeded', eventoDe('pi_inventado_por_el_atacante', {
+        metadata: {
+            userId: String(CLIENTE), tipo: 'credit_topup',
+            creditMXN: '99999.00', cargoMoneda: 'MXN', cargoMonto: '99999.00',
+        },
+    }));
+    debe(r.http >= 400, `deberia fallar al buscar el cobro en Stripe, contesto ${r.http}`);
+    igual(await saldo(), antes, 'no se abona un peso');
+});
+
+await prueba('un monto inflado sobre un cobro real tampoco cuela', async () => {
+    // La version fina del ataque anterior: el cobro SI existe (son $100), pero
+    // el evento firmado dice que fueron $50,000. El webhook usa el objeto que
+    // le da Stripe, no el del cuerpo.
+    const antes = await saldo();
+    const pi = await recargaPagada(100);
+    const r = await webhook('payment_intent.succeeded', eventoDe(pi, {
+        metadata: {
+            userId: String(CLIENTE), tipo: 'credit_topup',
+            creditMXN: '50000.00', cargoMoneda: 'MXN', cargoMonto: '50000.00',
+        },
+    }));
+    igual(r.http, 200, 'status');
+    igual(await saldo(), round2(antes + 100), 'sube lo que se cobro de verdad, no lo que decia el evento');
+});
+
 await prueba('el webhook abona la recarga que el navegador nunca aviso', async () => {
     // El caso entero por el que existe: Stripe cobro y la pestaña se cerro.
     const antes = await saldo();
-    const id = `pi_webhook_${crypto.randomBytes(8).toString('hex')}`;
-    const r = await webhook('payment_intent.succeeded', recargaFalsa(id, 500));
+    const pi = await recargaPagada(500);
+    const r = await webhook('payment_intent.succeeded', eventoDe(pi));
     igual(r.http, 200, 'status');
     igual(await saldo(), round2(antes + 500), 'el saldo sube sin que el navegador diga nada');
     const mov = await uno(
@@ -654,10 +694,10 @@ await prueba('el webhook abona la recarga que el navegador nunca aviso', async (
 await prueba('el mismo aviso dos veces no abona dos veces', async () => {
     // Stripe reintenta cuando duda de la respuesta, asi que este caso NO es
     // hipotetico: el mismo evento llega varias veces por diseño.
-    const id = `pi_repetido_${crypto.randomBytes(8).toString('hex')}`;
-    await webhook('payment_intent.succeeded', recargaFalsa(id, 300));
+    const pi = await recargaPagada(300);
+    await webhook('payment_intent.succeeded', eventoDe(pi));
     const despuesDeUna = await saldo();
-    const r = await webhook('payment_intent.succeeded', recargaFalsa(id, 300));
+    const r = await webhook('payment_intent.succeeded', eventoDe(pi));
     igual(r.http, 200, 'la segunda tambien contesta 200');
     igual(await saldo(), despuesDeUna, 'pero el saldo no se mueve otra vez');
 });
@@ -665,49 +705,33 @@ await prueba('el mismo aviso dos veces no abona dos veces', async () => {
 await prueba('el navegador y el webhook no abonan el mismo cobro dos veces', async () => {
     // Los dos caminos corriendo a la vez sobre el MISMO cobro: es lo normal, no
     // la excepcion. Stripe avisa mientras la pagina tambien esta avisando.
-    const t = await api('/api/credit/topup', { amount: 400, currency: 'MXN' });
-    debe(t.clientSecret, t.error || 'deberia prepararse');
-    const pi = t.clientSecret.split('_secret_')[0];
-    await cobrar(pi);
-
+    const pi = await recargaPagada(400);
     const antes = await saldo();
     const [porNavegador, porStripe] = await Promise.all([
         api('/api/credit/confirm', { paymentIntentId: pi }),
-        webhook('payment_intent.succeeded', { ...recargaFalsa(pi, 400), id: pi }),
+        webhook('payment_intent.succeeded', eventoDe(pi)),
     ]);
     debe(porNavegador.success, porNavegador.error || 'el navegador deberia poder abonar');
     igual(porStripe.http, 200, 'y el webhook contestar 200');
     igual(await saldo(), round2(antes + 400), 'pero el abono es UNO');
 });
 
-await prueba('un pago que no es recarga no se convierte en saldo', async () => {
-    // Sin el filtro por tipo, el cobro de cualquier pedido de mercancia seria
-    // saldo regalado en cuanto Stripe avisara de el.
-    const antes = await saldo();
-    const r = await webhook('payment_intent.succeeded', {
-        id: `pi_mercancia_${crypto.randomBytes(6).toString('hex')}`,
-        status: 'succeeded',
-        metadata: { userId: String(CLIENTE), subtotalMXN: '900.00' },   // sin tipo
+await prueba('el cobro de un pedido no se convierte en saldo', async () => {
+    // Sin el filtro por tipo, el cobro de cualquier compra de mercancia seria
+    // saldo regalado en cuanto Stripe avisara de el. Se usa un PaymentIntent de
+    // checkout de verdad, que es justo el que un atacante tendria a mano.
+    const c = await carritoQueSupere(await saldo());
+    const ck = await api('/api/checkout', {
+        items: c.items, currency: 'MXN', shippingToken: await valeEnvio(c.items, 220), saveCard: false,
     });
+    debe(ck.clientSecret, ck.error || 'deberia crear el PaymentIntent');
+    const pi = ck.clientSecret.split('_secret_')[0];
+
+    const antes = await saldo();
+    const r = await webhook('payment_intent.succeeded', eventoDe(pi));
     igual(r.http, 200, 'se acepta el evento');
     igual(await saldo(), antes, 'pero no abona nada');
-});
-
-await prueba('un evento "resumen" se completa pidiendoselo a Stripe', async () => {
-    // Al dar de alta el destino, Stripe deja elegir entre mandar el objeto
-    // entero o solo un resumen. Con el resumen no llega la metadata, que es de
-    // donde sale a quien abonar y cuanto. En vez de depender de esa casilla, el
-    // webhook pide el objeto cuando le llega escueto.
-    const t = await api('/api/credit/topup', { amount: 250, currency: 'MXN' });
-    debe(t.clientSecret, t.error || 'deberia prepararse');
-    const pi = t.clientSecret.split('_secret_')[0];
-    await cobrar(pi);
-
-    const antes = await saldo();
-    // Un evento con el id y nada mas: exactamente lo que manda el estilo resumen.
-    const r = await webhook('payment_intent.succeeded', { id: pi, object: 'payment_intent' });
-    igual(r.http, 200, 'status');
-    igual(await saldo(), round2(antes + 250), 'el saldo sube igual: fue a buscar la metadata');
+    await stripe.paymentIntents.cancel(pi).catch(() => { });
 });
 
 await prueba('un evento que no nos interesa se acepta y se ignora', async () => {

@@ -63,15 +63,15 @@ export async function POST(request) {
     try {
         switch (evento.type) {
             case 'payment_intent.succeeded':
-                await recargaCobrada(await completo(stripe, evento.data.object, 'paymentIntents'));
+                await recargaCobrada(await desdeStripe(stripe, evento.data.object, 'paymentIntents'));
                 break;
 
             case 'charge.refunded':
-                await cargoDevuelto(await completo(stripe, evento.data.object, 'charges'));
+                await cargoDevuelto(await desdeStripe(stripe, evento.data.object, 'charges'));
                 break;
 
             case 'charge.dispute.created':
-                await contracargoAbierto(await completo(stripe, evento.data.object, 'disputes'));
+                await contracargoAbierto(await desdeStripe(stripe, evento.data.object, 'disputes'));
                 break;
 
             default:
@@ -91,21 +91,26 @@ export async function POST(request) {
 }
 
 /**
- * El objeto entero, venga como venga en el evento.
+ * El objeto, pedido SIEMPRE a Stripe. Del evento solo se usa el id.
  *
- * Al dar de alta el destino, Stripe deja elegir el "estilo de la carga util":
- * uno manda el objeto completo y otro solo un resumen, y con el resumen no
- * llega la metadata — que es de donde sale a quien abonar y cuanto. Depender de
- * ese ajuste es depender de una casilla de un panel que cualquiera puede
- * cambiar; si falta lo que hace falta, se le pide a Stripe y ya.
+ * La firma demuestra que el mensaje viene de Stripe, y por un rato eso me
+ * parecio suficiente para creerme tambien su contenido. No lo es. El secreto de
+ * firma es una cadena que vive en dos paneles y en una variable de entorno: se
+ * copia mal, se pega donde no debe, se queda en un historial. Y quien lo tenga
+ * puede firmar un `payment_intent.succeeded` inventado —con el cliente que
+ * quiera y el monto que quiera— y eso, leyendo la metadata del cuerpo, era
+ * saldo regalado sin limite.
  *
- * La llamada extra solo ocurre cuando el evento llega escueto. Con el objeto
- * completo esto no toca la red.
+ * Pidiendole el objeto a Stripe, el secreto filtrado deja de bastar: el
+ * atacante tendria que conseguir ademas que exista un cobro de verdad, con esa
+ * metadata, a nombre de su victima. Firmar deja de ser inventar.
+ *
+ * Cuesta una llamada por evento. Estos eventos llegan de uno en uno y mueven
+ * dinero; es el intercambio mas facil de la ruta. De paso resuelve lo del
+ * "estilo de carga util" resumido, que era de donde vino la idea.
  */
-async function completo(stripe, objeto, recurso) {
-    // `metadata` es el corte: los tres eventos que escuchamos la traen en el
-    // formato completo, y ninguno en el resumido.
-    if (objeto?.metadata !== undefined || !objeto?.id) return objeto;
+async function desdeStripe(stripe, objeto, recurso) {
+    if (!objeto?.id) throw new Error(`Evento de ${recurso} sin id`);
     try {
         return await stripe[recurso].retrieve(objeto.id);
     } catch (e) {
@@ -129,6 +134,14 @@ async function recargaCobrada(pi) {
     // linea, el PaymentIntent de una compra de mercancia se convertiria en
     // saldo regalado.
     if (md.tipo !== 'credit_topup') return;
+
+    // El estado se comprueba contra lo que dice Stripe AHORA, no contra el
+    // nombre del evento. Un `payment_intent.succeeded` firmado para un cobro
+    // que nunca se completo abonaria saldo que nadie pago.
+    if (pi.status !== 'succeeded') {
+        console.error(`[webhook] ${pi.id} llegó como succeeded pero Stripe lo tiene en "${pi.status}". No se abona.`);
+        return;
+    }
 
     const clienteId = parseInt(md.userId) || null;
     const amount = round2(Number(md.creditMXN));
