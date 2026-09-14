@@ -20,6 +20,56 @@ const PROTECTED_PATHS = ['/perfil'];
 const MAINTENANCE = process.env.MAINTENANCE_MODE === '1';
 const BYPASS = process.env.MAINTENANCE_BYPASS || '';
 
+
+// ── Content-Security-Policy ─────────────────────────────────────────────────
+//
+// Es la lista de invitados de la pagina: el navegador solo ejecuta scripts de
+// los origenes que aparecen aqui. Es la ultima defensa si alguien consigue
+// colar codigo en la tienda -- por el nombre de un producto, una opinion, una
+// URL manipulada.
+//
+// Vive en el middleware y no en next.config.js porque cada respuesta lleva su
+// propio `nonce`, un numero al azar que solo vale para esa visita. Antes la
+// cabecera decia `'unsafe-inline'`, que significa "ejecuta tambien cualquier
+// script escrito dentro del HTML" -- y un script inyectado por un atacante es
+// EXACTAMENTE eso. La lista tenia una puerta que dejaba pasar justo a quien
+// venia a bloquear. Con el nonce, un script inline solo corre si lleva el
+// numero de esta respuesta, que el atacante no puede adivinar.
+//
+// Detalle del estandar que hace que esto funcione: en cuanto script-src lleva
+// un nonce, los navegadores IGNORAN `'unsafe-inline'` aunque siga escrito. Aqui
+// se ha quitado igualmente, para que la cabecera diga lo que hace.
+//
+// `'unsafe-eval'` se queda SOLO en desarrollo: lo necesita el recargado en
+// caliente de Next. En produccion no hace falta y no esta.
+//
+// `style-src` conserva `'unsafe-inline'` a proposito. Next y el widget de
+// Google inyectan estilos sueltos, y quitarlo dejaria la tienda sin maquetar.
+// Un estilo inyectado puede afear o tapar cosas; no puede leer una sesion ni
+// llamar a un servidor, que es de lo que va todo lo de arriba.
+const DEV = process.env.NODE_ENV !== 'production';
+
+function construirCsp(nonce) {
+    return [
+        "default-src 'self'",
+        // accounts.google.com estaba SIN declarar y el boton de "Entrar con
+        // Google" carga su script de ahi: la CSP lo bloqueaba en silencio. No
+        // se notaba porque el boton solo se pinta si hay client id configurado.
+        `script-src 'self' 'nonce-${nonce}'${DEV ? " 'unsafe-eval'" : ''} https://js.stripe.com https://m.stripe.network https://www.googletagmanager.com https://accounts.google.com`,
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "connect-src 'self' https://api.stripe.com https://m.stripe.network https://open.er-api.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://accounts.google.com",
+        // El de Google entra por lo mismo: su boton se dibuja en un iframe suyo.
+        "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://accounts.google.com",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+        "upgrade-insecure-requests",
+    ].join('; ');
+}
+
 function maintenanceHtml() {
     return `<!doctype html>
 <html lang="es">
@@ -60,11 +110,25 @@ function maintenanceHtml() {
 export async function middleware(request) {
     const { pathname, searchParams } = request.nextUrl;
 
+    // Un nonce por respuesta. Viaja en dos sitios: en la cabecera de la
+    // respuesta (para el navegador) y en una cabecera de la PETICION, que es de
+    // donde Next lo saca para ponerselo a sus propios scripts.
+    const nonce = crypto.randomUUID().replace(/-/g, '');
+    const csp = construirCsp(nonce);
+    const cabecerasPeticion = new Headers(request.headers);
+    cabecerasPeticion.set('x-nonce', nonce);
+    cabecerasPeticion.set('Content-Security-Policy', csp);
+    const seguir = () => {
+        const res = NextResponse.next({ request: { headers: cabecerasPeticion } });
+        res.headers.set('Content-Security-Policy', csp);
+        return res;
+    };
+
     // El webhook de Stripe NO pasa por el gate de mantenimiento. Es una llamada
     // de servidor a servidor con su propia firma, no una visita a la tienda: si
     // le contestamos 503, Stripe reintenta un rato y acaba rindiendose, y con
     // ello se pierden los abonos de saldo que esta ruta existe para rescatar.
-    if (pathname === '/api/stripe/webhook') return NextResponse.next();
+    if (pathname === '/api/stripe/webhook') return NextResponse.next();   // sin CSP: no es una pagina
 
     // ── Gate de mantenimiento ───────────────────────────────────────────────
     if (MAINTENANCE) {
@@ -100,6 +164,7 @@ export async function middleware(request) {
                     'content-type': 'text/html; charset=utf-8',
                     'Retry-After': '3600',
                     'Cache-Control': 'no-store',
+                    'Content-Security-Policy': csp,
                 },
             });
         }
@@ -110,7 +175,7 @@ export async function middleware(request) {
     const needsAuth = PROTECTED_PATHS.some(
         p => pathname === p || pathname.startsWith(`${p}/`)
     );
-    if (!needsAuth) return NextResponse.next();
+    if (!needsAuth) return seguir();
 
     const token = request.cookies.get('bisonte_session')?.value;
     // Ya no hay pagina /login: se entra por el modal de la barra. Se manda a la
@@ -123,7 +188,7 @@ export async function middleware(request) {
 
     try {
         await jwtVerify(token, getJwtSecretKey());
-        return NextResponse.next();
+        return seguir();
     } catch {
         // Token inválido o expirado → a login y limpiar la cookie rota.
         const res = NextResponse.redirect(loginUrl);

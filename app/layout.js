@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import './globals.css';
 import { Inter } from 'next/font/google';
 import Navbar from '@/components/Navbar';
@@ -32,7 +33,13 @@ export const viewport = {
     userScalable: false,
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+    // El nonce de esta respuesta, que puso middleware.js. Los scripts inline
+    // solo se ejecutan si lo llevan: sin esto, la CSP nueva silenciaria GA4 sin
+    // decir nada. Next se lo pone solo a los SUYOS; el de analitica es nuestro
+    // y hay que darselo a mano.
+    const nonce = (await headers()).get('x-nonce') || undefined;
+
     return (
         <html lang="es">
             <head>
@@ -54,7 +61,7 @@ export default function RootLayout({ children }) {
                                 <Footer />
                                 <CompletarPerfil />
                                 <CookieBanner />
-                                <Analytics />
+                                <Analytics nonce={nonce} />
                                 {/* Ultimo y fuera de template.js: tapa TODO —
                                     barra incluida — desde el primer pintado. */}
                                 <SplashScreen />

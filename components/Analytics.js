@@ -22,7 +22,7 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
  * Sin NEXT_PUBLIC_GA_ID no se monta nada, asi que en local no se ensucian los
  * datos de la propiedad real.
  */
-export default function Analytics() {
+export default function Analytics({ nonce }) {
     const [acepto, setAcepto] = useState(false);
     const [listo, setListo] = useState(false);
     const ruta = usePathname();
@@ -48,9 +48,13 @@ export default function Analytics() {
             <Script
                 src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
                 strategy="afterInteractive"
+                nonce={nonce}
                 onLoad={() => setListo(true)}
             />
-            <Script id="ga-init" strategy="afterInteractive">
+            {/* El nonce de la respuesta. Sin el, la CSP no deja correr este
+                bloque y GA4 se queda a medias: la etiqueta puesta y ni un dato
+                llegando, que es la forma mas facil de creer que se mide. */}
+            <Script id="ga-init" strategy="afterInteractive" nonce={nonce}>
                 {`
                     window.dataLayer = window.dataLayer || [];
                     function gtag(){dataLayer.push(arguments);}
