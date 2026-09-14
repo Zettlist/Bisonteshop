@@ -107,8 +107,52 @@ function maintenanceHtml() {
 </html>`;
 }
 
+// ── Las dos puertas ─────────────────────────────────────────────────────────
+//
+// A la tienda se llega por dos sitios: bisontemanga.com, que pasa por Firebase
+// Hosting, y la URL *.run.app del servicio, que llega directa a Cloud Run.
+//
+// Cerrar la segunda desde la configuracion de Cloud Run no se puede: se probo
+// poner el ingress en `internal-and-cloud-load-balancing` y Firebase dejo de
+// alcanzar el servicio — su reescritura viaja por la misma puerta publica que
+// cualquiera. Asi que la puerta se cierra aqui, mirando el `Host` con el que
+// llega la peticion: Firebase reenvia el dominio original, y quien va directo
+// al servicio trae el `run.app`.
+//
+// Importa por dos motivos. Uno, que por ese camino no se aplican las cabeceras
+// de firebase.json (los `no-store`). Y dos, que son distinto numero de saltos,
+// asi que la IP del cliente esta en otra posicion de x-forwarded-for y los
+// frenos por ritmo se calibran mal para uno de los dos.
+//
+// Se enciende con SOLO_DOMINIO_PUBLICO=1, y viene apagado: primero hay que
+// confirmar con LOG_XFF que el `Host` es el que se supone. Encenderlo antes de
+// comprobarlo puede dejar la tienda contestando 404 a todo el mundo.
+const SOLO_DOMINIO_PUBLICO = process.env.SOLO_DOMINIO_PUBLICO === '1';
+const DIAGNOSTICO = process.env.LOG_XFF === '1';
+
 export async function middleware(request) {
     const { pathname, searchParams } = request.nextUrl;
+
+    // Diagnostico temporal. Con LOG_XFF=1 cada peticion deja una linea con la
+    // cadena de x-forwarded-for entera y el host: es lo que dice que valor debe
+    // llevar TRUSTED_PROXY_HOPS y si el bloqueo por dominio va a funcionar. Se
+    // apaga en cuanto se lean las dos lineas (una por cada puerta).
+    if (DIAGNOSTICO) {
+        console.log('[puerta] host=%s xfh=%s xff=[%s] ruta=%s',
+            request.headers.get('host'),
+            request.headers.get('x-forwarded-host') || '(ninguno)',
+            request.headers.get('x-forwarded-for') || '(ninguno)',
+            pathname);
+    }
+
+    // El webhook de Stripe se comprueba mas abajo y no pasa por aqui: Stripe
+    // llama a la URL que tenga configurada, y hoy es la del servicio.
+    if (SOLO_DOMINIO_PUBLICO && pathname !== '/api/stripe/webhook') {
+        const host = (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase();
+        if (host.endsWith('.run.app')) {
+            return new NextResponse(null, { status: 404 });
+        }
+    }
 
     // Un nonce por respuesta. Viaja en dos sitios: en la cabecera de la
     // respuesta (para el navegador) y en una cabecera de la PETICION, que es de
