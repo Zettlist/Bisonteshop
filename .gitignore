@@ -37,3 +37,7 @@ next-env.d.ts
 
 # cloud sql proxy
 cloud-sql-proxy.exe
+
+# Contrasenas de los usuarios de MySQL creados con db/grants.sql.
+# Van a Bitwarden y este archivo se borra. Nunca al repositorio.
+db/.credenciales-*.txt

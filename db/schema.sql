@@ -611,6 +611,18 @@ CREATE TABLE IF NOT EXISTS clientes (
     email_verified     TINYINT(1) NOT NULL DEFAULT 0,
     verification_token VARCHAR(255) NULL,
     token_expires_at   DATETIME NULL,
+    -- Recuperar la contrasena. NO se reutiliza verification_token: un token que
+    -- sirve para dos cosas abre dos puertas — el de verificacion puede quedar en
+    -- la bandeja meses, y si ademas cambiara la contrasena, cualquiera con
+    -- acceso a ese correo viejo entraria. Ademas los dos procesos pueden estar
+    -- vivos a la vez y una sola columna no guarda dos tokens.
+    --
+    -- Aqui se guarda el SHA-256, no el token: el de verdad solo viaja en el
+    -- correo. Con el hash, quien lea la tabla —un volcado, un respaldo mal
+    -- guardado, una consulta de soporte— no puede entrar a ninguna cuenta. Es
+    -- la diferencia entre filtrar una pista y filtrar una llave.
+    reset_token_hash   CHAR(64) NULL,
+    reset_expires_at   DATETIME NULL,
     session_version    INT NOT NULL DEFAULT 1,
     created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_clientes_empresa FOREIGN KEY (empresa_id) REFERENCES empresas(id) ON DELETE CASCADE,
@@ -621,6 +633,9 @@ CREATE TABLE IF NOT EXISTS clientes (
     -- admite varios NULL, que es lo que hace falta para el resto de clientes.
     UNIQUE KEY uniq_google_sub  (google_sub),
     INDEX idx_verification_token (verification_token),
+    -- Unico porque dos cuentas no pueden compartir token: si pasara, el enlace
+    -- de una abriria la otra. Admite NULL sin limite, que es el estado normal.
+    UNIQUE KEY uk_clientes_reset (reset_token_hash),
     INDEX idx_stripe_customer    (stripe_customer_id),
     INDEX idx_empresa            (empresa_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
