@@ -742,6 +742,10 @@ CREATE TABLE IF NOT EXISTS bisonte_orders (
     -- VALID_STATUSES; `reclamo` es un estado del pedido, no una bandera aparte.
     estado                ENUM('pendiente','confirmado','envio','entregado','reclamo','cancelado')
                               NOT NULL DEFAULT 'pendiente',
+    -- Un pedido que el simulador de envios puede mover. Sin esta marca, el
+    -- simulador se niega a tocarlo: un "entregado" inventado sobre un pedido
+    -- real lo cierra, manda el correo de entrega y apaga la alarma.
+    es_prueba             TINYINT(1) NOT NULL DEFAULT 0,
     process_type          ENUM('auto','manual') NULL,
     stock_deducted        TINYINT(1) NOT NULL DEFAULT 0,
 
@@ -749,8 +753,18 @@ CREATE TABLE IF NOT EXISTS bisonte_orders (
     -- tienda label_data para lo mismo.
     shipping_method       VARCHAR(100) NULL,
     -- Sub-estado dentro de `envio`: la guia existe pero aun no sale del local.
-    shipping_status       ENUM('en_espera','despachado') NULL,
+    -- UNA maquina de estados, no dos: antes de que la paqueteria lo recoja el
+    -- dueño del estado es el mostrador ('en_espera'); de ahi en adelante lo es
+    -- el transportista, y cada valor lo escribe el consultor de rastreo desde
+    -- lo que contesta Envia. 'despachado' es historico, equivale a
+    -- 'recolectada' y el codigo nuevo no lo escribe.
+    shipping_status       ENUM('en_espera','despachado','recolectada','en_transito',
+                               'en_reparto','entregada','incidencia','devuelta','cancelada') NULL,
     tracking_number       VARCHAR(150) NULL,
+    -- Cuando se le pregunto a Envia por ultima vez. Envia no avisa: hay que
+    -- preguntarle, asi que sin esto no se sabe si el dato es de hace un minuto
+    -- o de hace tres dias.
+    rastreo_consultado_en DATETIME NULL,
     shipping_address_json JSON NULL,
     envia_quote_data      JSON NULL,
     envia_label_data      JSON NULL,
@@ -779,7 +793,74 @@ CREATE TABLE IF NOT EXISTS bisonte_orders (
     INDEX idx_pago_estado    (pago_estado),
     INDEX idx_cliente_estado (cliente_id, estado),
     INDEX idx_tracking       (tracking_number),
-    INDEX idx_cola           (estado, id)
+    INDEX idx_cola           (estado, id),
+    -- Lo que el consultor de rastreo recorre cada hora: los envios que aun se
+    -- mueven. Sin indice, eso es leer la tabla entera doce veces al dia.
+    INDEX idx_envios_activos (estado, shipping_status, rastreo_consultado_en)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- El recorrido del paquete, evento por evento.
+--
+-- Antes de esto, un pedido enviado sabia dos cosas: que tenia guia y si habia
+-- salido del local. Lo que pasaba despues no se guardaba en ningun sitio, y el
+-- componente de rastreo del cliente lo decia en un comentario: no podia mostrar
+-- cuando ocurrio cada paso porque el dato no existia.
+--
+-- Una fila por evento y no mas columnas de fecha en bisonte_orders porque un
+-- envio no es una escalera: puede intentar entregarse tres veces, volver a la
+-- bodega, salir otra vez y acabar devuelto. Con una columna por paso solo cabe
+-- la ultima vez que paso cada cosa, y lo que hace falta ver es la secuencia.
+--
+-- Envia no manda avisos: hay que preguntarle. Lo hace /api/cron/rastreo en el
+-- POS, cada hora en horario de tienda.
+CREATE TABLE IF NOT EXISTS shipment_events (
+    id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    bisonte_order_id  INT NOT NULL,
+    -- Repetida a proposito: un pedido puede acabar con una segunda guia si la
+    -- primera se pierde, y es por lo que pregunta el cliente cuando llama.
+    tracking_number   VARCHAR(150) NULL,
+
+    -- Lo que dijo Envia, sin interpretar. Se guarda ademas de `fase` porque la
+    -- traduccion de sus 28 estados a nuestras fases es una opinion, y las
+    -- opiniones se cambian: con el id original, corregirla es un UPDATE.
+    envia_status_id   SMALLINT UNSIGNED NOT NULL,
+    envia_status      VARCHAR(80) NULL,
+
+    -- Nuestra lectura. El mapeo vive en codigo, no en una tabla de catalogo:
+    -- cambia con el codigo y se revisa en un diff. 'informativo' es la valvula
+    -- de escape para un estado que no sabemos clasificar todavia: se registra y
+    -- se muestra, pero no mueve el pedido de sitio.
+    fase              ENUM('creada','recolectada','en_transito','en_reparto',
+                           'entregada','incidencia','devuelta','cancelada',
+                           'informativo') NOT NULL,
+
+    descripcion       VARCHAR(500) NULL,
+    ubicacion         VARCHAR(200) NULL,
+
+    -- Cuando paso segun la paqueteria, y cuando nos enteramos. Casi nunca
+    -- coinciden: preguntamos cada hora, y la diferencia entre los dos es
+    -- exactamente lo que tardamos en saberlo. NOT NULL el primero porque un
+    -- evento sin hora no se puede ordenar, y porque dos NULL no chocan en una
+    -- clave unica: permitirlo abriria la puerta a duplicados infinitos.
+    ocurrido_en       DATETIME NOT NULL,
+    registrado_en     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    -- 'simulador' existe para que una prueba no se pueda confundir con la
+    -- realidad al mirar la tabla meses despues.
+    origen            ENUM('envia','simulador','manual') NOT NULL DEFAULT 'envia',
+    crudo             JSON NULL,
+
+    -- Preguntamos cada hora y casi siempre la respuesta incluye lo que ya
+    -- sabiamos. Sin esta clave, cada consulta duplicaria toda la historia.
+    UNIQUE KEY uniq_evento (bisonte_order_id, envia_status_id, ocurrido_en),
+    KEY idx_pedido_tiempo (bisonte_order_id, ocurrido_en),
+    KEY idx_guia (tracking_number),
+
+    -- CASCADE y no RESTRICT: los eventos no valen nada sin su pedido, y
+    -- bisonte_orders no se borra en produccion (nadie tiene DELETE sobre ella).
+    -- Existe para que limpiar pedidos de prueba no deje eventos huerfanos.
+    CONSTRAINT fk_shipment_events_order
+        FOREIGN KEY (bisonte_order_id) REFERENCES bisonte_orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- FIX 16 — bandeja de salida para las llamadas entre las dos apps.

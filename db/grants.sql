@@ -39,6 +39,11 @@ GRANT SELECT, INSERT, UPDATE          ON torlan_pos.event_results      TO 'bison
 -- puede cambiar su nota o retirarla, de ahi el UPDATE y el DELETE.
 GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.product_reviews     TO 'bisonte_app'@'%';
 
+-- El recorrido del paquete, para dibujarlo en el perfil del cliente. Solo
+-- lectura: la tienda no habla con la paqueteria, el POS si. Si algun dia la
+-- tienda escribiera aqui, dos procesos estarian contando la misma historia.
+GRANT SELECT                         ON torlan_pos.shipment_events     TO 'bisonte_app'@'%';
+
 -- La venta web nace en la tienda, por eso necesita INSERT en sales/sale_items.
 GRANT SELECT, INSERT, UPDATE          ON torlan_pos.sales              TO 'bisonte_app'@'%';
 GRANT SELECT, INSERT                  ON torlan_pos.sale_items         TO 'bisonte_app'@'%';
@@ -137,6 +142,15 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON torlan_pos.event_results      TO 'pos_ap
 -- tienda, pero no lo crea: eso nace en el checkout.
 GRANT SELECT, UPDATE                 ON torlan_pos.bisonte_orders     TO 'pos_app'@'%';
 GRANT SELECT, INSERT, UPDATE         ON torlan_pos.integration_outbox TO 'pos_app'@'%';
+
+-- El rastreo de envios. El POS es quien le pregunta a Envia por las guias
+-- activas, asi que es quien registra lo que contesta.
+--
+-- Sin UPDATE ni DELETE, por la misma razon que `credit_topups` mas arriba: esto
+-- es el registro de lo que le paso al paquete, no su estado actual. El estado
+-- actual vive en bisonte_orders.shipping_status y ese si se reescribe. Un
+-- historial que se puede editar no sirve para explicar nada despues.
+GRANT SELECT, INSERT                 ON torlan_pos.shipment_events    TO 'pos_app'@'%';
 
 -- Datos personales de compradores: solo lectura para atencion a clientes.
 GRANT SELECT ON torlan_pos.clientes       TO 'pos_app'@'%';

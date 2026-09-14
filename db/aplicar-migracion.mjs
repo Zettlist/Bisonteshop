@@ -38,11 +38,29 @@ if (!archivo && !consulta) {
     process.exit(1);
 }
 
+// .env.local trae la cuenta de la tienda, `bisonte_app`, y esa no puede crear
+// tablas ni repartir permisos -- a proposito, por eso existe. Una migracion que
+// haga DDL necesita `torlan_user`, y una que conceda GRANT necesita `root`.
+//
+// Se pasan por variables de entorno y no por un parametro para que la
+// contrasena no quede escrita en el historial de la consola:
+//
+//   $env:DB_MIGRADOR_USER = 'torlan_user'
+//   $env:DB_MIGRADOR_PASSWORD = '...'
+//   node db/aplicar-migracion.mjs migrations/... --aplicar
+//
+// Sin ellas se usa la cuenta de siempre, que es lo correcto para una migracion
+// que solo mueve datos.
+const usuario = process.env.DB_MIGRADOR_USER || process.env.DB_USER;
+const clave = process.env.DB_MIGRADOR_USER
+    ? process.env.DB_MIGRADOR_PASSWORD
+    : process.env.DB_PASSWORD;
+
 const conexion = {
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT) || 3306,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
+    user: usuario,
+    password: clave,
     database: process.env.DB_NAME,
     charset: 'utf8mb4',
     multipleStatements: true,

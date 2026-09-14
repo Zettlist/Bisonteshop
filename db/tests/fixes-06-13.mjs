@@ -293,6 +293,9 @@ const ESPERADAS = [
     // saldo" del perfil y esta lista no se entero: la cuenta de abajo fallaba
     // por una tabla que si tenia que estar.
     'credit_topups',
+    // El recorrido del paquete, evento por evento. Antes de existir, lo unico
+    // que se sabia de un envio era si habia salido del local.
+    'shipment_events',
     'user_notifications', 'tags', 'product_tags', 'event_votes', 'event_results',
     'pre_orders', 'pre_order_batches', 'pre_order_payments',
     'store_credits', 'store_credit_uses', 'barcode_sequences',
