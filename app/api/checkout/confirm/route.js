@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
-import { sendOrderConfirmation } from '@/lib/mailer';
+import { sendOrderConfirmation, sendNewOrderAlert } from '@/lib/mailer';
 import { priceCart, round2, huellaCarrito } from '@/lib/pricing';
 import { getClienteId } from '@/lib/auth';
 import { gastarCredito } from '@/lib/credito';
@@ -297,6 +297,28 @@ export async function POST(request) {
           total: totalFinal,
         }).catch(err => console.error('[Mailer]', err.message));
       }
+
+      // 10. Aviso al mostrador. Va aqui y no en la captura a proposito: lo que
+      //     interesa saber es que ENTRO un pedido, para ir a verificar
+      //     existencias. Si esperara a la captura, el aviso llegaria cuando el
+      //     trabajo ya esta hecho.
+      //
+      //     No se espera (`.catch` y seguir) por la misma razon que el correo
+      //     del cliente: el pedido ya esta en la base y cobrado. Un fallo de
+      //     correo no puede convertirse en un error para quien acaba de pagar.
+      sendNewOrderAlert({
+        saleId,
+        cliente: correoRows[0]?.nombre || 'Cliente',
+        email: destinatario,
+        items: lines.map(l => ({ title: l.name, quantity: l.quantity, price: l.unitPrice })),
+        subtotal,
+        discount,
+        shipping,
+        credit: creditoAplicado,
+        total: totalFinal,
+        direccion: shipping_address,
+        pagoCon: pedidoToken ? 'saldo' : 'tarjeta',
+      }).catch(err => console.error('[Mailer] aviso de pedido:', err.message));
 
       console.log(`[Confirm] Pedido #${saleId} registrado. pago ${referencia}`);
       // La guía Envia.com y la captura del cobro ocurren en el POS al confirmar existencia.
