@@ -4,6 +4,7 @@ import { SignJWT } from 'jose';
 import pool from '@/lib/db';
 import { getSession, bumpSessionVersion } from '@/lib/auth';
 import { isStrongPassword } from '@/lib/validate';
+import { rateLimit } from '@/lib/rateLimit';
 
 const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET);
 
@@ -11,6 +12,18 @@ export async function POST(req) {
     try {
         const session = await getSession();
         if (!session?.id) return NextResponse.json({ success: false, error: 'No autenticado' }, { status: 401 });
+
+        // La contraseña actual se puede adivinar aqui igual que en el login, y
+        // aqui no habia freno: con una sesion prestada — un portatil abierto,
+        // una cookie robada — se prueban contraseñas hasta dar con la buena, y
+        // esa sirve para todo lo demas. Va por cuenta, que es lo que se ataca.
+        const { allowed, retryAfter } = rateLimit(`cambio-clave:${session.id}`, 5, 15 * 60_000);
+        if (!allowed) {
+            return NextResponse.json(
+                { success: false, error: `Demasiados intentos. Espera ${retryAfter} segundos.` },
+                { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+            );
+        }
 
         const { currentPassword, newPassword } = await req.json();
 

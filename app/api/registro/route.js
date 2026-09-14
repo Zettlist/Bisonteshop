@@ -3,7 +3,9 @@ import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { sendVerificationEmail } from '@/lib/mailer';
-import { isValidEmail, isStrongPassword, isValidText, firstError } from '@/lib/validate';
+import { isValidEmail, isStrongPassword, isValidText, firstError, fechaNacimientoValida } from '@/lib/validate';
+import { rateLimit } from '@/lib/rateLimit';
+import { ipCliente } from '@/lib/ipCliente';
 
 const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
@@ -27,6 +29,21 @@ async function generateClientCode() {
 
 export async function POST(req) {
     try {
+        // Alta de cuenta sin freno: cada llamada hashea una contraseña con
+        // bcrypt (12 rondas, ~un cuarto de segundo de CPU cada una), recorre la
+        // tabla buscando un codigo libre y MANDA UN CORREO. Las tres cosas se
+        // pagan: el CPU es de la instancia de Cloud Run, y el correo sale de la
+        // reputacion del dominio — un bucle apuntado aqui es un cañon de spam
+        // firmado por bisontemanga.com.
+        const ip = ipCliente(req);
+        const { allowed, retryAfter } = rateLimit(`registro:${ip}`, 5, 10 * 60_000);
+        if (!allowed) {
+            return NextResponse.json(
+                { success: false, error: `Demasiadas cuentas nuevas desde aquí. Espera ${retryAfter} segundos.` },
+                { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+            );
+        }
+
         const { nombre, apellido, fechaNacimiento, nacionalidad, email, password, telefono } = await req.json();
 
         // Basic server-side validation
@@ -47,16 +64,12 @@ export async function POST(req) {
             return NextResponse.json({ success: false, error: valErr }, { status: 400 });
         }
 
-        // Validate age (must be 18+)
-        const hoy = new Date();
-        const nacimiento = new Date(fechaNacimiento);
-        const edad = hoy.getFullYear() - nacimiento.getFullYear()
-            - (hoy < new Date(hoy.getFullYear(), nacimiento.getMonth(), nacimiento.getDate()) ? 1 : 0);
-        if (edad < 18) {
-            return NextResponse.json(
-                { success: false, error: 'Debes ser mayor de 18 años para registrarte.' },
-                { status: 400 }
-            );
+        // La tienda es 18+. El corte vive en lib/validate.js porque el que
+        // habia aqui se saltaba con la fecha escrita de otra forma: ver el
+        // comentario de fechaNacimientoValida.
+        const edadOk = fechaNacimientoValida(fechaNacimiento);
+        if (!edadOk.ok) {
+            return NextResponse.json({ success: false, error: edadOk.error }, { status: 400 });
         }
 
         // Check if email already registered
@@ -84,7 +97,7 @@ export async function POST(req) {
         await pool.query(
             `INSERT INTO clientes (nombre, apellido, fecha_nac, email, password, client_code, empresa_id, telefono, nacionalidad, email_verified, verification_token, token_expires_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-            [nombre, apellido, fechaNacimiento, email.toLowerCase(), hashedPassword, clientCode, EMPRESA_ID, telefono || null, nacionalidad || null, token, expiresAt]
+            [nombre, apellido, edadOk.fecha, email.toLowerCase(), hashedPassword, clientCode, EMPRESA_ID, telefono || null, nacionalidad || null, token, expiresAt]
         );
 
         // Send verification email (non-blocking — don't fail registration if email fails)

@@ -73,6 +73,16 @@ export async function POST(request) {
         { status: 409 }
       );
     }
+    // El vale tiene que decir A DONDE se cotizo. Un vale sin destino salio de
+    // /api/shipping/quote antes de que esto existiera; caduca a la hora, asi
+    // que exigirlo solo cuesta una recotizacion a quien tenga la pestaña
+    // abierta desde antes del despliegue.
+    if (!cotizacion.destino) {
+      return NextResponse.json(
+        { success: false, envioInvalido: true, error: 'Vuelve a elegir el envío: la cotización expiró o no es válida.' },
+        { status: 400 }
+      );
+    }
     const shippingCost = round2(cotizacion.precio);
 
     let totalCharge = round2(subtotal + shippingCost);
@@ -141,6 +151,7 @@ export async function POST(request) {
         discount: appliedDiscount,
         credit: appliedCreditFinal,
         shipping: shippingCost,
+        envioDestino: cotizacion.destino,
         total: 0,
         couponId: coupon?.id || null,
       });
@@ -222,6 +233,9 @@ export async function POST(request) {
         appliedCredit: appliedCreditFinal.toFixed(2),
         // La mercancia que se cotizo. /confirm la exige y la compara.
         itemsHash,
+        // Y el destino al que se cotizo, por lo mismo: el precio del envio
+        // depende de a donde va, y /confirm es quien recibe la direccion.
+        envioDestino: cotizacion.destino,
         // Totales MXN autoritativos (para el registro del pedido en la confirmación)
         subtotalMXN: subtotal.toFixed(2),
         shippingMXN: shippingCost.toFixed(2),

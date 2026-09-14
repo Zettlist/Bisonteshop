@@ -3,7 +3,21 @@ import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { NextResponse } from 'next/server';
 import { rateLimit, rateLimitReset } from '@/lib/rateLimit';
+import { ipCliente } from '@/lib/ipCliente';
 import { isValidEmail } from '@/lib/validate';
+
+// Un hash real contra el que comparar cuando el correo no existe. Sin el, la
+// respuesta a "correo desconocido" vuelve al instante y la de "contraseña mala"
+// tarda lo que tarda bcrypt: el reloj distingue lo que el mensaje ya no dice.
+// El valor no importa mientras sea un hash valido de 12 rondas — nunca coincide.
+const HASH_SEÑUELO = '$2a$12$C6UzMDM.H6dfI/f/IKcEe.eS7.PSSTeCFbtSPTMnBBW8LmuUuQzO6';
+
+// Correo desconocido y contraseña mala contestan LO MISMO. Antes eran un 404
+// "Usuario no encontrado" y un 401 "Contraseña incorrecta": eso convierte el
+// login en un buscador de clientes — se prueban correos y el codigo de estado
+// dice cuales tienen cuenta. Con una lista de correos filtrada de otro sitio,
+// separa "personas que compran manga +18 aqui" del resto.
+const CREDENCIALES_MALAS = { success: false, error: 'Correo o contraseña incorrectos.' };
 
 const getJwtSecretKey = () => {
     const secret = process.env.JWT_SECRET;
@@ -12,19 +26,7 @@ const getJwtSecretKey = () => {
 
 export async function POST(req) {
     try {
-        // Freno anti-fuerza bruta: 5 intentos por minuto por IP.
-        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-            || req.headers.get('x-real-ip')
-            || 'unknown';
-        const limitKey = `login:${ip}`;
-        const { allowed, retryAfter } = rateLimit(limitKey, 5, 60_000);
-        if (!allowed) {
-            return NextResponse.json(
-                { success: false, error: `Demasiados intentos. Espera ${retryAfter} segundos e intenta de nuevo.` },
-                { status: 429, headers: { 'Retry-After': String(retryAfter) } }
-            );
-        }
-
+        const ip = ipCliente(req);
         const { email, password } = await req.json();
 
         if (!email || !password) {
@@ -41,28 +43,41 @@ export async function POST(req) {
             );
         }
 
-        // Search for user
-        const [users] = await pool.query(
-            'SELECT * FROM clientes WHERE email = ? LIMIT 1', [email.toLowerCase()]
-        );
-
-        if (users.length === 0) {
-            return NextResponse.json(
-                { success: false, error: 'Usuario no encontrado.' },
-                { status: 404 }
-            );
+        // Dos frenos, y el segundo es el que importa.
+        //
+        // El de la IP frena al que prueba mil contraseñas desde un sitio, pero
+        // la IP sale de una cabecera que el cliente escribe (ver lib/ipCliente)
+        // y una botnet trae miles de verdad. El de la CUENTA no se esquiva de
+        // ninguna manera: para atacar el correo de alguien hay que escribir ese
+        // correo, y eso es lo que se cuenta. Diez intentos fallidos en cinco
+        // minutos por cuenta corta el relleno de credenciales sin estorbar a
+        // quien de verdad no se acuerda de la suya.
+        const destino = email.toLowerCase();
+        const limitKey = `login:${ip}`;
+        const claveCuenta = `login-cuenta:${destino}`;
+        for (const [clave, tope, ventana] of [[limitKey, 5, 60_000], [claveCuenta, 10, 5 * 60_000]]) {
+            const { allowed, retryAfter } = rateLimit(clave, tope, ventana);
+            if (!allowed) {
+                return NextResponse.json(
+                    { success: false, error: `Demasiados intentos. Espera ${retryAfter} segundos e intenta de nuevo.` },
+                    { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+                );
+            }
         }
 
-        const user = users[0];
+        // Search for user
+        const [users] = await pool.query(
+            'SELECT * FROM clientes WHERE email = ? LIMIT 1', [destino]
+        );
 
-        // Compare password
-        const isMatch = await bcrypt.compare(password, user.password);
+        const user = users[0] || null;
 
-        if (!isMatch) {
-            return NextResponse.json(
-                { success: false, error: 'Contraseña incorrecta.' },
-                { status: 401 }
-            );
+        // La comparacion se hace SIEMPRE, exista o no la cuenta: es lo que
+        // iguala el tiempo de respuesta de los dos casos.
+        const isMatch = await bcrypt.compare(password, user ? user.password : HASH_SEÑUELO);
+
+        if (!user || !isMatch) {
+            return NextResponse.json(CREDENCIALES_MALAS, { status: 401 });
         }
 
         // Block unverified accounts
@@ -98,8 +113,9 @@ export async function POST(req) {
             .setExpirationTime('7d') // 1 week
             .sign(getJwtSecretKey());
 
-        // Login exitoso: limpiar el contador de intentos de esta IP.
+        // Login exitoso: limpiar los dos contadores.
         rateLimitReset(limitKey);
+        rateLimitReset(claveCuenta);
 
         // Create response and set cookie
         const response = NextResponse.json({

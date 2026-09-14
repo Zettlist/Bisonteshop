@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { priceCart, huellaCarrito } from '@/lib/pricing';
-import { firmarEnvio } from '@/lib/envioFirmado';
+import { firmarEnvio, huellaDestino } from '@/lib/envioFirmado';
+import { rateLimit } from '@/lib/rateLimit';
+import { ipCliente } from '@/lib/ipCliente';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,6 +108,21 @@ const MAX_PER_CARRIER = 3;
 
 export async function POST(request) {
   try {
+    // Cada llamada dispara CUATRO peticiones a Envia, que es un servicio de
+    // pago. Sin sesion y sin freno, esta ruta era el amplificador mas barato de
+    // la tienda: un bucle desde una laptop se convierte en miles de
+    // cotizaciones facturadas, y en que Envia nos corte por abuso justo cuando
+    // un cliente de verdad quiere pagar. No se exige sesion a proposito — se
+    // cotiza antes de entrar — asi que el freno va por IP.
+    const ip = ipCliente(request);
+    const { allowed, retryAfter } = rateLimit(`cotizar-envio:${ip}`, 20, 60_000);
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: `Demasiadas cotizaciones seguidas. Espera ${retryAfter} segundos.` },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+      );
+    }
+
     const { items, destination } = await request.json();
 
     if (!items?.length || !destination?.cp || !destination?.estado) {
@@ -160,6 +177,7 @@ export async function POST(request) {
     // carrito darian huellas distintas y tumbarian pedidos buenos.
     const { lines } = await priceCart(items);
     const itemsHash = huellaCarrito(lines);
+    const destino = huellaDestino(destination);
 
     const carriers = await Promise.all(unicos.map(async c => {
       const price = Math.ceil(c.totalPrice);
@@ -172,13 +190,13 @@ export async function POST(request) {
         deliveryEstimate: c.deliveryEstimate || null,
         raw: c,
         pkg,
-        vale: await firmarEnvio({ precio: price, carrier: c.carrier, service: c.service, itemsHash }),
+        vale: await firmarEnvio({ precio: price, carrier: c.carrier, service: c.service, itemsHash, destino }),
       };
     }));
 
     return NextResponse.json({ success: true, carriers });
   } catch (err) {
-    console.error('[ShippingQuote]', err.message);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    console.error('[ShippingQuote]', err);
+    return NextResponse.json({ success: false, error: 'No pudimos cotizar el envío. Intenta de nuevo.' }, { status: 500 });
   }
 }

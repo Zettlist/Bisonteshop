@@ -109,11 +109,21 @@ const huellaDe = (items) => crypto.createHash('sha256')
         .sort().join('|'))
     .digest('hex');
 
-const valeEnvio = (items, precio) => new SignJWT({
+// La direccion de las pruebas. Es una sola porque el vale ahora tambien ata el
+// DESTINO: cotizar barato a la esquina y confirmar a la otra punta del pais era
+// la mitad del agujero del envio que quedaba abierta.
+const DIRECCION = { calle: 'Prueba 1', ciudad: 'CDMX', municipio: 'Cuauhtémoc', estado: 'Ciudad de México', cp: '01000' };
+
+const destinoDe = (dir) => crypto.createHash('sha256')
+    .update(`${String(dir?.cp ?? '').replace(/\D/g, '')}|${String(dir?.estado ?? '').trim().toLowerCase().normalize('NFC')}`)
+    .digest('hex').slice(0, 32);
+
+const valeEnvio = (items, precio, dir = DIRECCION) => new SignJWT({
     precio: Number(precio).toFixed(2),
     carrier: 'prueba',
     service: 'estandar',
     itemsHash: huellaDe(items),
+    destino: destinoDe(dir),
 })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -325,7 +335,7 @@ await prueba('el saldo sale al REGISTRAR el pedido, no al capturarlo', async () 
     const r = await api('/api/checkout/confirm', {
         paymentIntentId: pi, items: carrito.items,
         userEmail: EMAIL, userName: 'Prueba', shippingMethod: 'envia',
-        shipping_address: { calle: 'Prueba 1', ciudad: 'CDMX', cp: '01000' },
+        shipping_address: DIRECCION,
     });
     debe(r.success, r.error || 'deberia registrarse');
     sale = r.saleId;
@@ -382,7 +392,7 @@ await prueba('el pedido sin cargo se registra y no inventa un pago en Stripe', a
     const r = await api('/api/checkout/confirm', {
         pedidoToken: c.pedidoToken, items: [{ id: PRODUCTO, quantity: 1 }],
         userEmail: EMAIL, userName: 'Prueba', shippingMethod: 'envia',
-        shipping_address: { calle: 'Prueba 1', ciudad: 'CDMX', cp: '01000' },
+        shipping_address: DIRECCION,
     });
     debe(r.success, r.error || 'deberia registrarse');
     saleSaldo = r.saleId;
@@ -530,7 +540,7 @@ await prueba('el carrito que SI se pago se confirma sin problema', async () => {
     await cobrar(pi);
     const r = await api('/api/checkout/confirm', {
         paymentIntentId: pi, items: c.items,
-        userEmail: EMAIL, userName: 'Prueba', shippingMethod: 'envia',
+        shippingMethod: 'envia', shipping_address: DIRECCION,
     });
     debe(r.success, r.error || 'el pedido legitimo deberia registrarse');
 
@@ -804,6 +814,96 @@ await prueba('el freno de recargas corta la insistencia', async () => {
         if (r.http === 429) { cortado = true; break; }
     }
     debe(cortado, 'tras varias seguidas deberia contestar 429');
+});
+
+
+// ── Puntos de entrada: lo que llega del navegador ────────────────────────────
+
+await prueba('el carrito de otra persona no se lee ni se escribe sin sesion', async () => {
+    // Sin cookie: es la peticion que hacia cualquiera desde fuera. Antes el
+    // dueño del carrito salia del `?userId=` de la URL y del cuerpo, asi que
+    // esto devolvia la lista de la compra de quien fuera, y la sobreescribia.
+    const leer = await fetch(`${BASE}/api/cart?userId=${CLIENTE}`);
+    const d = await leer.json();
+    debe(Array.isArray(d.items) && d.items.length === 0,
+        'sin sesion no puede salir el carrito de nadie');
+
+    const escribir = await fetch(`${BASE}/api/cart`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: CLIENTE, items: [{ id: PRODUCTO, quantity: 7 }] }),
+    });
+    igual(escribir.status, 401, 'escribir sin sesion');
+
+    // Y con sesion, el `userId` del cuerpo se ignora: manda la cookie.
+    const mio = await api('/api/cart', { userId: 999999, items: [{ id: PRODUCTO, quantity: 2 }] });
+    debe(mio.success, mio.error || 'con sesion si deberia guardar');
+    const fila = await uno(
+        `SELECT ci.quantity FROM cart_items ci
+           JOIN carts c ON c.id = ci.cart_id
+          WHERE c.cliente_id = ? AND c.estado = 'activo' AND ci.product_id = ?
+          ORDER BY ci.id DESC LIMIT 1`, [CLIENTE, PRODUCTO]);
+    debe(fila && Number(fila.quantity) === 2, 'el carrito guardado tiene que ser el de la sesion');
+});
+
+await prueba('una cantidad absurda en el carrito se acota antes de guardarse', async () => {
+    await api('/api/cart', { items: [{ id: PRODUCTO, quantity: -50 }] });
+    const fila = await uno(
+        `SELECT ci.quantity FROM cart_items ci
+           JOIN carts c ON c.id = ci.cart_id
+          WHERE c.cliente_id = ? AND c.estado = 'activo' AND ci.product_id = ?
+          ORDER BY ci.id DESC LIMIT 1`, [CLIENTE, PRODUCTO]);
+    debe(fila && Number(fila.quantity) === 1, `una cantidad negativa deberia quedar en 1, quedo ${fila?.quantity}`);
+});
+
+await prueba('la fecha de nacimiento escrita de otra forma no salta el corte de 18', async () => {
+    // '20150615' es Invalid Date en JavaScript — la edad salia NaN y NaN < 18
+    // es false, asi que pasaba — pero MySQL lo guarda tan campante como
+    // 2015-06-15. Once años en una tienda +18.
+    const r = await fetch(`${BASE}/api/registro`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            nombre: 'Menor', apellido: 'DePrueba', fechaNacimiento: '20150615',
+            email: `menor.${Date.now()}@bisonte.test`, password: 'NoDeberia2026',
+        }),
+    });
+    igual(r.status, 400, 'deberia rechazarse');
+    const cuantos = await uno(
+        "SELECT COUNT(*) n FROM clientes WHERE email LIKE 'menor.%@bisonte.test'", []);
+    igual(Number(cuantos.n), 0, 'y no puede quedar ninguna cuenta creada');
+});
+
+await prueba('el login no dice cuales correos tienen cuenta', async () => {
+    const inexistente = await fetch(`${BASE}/api/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: `nadie.${Date.now()}@bisonte.test`, password: 'LoQueSea2026' }),
+    });
+    const real = await fetch(`${BASE}/api/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: EMAIL, password: 'ContraseñaMala2026' }),
+    });
+    igual(inexistente.status, real.status, 'el codigo de respuesta tiene que ser el mismo');
+    igual((await inexistente.json()).error, (await real.json()).error, 'y el mensaje tambien');
+});
+
+await prueba('el envio cotizado a un destino no sirve para mandarlo a otro', async () => {
+    const items = [{ id: PRODUCTO, quantity: 1 }];
+    const p = await uno('SELECT sale_price FROM products WHERE id = ?', [PRODUCTO]);
+    await asegurarSaldo(round2(Number(p.sale_price) + 220 + 50));
+
+    // Se cotiza a la direccion de siempre y se confirma con otra: mismo
+    // carrito, mismo vale autentico, distinto codigo postal. El envio barato de
+    // la esquina pagando el paquete a la otra punta del pais.
+    const c = await api('/api/checkout', {
+        items, currency: 'MXN', shippingToken: await valeEnvio(items, 220), saveCard: false,
+    });
+    debe(c.sinCargo && c.pedidoToken, c.error || 'el saldo deberia cubrirlo entero');
+
+    const lejos = { ...DIRECCION, cp: '22000', estado: 'Baja California' };
+    const r = await api('/api/checkout/confirm', {
+        pedidoToken: c.pedidoToken, items, shippingMethod: 'envia', shipping_address: lejos,
+    });
+    igual(r.http, 409, 'deberia rechazarse');
+    debe(r.envioInvalido, 'y decir que hay que volver a elegir el envio');
 });
 
 // ── veredicto ────────────────────────────────────────────────────────────────

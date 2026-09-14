@@ -2,6 +2,7 @@ import { SignJWT } from 'jose';
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { isValidText, isValidOptionalText, firstError, fechaNacimientoValida } from '@/lib/validate';
 
 const getJwtSecretKey = () => new TextEncoder().encode(process.env.JWT_SECRET);
 
@@ -38,20 +39,37 @@ export async function PUT(req) {
 
         // La tienda es 18+: la fecha se valida aqui tambien, no solo en el alta.
         // Es la via por la que las cuentas de Google completan su perfil.
+        // Mismo validador que /api/registro, para que no haya dos criterios.
+        let fechaLimpia = null;
         if (fecha_nac) {
-            const nac = new Date(fecha_nac);
-            if (Number.isNaN(nac.getTime())) {
-                return NextResponse.json({ success: false, error: 'Fecha de nacimiento inválida.' }, { status: 400 });
+            const edadOk = fechaNacimientoValida(fecha_nac);
+            if (!edadOk.ok) {
+                return NextResponse.json({ success: false, error: edadOk.error }, { status: 400 });
             }
-            const hoy = new Date();
-            const edad = hoy.getFullYear() - nac.getFullYear()
-                - (hoy < new Date(hoy.getFullYear(), nac.getMonth(), nac.getDate()) ? 1 : 0);
-            if (edad < 18) {
-                return NextResponse.json(
-                    { success: false, error: 'Debes ser mayor de 18 años para comprar.' },
-                    { status: 400 }
-                );
-            }
+            fechaLimpia = edadOk.fecha;
+        }
+
+        // Lo demas tampoco venia mirado. Son columnas cortas (VARCHAR(30) el
+        // telefono, VARCHAR(255) el avatar) y en modo estricto MySQL rechaza lo
+        // que no cabe: un nombre de mil caracteres no corrompia nada, pero
+        // salia por el catch como un 500 sin explicacion. Y `nombre` viaja
+        // dentro del JWT y de ahi a los correos, asi que conviene que sea un
+        // nombre.
+        const valErr = firstError([
+            [nombre === undefined || isValidText(nombre, { min: 1, max: 100 }), 'Nombre inválido.'],
+            [apellido === undefined || isValidOptionalText(apellido, { max: 100 }), 'Apellido inválido.'],
+            [isValidOptionalText(telefono, { max: 30 }), 'Teléfono inválido.'],
+            [isValidOptionalText(avatar, { max: 255 }), 'Avatar inválido.'],
+            [contacto_preferido === undefined || ['email', 'whatsapp', 'telefono', 'sms'].includes(contacto_preferido),
+             'Medio de contacto inválido.'],
+        ]);
+        if (valErr) return NextResponse.json({ success: false, error: valErr }, { status: 400 });
+
+        // El avatar es una URL que la pagina mete en un <img>. Se acota a
+        // rutas propias y a https: un `javascript:` no se ejecuta desde un src
+        // de imagen, pero tampoco hay razon para guardarlo.
+        if (avatar && !/^(\/|https:\/\/)/.test(avatar)) {
+            return NextResponse.json({ success: false, error: 'Avatar inválido.' }, { status: 400 });
         }
 
         // `avatar`, `telefono` y `contacto_preferido` se anadian aqui con ALTER
@@ -67,7 +85,7 @@ export async function PUT(req) {
                     nombre ?? payload.nombre,
                     apellido ?? payload.apellido,
                     telefono ?? null,
-                    fecha_nac || null,
+                    fechaLimpia,
                     contacto_preferido ?? 'email',
                     payload.id,
                 ]
@@ -84,7 +102,7 @@ export async function PUT(req) {
             avatar: avatar ?? payload.avatar ?? null,
             telefono: avatar ? (payload.telefono ?? null) : (telefono ?? null),
             contacto_preferido: avatar ? (payload.contacto_preferido ?? 'email') : (contacto_preferido ?? 'email'),
-            fecha_nac: avatar ? (payload.fecha_nac ?? null) : (fecha_nac || payload.fecha_nac || null),
+            fecha_nac: avatar ? (payload.fecha_nac ?? null) : (fechaLimpia || payload.fecha_nac || null),
             sv: payload.sv ?? 1,
         };
 

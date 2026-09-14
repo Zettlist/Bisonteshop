@@ -6,6 +6,7 @@ import { priceCart, round2, huellaCarrito } from '@/lib/pricing';
 import { getClienteId } from '@/lib/auth';
 import { gastarCredito } from '@/lib/credito';
 import { leerPedidoSaldo } from '@/lib/pedidoSaldo';
+import { huellaDestino } from '@/lib/envioFirmado';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,8 @@ export async function POST(request) {
 
   try {
     // `userId` ya no se lee del body a proposito: ver el comentario de clienteId.
-    const { paymentIntentId, pedidoToken, items, userEmail, userName, shippingMethod, envia_quote_data, shipping_address } = await request.json();
+    // `userEmail` y `userName` ya no se leen: el correo sale de la cuenta. Ver el paso 9.
+    const { paymentIntentId, pedidoToken, items, shippingMethod, envia_quote_data, shipping_address } = await request.json();
 
     if ((!paymentIntentId && !pedidoToken) || !items?.length) {
       return NextResponse.json({ success: false, error: 'Datos incompletos' }, { status: 400 });
@@ -100,6 +102,40 @@ export async function POST(request) {
         { success: false, error: 'El carrito no coincide con el pago. Vuelve a intentarlo.' },
         { status: 409 }
       );
+    }
+
+    // Los dos JSON que se guardan tal cual vienen del navegador. La columna
+    // los acepta enormes y nadie los miraba: un tope evita que un pedido meta
+    // megabytes en la tabla que comparte con el POS.
+    for (const [nombre, valor] of [['shipping_address', shipping_address], ['envia_quote_data', envia_quote_data]]) {
+      if (valor && JSON.stringify(valor).length > 8000) {
+        return NextResponse.json({ success: false, error: `El campo ${nombre} es demasiado grande.` }, { status: 400 });
+      }
+    }
+
+    // ── Y el paquete tiene que ir a donde se cotizo ──────────────────────
+    // El costo del envio ya venia firmado desde /api/shipping/quote, pero el
+    // vale solo ataba el carrito. La DIRECCION llega aqui, en el cuerpo, y
+    // nadie la comparaba con la de la cotizacion: cotizar a la colonia de al
+    // lado y confirmar con una direccion de la otra punta del pais daba un
+    // envio de $99 que la tienda le paga a la paqueteria a $350.
+    //
+    // Solo se compara codigo postal y estado, que es lo que mueve la tarifa.
+    // Un metadata sin destino es un pago de antes de esta comprobacion; queda
+    // en el log y pasa, porque los PaymentIntent en vuelo son de clientes que
+    // ya tienen la tarjeta autorizada y no tienen la culpa del despliegue.
+    if (md.envioDestino) {
+      if (md.envioDestino !== huellaDestino(shipping_address)) {
+        console.error(
+          `[Confirm] Direccion distinta a la cotizada (cliente ${clienteId}, pago ${referencia}).`
+        );
+        return NextResponse.json(
+          { success: false, envioInvalido: true, error: 'La dirección no coincide con el envío cotizado. Vuelve a elegir el envío.' },
+          { status: 409 }
+        );
+      }
+    } else {
+      console.warn(`[Confirm] Pago ${referencia} sin destino en el metadata (anterior a la comprobacion).`);
     }
 
     const conn = await pool.getConnection();
@@ -235,12 +271,26 @@ export async function POST(request) {
       await conn.commit();
 
       // 9. Correo de confirmación
-      if (userEmail) {
+      //
+      // Ni el destinatario ni los renglones salen ya del cuerpo. `userEmail` y
+      // `userName` los escribia el navegador, y con ellos esta ruta mandaba un
+      // correo firmado por bisontemanga.com, con el texto que quisiera el
+      // remitente, a la direccion que quisiera. Cuesta un pedido pagado por
+      // correo — no es gratis — pero es la reputacion del dominio la que se
+      // arriesga, y no habia ninguna razon para dejarlo abierto: el correo de
+      // la cuenta esta en la base y es el unico sitio donde tiene sentido
+      // avisar. Los renglones salen de `lines`, que los precio la BD, y no del
+      // `items` crudo, cuyos `title` y `price` se pintan tal cual en el HTML.
+      const [correoRows] = await pool.query(
+        'SELECT email, nombre FROM clientes WHERE id = ? LIMIT 1', [clienteId]
+      );
+      const destinatario = correoRows[0]?.email || null;
+      if (destinatario) {
         sendOrderConfirmation({
-          to: userEmail,
-          nombre: userName || 'Cliente',
+          to: destinatario,
+          nombre: correoRows[0]?.nombre || 'Cliente',
           saleId,
-          items: items.map(i => ({ ...i, stockOk: true })),
+          items: lines.map(l => ({ title: l.name, quantity: l.quantity, price: l.unitPrice, stockOk: true })),
           subtotal,
           discount,
           shipping,

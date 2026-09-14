@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import { rateLimit } from '@/lib/rateLimit';
+import { ipCliente } from '@/lib/ipCliente';
 import { isValidEmail } from '@/lib/validate';
 
 // ─── Destinatario por tema ───────────────────────────────────────────
@@ -12,9 +13,7 @@ const DESTINOS = {
 
 export async function POST(req) {
     try {
-        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-            || req.headers.get('x-real-ip')
-            || 'unknown';
+        const ip = ipCliente(req);
         const { allowed, retryAfter } = rateLimit(`contacto:${ip}`, 3, 60_000);
         if (!allowed) {
             return NextResponse.json(

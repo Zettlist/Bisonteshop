@@ -179,6 +179,10 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('[Capture API Error]', error.message);
+    // El texto de la excepcion SI sale aqui, y en /refund. Las dos rutas estan
+    // detras de la clave del POS: quien las llama es el mostrador, y es quien
+    // necesita saber que dijo Stripe para resolver el pedido. En las rutas
+    // publicas se ha quitado.
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

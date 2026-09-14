@@ -35,13 +35,22 @@ const nextConfig = {
         ];
     },
 
-    // Optimización de imágenes: permite las URLs externas que usa la tienda
+    // Optimización de imágenes: SOLO los hosts que la tienda usa de verdad.
+    //
+    // Aqui decia `hostname: '**'`, que es cualquier dominio de internet. El
+    // optimizador de Next es un `fetch` del lado del servidor: con el comodin,
+    // /_next/image?url=https://loquesea convierte la tienda en un proxy de
+    // imagenes ajenas — ancho de banda y CPU nuestros, cacheados en nuestro
+    // CDN, saliendo desde nuestra IP. Las imagenes de productos viven todas en
+    // storage.googleapis.com (41 de 41 en la base); el segundo host es el de
+    // las fotos de perfil de Google.
+    //
+    // Si el POS empieza a subir imagenes a otro sitio, hay que añadirlo aqui o
+    // se veran rotas. Es el precio de que la lista signifique algo.
     images: {
         remotePatterns: [
-            {
-                protocol: 'https',
-                hostname: '**',
-            },
+            { protocol: 'https', hostname: 'storage.googleapis.com' },
+            { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
         ],
         formats: ['image/webp'],
     },

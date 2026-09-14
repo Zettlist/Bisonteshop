@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose';
 import { NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/rateLimit';
+import { ipCliente } from '@/lib/ipCliente';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entrar / registrarse con Google.
@@ -90,8 +91,7 @@ export async function POST(req) {
             );
         }
 
-        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-            || req.headers.get('x-real-ip') || 'unknown';
+        const ip = ipCliente(req);
         const { allowed, retryAfter } = rateLimit(`google:${ip}`, 10, 60_000);
         if (!allowed) {
             return NextResponse.json(
@@ -140,15 +140,55 @@ export async function POST(req) {
 
         if (existentes.length > 0) {
             const user = existentes[0];
+
+            // ── El caso incomodo: la cuenta existia y NADIE habia probado que
+            //    el correo fuera suyo ──────────────────────────────────────
+            //
+            // Cualquiera puede darse de alta con el correo de otra persona:
+            // /api/registro solo pide que no este usado, y la cuenta queda sin
+            // verificar con la contraseña que ese cualquiera eligio. Ahi se
+            // queda, esperando.
+            //
+            // El dia que la dueña de verdad entra con Google, esto encontraba
+            // esa fila por el correo, le ponia email_verified = 1 y la dejaba
+            // pasar. Con eso la cuenta queda activa... y la contraseña que
+            // sigue abriendola es la del que la aparto. No hace falta robar
+            // nada: hay que llegar antes.
+            //
+            // Al ligar, la contraseña de una cuenta sin verificar se sustituye
+            // por el hash de un valor aleatorio que nadie conoce. La dueña
+            // entra con Google — que es como acaba de entrar — y la contraseña
+            // que habia deja de servir para nada. Una cuenta YA verificada no
+            // se toca: ahi el correo ya se probo y la contraseña es de quien
+            // corresponde.
+            const sinVerificar = !user.email_verified;
+            if (sinVerificar) {
+                console.warn(`[Google] Cuenta ${user.id} estaba sin verificar al ligarse con Google: se invalida la contraseña anterior.`);
+            }
+            const claveMuerta = sinVerificar
+                ? await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12)
+                : null;
+
             await pool.query(
                 `UPDATE clientes
                     SET google_sub = ?,
                         email_verified = 1,
-                        avatar = COALESCE(avatar, ?)
+                        avatar = COALESCE(avatar, ?),
+                        password = COALESCE(?, password),
+                        session_version = COALESCE(session_version, 1) + ?
                   WHERE id = ?`,
-                [sub, claims.picture || null, user.id]
+                [sub, claims.picture || null, claveMuerta, sinVerificar ? 1 : 0, user.id]
             );
-            return responderConSesion({ ...user, email_verified: 1, avatar: user.avatar || claims.picture || null });
+
+            // Si se invalido la contraseña hay que subir tambien la version de
+            // sesion — cierra cualquier sesion que el otro tuviera abierta — y
+            // firmar la cookie nueva con ese numero, o esta misma sesion
+            // nacería revocada.
+            const sv = (user.session_version ?? 1) + (sinVerificar ? 1 : 0);
+            return responderConSesion({
+                ...user, email_verified: 1, session_version: sv,
+                avatar: user.avatar || claims.picture || null,
+            });
         }
 
         // ── Cuenta nueva ────────────────────────────────────────────────────

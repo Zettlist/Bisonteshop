@@ -10,8 +10,14 @@ export async function POST(req, { params }) {
     const { id } = await params;
     const { claim_reason, claim_notes } = await req.json();
 
-    if (!claim_reason) {
+    if (!claim_reason || typeof claim_reason !== 'string' || claim_reason.length > 100) {
         return NextResponse.json({ error: 'Motivo requerido' }, { status: 400 });
+    }
+    // El motivo y las notas acaban en la columna `claim_notes` y en un correo,
+    // y los lee una persona del mostrador. Sin tope, un reclamo podia traer
+    // megabytes de texto.
+    if (claim_notes !== undefined && (typeof claim_notes !== 'string' || claim_notes.length > 2000)) {
+        return NextResponse.json({ error: 'La descripción es demasiado larga' }, { status: 400 });
     }
 
     try {
@@ -65,6 +71,12 @@ export async function POST(req, { params }) {
     }
 }
 
+// El texto del reclamo lo escribe el cliente y se pinta dentro del HTML del
+// correo. Sin escapar, un `<a href="...">` suyo viaja firmado por nuestro
+// dominio; y el mismo texto se muestra en el POS, que es donde de verdad
+// importa que no llegue como etiquetas.
+const esc = (s) => String(s ?? '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+
 async function sendClaimEmail(cliente, orderId, notes) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey || !cliente.email) return;
@@ -76,10 +88,10 @@ async function sendClaimEmail(cliente, orderId, notes) {
           </div>
           <div style="background:#fff;border-radius:16px;padding:32px;border-top:3px solid #f59e0b">
             <h2 style="color:#f59e0b;margin:0 0 12px">Hemos recibido tu reclamo</h2>
-            <p style="color:#374151">Hola <strong>${cliente.nombre} ${cliente.apellido}</strong>,</p>
+            <p style="color:#374151">Hola <strong>${esc(cliente.nombre)} ${esc(cliente.apellido)}</strong>,</p>
             <p style="color:#374151">Tu reclamo para el pedido <strong>#${orderId}</strong> ha sido registrado.</p>
             ${notes ? `<div style="background:#fffbeb;padding:16px;border-radius:10px;border-left:4px solid #f59e0b;margin:16px 0">
-              <p style="margin:0;font-size:14px;color:#92400e">${notes}</p>
+              <p style="margin:0;font-size:14px;color:#92400e">${esc(notes)}</p>
             </div>` : ''}
             <p style="color:#374151">Nuestro equipo revisará tu caso y <strong>nos comunicaremos contigo</strong> a la brevedad para darte seguimiento.</p>
             <p style="color:#6b7280;font-size:14px">Si tienes alguna pregunta urgente puedes escribirnos a <a href="mailto:soporte@bisontemanga.com" style="color:#dc2626">soporte@bisontemanga.com</a></p>

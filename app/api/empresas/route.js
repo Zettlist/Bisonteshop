@@ -14,6 +14,7 @@ export async function GET(request) {
         const [rows] = await pool.query("SELECT id, nombre_empresa FROM empresas ORDER BY id");
         return NextResponse.json({ empresas: rows });
     } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('[Empresas]', error);
+        return NextResponse.json({ error: 'Error del servidor.' }, { status: 500 });
     }
 }

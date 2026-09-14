@@ -62,6 +62,6 @@ export async function GET() {
     );
   } catch (error) {
     console.error('Error fetching adult products:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'No se pudo cargar el catálogo.' }, { status: 500 });
   }
 }
