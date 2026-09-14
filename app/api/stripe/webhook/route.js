@@ -80,7 +80,17 @@ export async function POST(request) {
                 break;
         }
     } catch (e) {
-        // Algo nuestro fallo (la base, casi siempre). 500 para que Stripe
+        // Un fallo PERMANENTE no se reintenta: el cobro apunta a un cliente que
+        // no existe, o trae datos que ningun reintento va a arreglar. Con 500,
+        // Stripe insiste durante dias y el panel se llena de rojo por algo que
+        // no se puede resolver solo. Se contesta 200 y queda el log, que es
+        // donde una persona lo tiene que ver.
+        if (e.permanente) {
+            console.error(`[webhook] ${evento.type} (${evento.id}) NO se puede procesar nunca: ${e.message}. Requiere revisión manual.`);
+            return NextResponse.json({ recibido: true, revisar: true });
+        }
+
+        // Lo demas si es temporal (la base, casi siempre). 500 para que Stripe
         // vuelva a intentarlo: es justo la red de seguridad por la que existe
         // esta ruta.
         console.error(`[webhook] ${evento.type} (${evento.id}) falló:`, e.message);

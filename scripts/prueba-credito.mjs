@@ -273,9 +273,15 @@ await prueba('un pago de otro cliente no se abona al que lo manda', async () => 
         amount: 50000, currency: 'mxn', payment_method_types: ['card'],
         metadata: { tipo: 'credit_topup', userId: '999999', creditMXN: '500.00', cargoMoneda: 'MXN', cargoMonto: '500.00' },
     });
-    await cobrar(ajeno.id);
+    // Sin cobrarlo. La comprobacion del dueño va ANTES que la del estado, asi
+    // que el 403 sale igual — y cobrarlo tenia un efecto que no se veia desde
+    // aqui: Stripe manda `payment_intent.succeeded` a TODOS los destinos de la
+    // cuenta de prueba, produccion incluida. Alli el webhook intentaba abonarle
+    // saldo al cliente 999999, que no existe, y se quedaba reintentando ese
+    // evento durante dias. Cada pasada de esta prueba dejaba uno.
     const r = await api('/api/credit/confirm', { paymentIntentId: ajeno.id });
     igual(r.http, 403, 'status');
+    await stripe.paymentIntents.cancel(ajeno.id);
 });
 
 await prueba('un pago sin cobrar todavia no abona nada', async () => {
