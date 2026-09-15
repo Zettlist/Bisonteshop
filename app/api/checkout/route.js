@@ -206,6 +206,25 @@ export async function POST(request) {
     // `saveCard` va dentro por lo mismo: cambia `setup_future_usage`, asi que
     // dos intentos del mismo carrito que solo se diferencian en la casilla de
     // guardar la tarjeta son dos peticiones distintas.
+    // ── Meses sin intereses ─────────────────────────────────────────────────
+    //
+    // Los financia el comercio, no el banco: Stripe cobra un 5% a 3 meses, 7.5%
+    // a 6, 10% a 9 y 12.5% a 12, ENCIMA de su comision normal. En un pedido de
+    // $1,000 a doce meses son $125 que salen del margen.
+    //
+    // Por eso hay monto minimo: ofrecer meses en un manga de $350 cuesta mas de
+    // lo que deja. MSI_MONTO_MINIMO esta en pesos y MSI_ACTIVO enciende o apaga
+    // todo, las dos como variables de entorno para poder cambiarlas sin
+    // desplegar -- una decision de margen no deberia pedir un despliegue.
+    //
+    // Stripe decide que plazos ofrece: solo salen en tarjetas de credito
+    // mexicanas de consumo, y las de debito o corporativas no los ven. Nosotros
+    // solo decimos que si. Comprobado contra la API que acepta meses junto con
+    // capture_method 'manual', que es como cobra esta tienda.
+    const msiActivo = process.env.MSI_ACTIVO === '1';
+    const msiMinimo = Number(process.env.MSI_MONTO_MINIMO || 2000);
+    const conMeses = msiActivo && (amountInCents / 100) >= msiMinimo;
+
     const fingerprint = JSON.stringify({
       v: 2,
       u: userId,
@@ -215,6 +234,10 @@ export async function POST(request) {
       cur: stripeCurrency,
       cents: amountInCents,
       guardar: Boolean(saveCard),
+      // Va dentro por lo mismo que `guardar`: un intento con meses y otro sin
+      // ellos son dos PaymentIntents distintos. Sin esto, encender MSI dejaria
+      // a los carritos ya cotizados reusando el intento viejo, sin la opcion.
+      meses: conMeses,
     });
     const idempotencyKey = `checkout:${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 48)}`;
 
@@ -223,6 +246,7 @@ export async function POST(request) {
       currency: stripeCurrency,
       capture_method: 'manual',
       automatic_payment_methods: { enabled: true },
+      ...(conMeses && { payment_method_options: { card: { installments: { enabled: true } } } }),
       ...(stripeCustomerId && { customer: stripeCustomerId }),
       ...(stripeCustomerId && saveCard && { setup_future_usage: 'off_session' }),
       metadata: {
