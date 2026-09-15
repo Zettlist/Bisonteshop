@@ -13,6 +13,7 @@ await import('./credito.mjs');
 await import('./apartados.mjs');
 await import('./preventas.mjs');
 await import('./preventas-cotizacion.mjs');
+await import('./reserva-web.mjs');
 
 const fallos = await runAll();
 await teardown();

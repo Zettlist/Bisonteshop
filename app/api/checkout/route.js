@@ -38,9 +38,35 @@ export async function POST(request) {
     const { items, discountCode, saveCard, currency: clientCurrency, shippingToken } = body;
 
     // ── 1. Precios DESDE LA BD (nunca del cliente) ───────────────────────
-    const { lines, subtotal, errors } = await priceCart(items);
+    const { lines, subtotal, errors, sinExistencia } = await priceCart(items);
     if (errors.length) {
       return NextResponse.json({ success: false, error: errors[0] }, { status: 400 });
+    }
+
+    // ── 1-bis. Y que quede mercancia ─────────────────────────────────────
+    // Esta es la puerta que faltaba. Con nueve piezas entraban nueve pedidos
+    // y tambien el decimo: `stock` no descuenta lo que ya tiene dueño, y la
+    // tienda no apartaba nada, asi que los nueve anteriores eran invisibles
+    // para el que llegaba despues. El decimo cliente pagaba, esperaba, y se
+    // enteraba dias mas tarde por un correo de cancelacion.
+    //
+    // `stock_disponible` (stock - stock_reservado) si los ve, y el corte va
+    // ANTES de crear el PaymentIntent: mas vale un "se agoto" en la pantalla
+    // del carrito que una autorizacion que hay que deshacer.
+    //
+    // No es la ultima palabra -- dos clientes pueden llegar aqui a la vez y
+    // pasar los dos. La decision de verdad la toma la reserva atomica de
+    // /api/checkout/confirm (lib/reserva.js). Esto es lo que evita que el caso
+    // normal llegue siquiera a plantearselo.
+    if (sinExistencia.length) {
+      const nombres = sinExistencia.map(f => `"${f.name}"`).join(', ');
+      return NextResponse.json({
+        success: false,
+        sinExistencia,
+        error: sinExistencia.length === 1
+          ? `Ya no queda ${nombres}. Quita el artículo del carrito para continuar.`
+          : `Ya no quedan estos artículos: ${nombres}. Quítalos del carrito para continuar.`,
+      }, { status: 409 });
     }
 
     // La mercancia cotizada, resumida en un hash. Viaja con los totales (en el

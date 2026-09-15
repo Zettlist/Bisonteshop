@@ -15,6 +15,11 @@ export async function GET(request) {
         p.name as title,
         p.sale_price as price,
         p.stock,
+        -- Lo que de verdad queda libre: stock menos lo que ya tiene dueño
+        -- (pedidos web pendientes y apartados). Sin esta columna la tarjeta
+        -- anunciaba nueve piezas con las nueve ya vendidas, y el cliente se
+        -- enteraba al pagar. disponiblesDe() (lib/apartado.js) la prefiere.
+        p.stock_disponible,
         -- Preventa: viene en camino, el stock es cero y lo que la limita es
         -- cuanto se pidio al proveedor menos lo que ya tiene dueño. Quien pinta
         -- la tarjeta lo resuelve con disponiblesDe() (lib/apartado.js).

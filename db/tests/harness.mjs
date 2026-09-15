@@ -30,6 +30,20 @@ export async function teardown() {
 
 export const sql = (...args) => conn.query(...args);
 
+/**
+ * Una segunda conexion a la MISMA base.
+ *
+ * Existe para las pruebas que no se pueden escribir con una sola: la sobreventa
+ * es una carrera entre dos transacciones, y con una conexion no hay carrera que
+ * perder. Quien la abra la cierra.
+ */
+export async function conexionAparte() {
+    return mysql.createConnection({
+        host: '127.0.0.1', port: db.port, user: db.username,
+        database: db.dbName, multipleStatements: true,
+    });
+}
+
 /** Espera que la operacion falle con un codigo de error MySQL concreto. */
 export async function expectError(fn, code) {
     try {

@@ -7,6 +7,7 @@ import { getClienteId } from '@/lib/auth';
 import { gastarCredito } from '@/lib/credito';
 import { leerPedidoSaldo } from '@/lib/pedidoSaldo';
 import { huellaDestino } from '@/lib/envioFirmado';
+import { reservarStock } from '@/lib/reserva';
 
 export const dynamic = 'force-dynamic';
 
@@ -242,6 +243,50 @@ export async function POST(request) {
         await conn.query(
           `INSERT INTO sale_items (sale_id, product_id, quantity, price) VALUES (?, ?, ?, ?)`,
           [saleId, line.id, line.quantity, line.unitPrice]
+        );
+      }
+
+      // 5-bis. Apartar la mercancia.
+      //
+      //   Aqui es donde el pedido deja de ser una intencion y se come piezas
+      //   del inventario. Va DENTRO de la misma transaccion que los renglones
+      //   a proposito: un pedido registrado sin su aparte es exactamente el
+      //   estado que hasta hoy dejaba entrar el pedido numero diez.
+      //
+      //   La condicion vive dentro del UPDATE (ver lib/reserva.js) porque leer
+      //   y despues escribir deja una ventana: dos clientes que leen "queda 1"
+      //   a la vez leen los dos que si, y los dos pagan.
+      const faltantes = await reservarStock(conn, lines);
+      if (faltantes.length) {
+        await conn.rollback();
+
+        //   El cargo ya esta AUTORIZADO -- el dinero esta retenido en la
+        //   tarjeta del cliente. Dejarlo asi lo tendria congelado hasta que
+        //   Stripe suelte la autorizacion sola, que tarda dias, por una compra
+        //   que no existe. Se cancela aqui y el banco lo libera enseguida.
+        //
+        //   Si falla, el pedido NO se registra igual: se prefiere una
+        //   autorizacion huerfana (que caduca) a mercancia vendida dos veces
+        //   (que no caduca). Queda en el log para el reembolso a mano.
+        if (paymentIntentId) {
+          try {
+            await stripe.paymentIntents.cancel(paymentIntentId);
+          } catch (err) {
+            console.error(`[Confirm] No se pudo liberar el cargo ${paymentIntentId}: ${err.message}`);
+          }
+        }
+
+        const nombres = faltantes.map(f => `"${f.name}"`).join(', ');
+        console.warn(`[Confirm] Pedido rechazado por existencias (cliente ${clienteId}, pago ${referencia}): ${nombres}.`);
+        return NextResponse.json(
+          {
+            success: false,
+            sinExistencia: faltantes,
+            error: faltantes.length === 1
+              ? `Se agotó ${nombres} mientras completabas la compra. No se te cobró.`
+              : `Se agotaron estos artículos mientras completabas la compra: ${nombres}. No se te cobró.`,
+          },
+          { status: 409 }
         );
       }
 

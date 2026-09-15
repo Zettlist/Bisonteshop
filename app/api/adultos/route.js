@@ -11,6 +11,11 @@ export async function GET() {
         p.name as title,
         p.sale_price as price,
         p.stock,
+        -- Lo que de verdad queda libre: stock menos lo que ya tiene dueño
+        -- (pedidos web pendientes y apartados). Sin esta columna la tarjeta
+        -- anunciaba nueve piezas con las nueve ya vendidas, y el cliente se
+        -- enteraba al pagar. disponiblesDe() (lib/apartado.js) la prefiere.
+        p.stock_disponible,
         -- Preventa: viene en camino y el stock es cero. Ver /api/mangas.
         p.estado,
         p.preventa_disponible,

@@ -179,6 +179,23 @@ CREATE TABLE IF NOT EXISTS products (
     -- pedidos pendientes (una subquery por item, y cascadeCancelLaterOrders la
     -- llamaba por cada pedido posterior: O(n^2) y sin bloqueo, o sea sobreventa
     -- cuando dos confirmaciones corrian a la vez).
+    --
+    -- Quien SUBE `stock_reservado`, que es lo que hay que saber para no
+    -- repetir el agujero de septiembre: los apartados del mostrador
+    -- (routes/anticipos.js), las preventas nacidas de una cotizacion, y la
+    -- tienda web al confirmar el checkout (Bisonteshop/lib/reserva.mjs).
+    -- Quien lo BAJA: el POS, al surtir el pedido o al cancelarlo
+    -- (commitReservation / releaseReservation en routes/webOrders.js).
+    --
+    -- Esa ultima via no existia. El POS la daba por hecha y la restaba con
+    -- GREATEST(0, ...), asi que restarle a un cero que nunca subio no rompia
+    -- nada visible: el stock fisico bajaba bien y el aparte no existia. Con
+    -- nueve piezas entraban nueve pedidos, y el decimo, y el undecimo, porque
+    -- `stock` no descuenta lo que ya tiene dueño.
+    --
+    -- Por eso la vitrina y el checkout miran `stock_disponible` y nunca
+    -- `stock`: el segundo es lo que hay en el almacen, el primero es lo que se
+    -- puede vender, y solo coinciden cuando nadie ha comprado nada.
     stock            INT NOT NULL DEFAULT 0,
     stock_reservado  INT NOT NULL DEFAULT 0,
     stock_disponible INT AS (stock - stock_reservado) VIRTUAL,

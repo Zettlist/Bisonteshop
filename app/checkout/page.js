@@ -392,6 +392,17 @@ function CheckoutFlow() {
                         setPaymentError(data.error || 'Vuelve a elegir el envío.');
                         return;
                     }
+                    // Se agoto algo mientras compraba. Dejarlo en el paso del
+                    // pago seria ensenarle un error que desde ahi no puede
+                    // arreglar: el articulo se quita en el carrito. Se le
+                    // devuelve al paso 1 con el aviso puesto.
+                    if (data.sinExistencia?.length) {
+                        setClientSecret(null);
+                        setStep(1);
+                        window.scrollTo(0, 0);
+                        setPaymentError(data.error || 'Se agotó un artículo de tu carrito.');
+                        return;
+                    }
                     setPaymentError(data.error || 'Error al preparar el pago.');
                     return;
                 }
@@ -485,6 +496,15 @@ function CheckoutFlow() {
         // vez de registrarlo sin cobro que lo respalde. Hay que decirlo, no
         // dejar al cliente en una pantalla de exito por un pedido que no existe.
         if (!confirmData?.success) {
+            // Se lo llevo otro entre autorizar y confirmar. El servidor ya
+            // libero el cargo -- no se cobro nada -- y con el cargo se fue el
+            // clientSecret, asi que hay que olvidarlo: reintentar con el viejo
+            // pediria un PaymentIntent que ya esta cancelado.
+            if (confirmData?.sinExistencia?.length) {
+                setClientSecret(null);
+                setStep(1);
+                window.scrollTo(0, 0);
+            }
             setPaymentError(confirmData?.error || 'No pudimos registrar tu pedido. Intenta nuevamente.');
             return;
         }
