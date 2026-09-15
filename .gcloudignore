@@ -25,3 +25,8 @@ pencil-welcome.pen
 # Copia entera del repo dentro del repo (368 MB, 439 archivos). No se usa para
 # nada; sin esta linea, cada `gcloud run deploy --source .` la sube al build.
 Bisonteshop/
+
+# Credenciales. Sin esto, cada "gcloud run deploy --source ." sube el archivo
+# con TODAS las contrasenas al bucket del constructor, donde queda guardado.
+db/.credenciales-*.txt
+*.credenciales*
