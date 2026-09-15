@@ -198,6 +198,15 @@ CREATE TABLE IF NOT EXISTS products (
     -- ademas lleva tipo y fecha de fin. Al llegar el pedido el articulo pasa a
     -- 'normal' y se le enciende ese evento; son dos ejes, no cuatro estados.
     estado           ENUM('normal','preventa') NOT NULL DEFAULT 'normal',
+    -- Mercancia de verdad o utileria para probar. Existe porque el catalogo de
+    -- la tienda filtraba SOLO por empresa: cualquier producto dado de alta salia
+    -- a la venta sin que nadie lo aprobara, y unos articulos de prueba habrian
+    -- aparecido en bisontemanga.com junto a los mangas.
+    --
+    -- El filtro va en las cinco consultas del catalogo Y en lib/pricing.js, que
+    -- es la que decide el precio de lo que se cobra: filtrar solo la vitrina
+    -- deja la puerta de atras abierta.
+    es_prueba        TINYINT(1) NOT NULL DEFAULT 0,
     -- Las piezas que vienen en camino y las que ya tienen dueño, con la misma
     -- forma que stock/stock_reservado y por la misma razon (FIX 14): el catalogo
     -- pregunta "¿queda preventa?" en cada tarjeta, y sumar `pre_orders` en cada
@@ -319,7 +328,9 @@ CREATE TABLE IF NOT EXISTS products (
     INDEX idx_empresa_serie (empresa_id, series, volume),
     -- La consulta de la tienda: que hay en preventa ahora mismo. Sin indice
     -- recorre el catalogo entero para encontrar las pocas filas que lo estan.
-    INDEX idx_empresa_estado (empresa_id, estado)
+    INDEX idx_empresa_estado (empresa_id, estado),
+    -- El catalogo se recorre entero en cada visita a la tienda.
+    INDEX idx_es_prueba (es_prueba)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- FIX 18 — contador real para los codigos de barra.

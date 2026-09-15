@@ -43,6 +43,7 @@ export async function GET(request) {
       LEFT JOIN product_tags pt ON p.id = pt.product_id
       LEFT JOIN tags t ON pt.tag_id = t.id
       WHERE p.empresa_id = ?
+           AND p.es_prueba = 0
         AND (p.is_adult = 0 OR p.is_adult IS NULL)
         ${!all ? `AND p.category NOT LIKE '%Figura%'
         AND p.category NOT LIKE '%Calendario%'

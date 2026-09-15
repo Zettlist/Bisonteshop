@@ -44,6 +44,7 @@ export async function GET() {
       LEFT JOIN product_tags pt ON p.id = pt.product_id
       LEFT JOIN tags t ON pt.tag_id = t.id
       WHERE p.empresa_id = ?
+           AND p.es_prueba = 0
         AND p.is_adult = 1
       GROUP BY p.id
       ORDER BY p.id DESC
