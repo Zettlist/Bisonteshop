@@ -12,6 +12,50 @@ export const dynamic = 'force-dynamic';
 
 const EMPRESA_ID = process.env.EMPRESA_ID || 122;
 
+/**
+ * Lo que se guarda de la tarjeta, sacado del cargo de Stripe.
+ *
+ * Nada de esto es sensible: la marca y los cuatro ultimos son justo lo que se
+ * puede guardar, y es lo que el cliente ve en su estado de cuenta. El numero
+ * completo vive en Stripe y ahi se queda.
+ *
+ * Si algo falla se devuelve null y el pedido sigue: saber que tarjeta fue es
+ * util, no es motivo para tumbar una compra ya autorizada.
+ */
+function detalleDeTarjeta(cargo) {
+  const card = cargo?.payment_method_details?.card;
+  if (!card) return null;
+
+  // Stripe llama `funding` a lo que aqui se pregunta como "credito o debito".
+  const tipos = { credit: 'credito', debit: 'debito', prepaid: 'prepago' };
+
+  // Meses sin intereses. Hoy siempre sale 0 porque el PaymentIntent no pide
+  // `installments` -- la tienda no los ofrece todavia. Se lee igual para que el
+  // dia que se activen no haya que tocar esto.
+  const meses = Number(card.installments?.plan?.count) || 0;
+
+  return {
+    marca: card.brand || null,
+    ultimos4: card.last4 || null,
+    tipo: tipos[card.funding] || 'desconocido',
+    meses: meses > 0 && meses < 256 ? meses : 0,
+    detalle: card,
+  };
+}
+
+/**
+ * Como se pago, en una palabra.
+ *
+ * Antes esto era la cadena 'card' escrita a mano en el INSERT, pasara lo que
+ * pasara. Veintitres pedidos pagados enteros con saldo decian "tarjeta", y el
+ * desglose por metodo de pago del POS los sumaba en la columna equivocada.
+ */
+function comoSePago({ credito, total }) {
+  if (credito > 0 && total <= 0) return 'saldo';
+  if (credito > 0) return 'mixto';
+  return 'tarjeta';
+}
+
 export async function POST(request) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
 
@@ -46,7 +90,7 @@ export async function POST(request) {
     //
     //    Lo que importa de las dos es lo mismo: los importes NO los pone el
     //    navegador. Alli lo garantiza Stripe; aqui, la firma.
-    let md, referencia;
+    let md, referencia, tarjeta = null;
     if (pedidoToken) {
       md = await leerPedidoSaldo(pedidoToken);
       if (!md) {
@@ -54,18 +98,30 @@ export async function POST(request) {
       }
       referencia = md.ref;
     } else {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      // `latest_charge` expandido: es lo unico que sabe QUE tarjeta fue. Con
+      // captura manual el cargo ya existe aqui, en requires_capture, asi que no
+      // hay que esperar al cobro para saberlo. Y el dia del reclamo "tarjeta"
+      // no contesta nada -- "Visa terminada en 4242, credito" contesta todo.
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+        expand: ['latest_charge'],
+      });
       if (paymentIntent.status !== 'requires_capture') {
         return NextResponse.json({ success: false, error: `Estado de pago inválido: ${paymentIntent.status}` }, { status: 400 });
       }
       md = paymentIntent.metadata || {};
       referencia = paymentIntentId;
+      tarjeta = detalleDeTarjeta(paymentIntent.latest_charge);
     }
     const subtotal = parseFloat(md.subtotalMXN) || 0;
     const discount = parseFloat(md.appliedDiscount) || 0;
     const credit = parseFloat(md.appliedCredit) || 0;
     const shipping = parseFloat(md.shippingMXN) || 0;
     const totalFinal = parseFloat(md.totalMXN) || round2(subtotal - discount + shipping - credit);
+
+    // Se decide aqui, con los importes que fijo el servidor -- los del metadata
+    // de Stripe o los del token firmado. No mas abajo con lo que diga el
+    // navegador, que es de donde venia el 'card' de siempre.
+    const pagoTipo = comoSePago({ credito: credit, total: totalFinal });
 
     // El cliente tambien es autoritativo: `userId` del body lo escribe el
     // navegador y se puede cambiar, y con el se decide a quien se le descuenta
@@ -159,9 +215,14 @@ export async function POST(request) {
       //    shipping_address_json) y ninguna de esas columnas existe. Todas
       //    viven en bisonte_orders. `origen` es lo que separa la venta web de
       //    la del mostrador en los cortes del POS.
+      //    `payment_method` estaba escrito a mano como 'card' y ahora dice lo
+      //    que paso: el saldo de la tienda no es efectivo -- no entra dinero al
+      //    cajon -- ni es tarjeta, no pasa por Stripe. Es dinero que el cliente
+      //    ya habia pagado antes. El desglose del panel del POS agrupa por esta
+      //    columna, asi que mentir aqui es sumar en el renglon equivocado.
       const [saleResult] = await conn.query(
         `INSERT INTO sales (empresa_id, user_id, origen, subtotal, discount, surcharge, total, payment_method, created_at)
-         VALUES (?, ?, 'web', ?, ?, ?, ?, 'card', NOW())`,
+         VALUES (?, ?, 'web', ?, ?, ?, ?, ?, NOW())`,
         [
           EMPRESA_ID,
           resolvedUserId,
@@ -169,6 +230,7 @@ export async function POST(request) {
           discount,
           shipping,
           totalFinal,
+          pagoTipo === 'tarjeta' ? 'card' : pagoTipo,
         ]
       );
       const saleId = saleResult.insertId;
@@ -234,8 +296,9 @@ export async function POST(request) {
       await conn.query(
         `INSERT INTO bisonte_orders
             (sale_id, cliente_id, payment_intent_id, pago_estado, estado,
-             credito_aplicado, shipping_method, shipping_address_json, envia_quote_data)
-         VALUES (?, ?, ?, 'autorizado', 'pendiente', ?, ?, ?, ?)`,
+             credito_aplicado, shipping_method, shipping_address_json, envia_quote_data,
+             pago_tipo, tarjeta_marca, tarjeta_ultimos4, tarjeta_tipo, tarjeta_meses, pago_detalle)
+         VALUES (?, ?, ?, 'autorizado', 'pendiente', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           saleId,
           clienteId,
@@ -244,6 +307,12 @@ export async function POST(request) {
           shippingMethod || 'envia',
           shipping_address ? JSON.stringify(shipping_address) : null,
           envia_quote_data ? JSON.stringify(envia_quote_data) : null,
+          pagoTipo,
+          tarjeta?.marca || null,
+          tarjeta?.ultimos4 || null,
+          tarjeta?.tipo || null,
+          tarjeta?.meses || 0,
+          tarjeta?.detalle ? JSON.stringify(tarjeta.detalle) : null,
         ]
       );
 

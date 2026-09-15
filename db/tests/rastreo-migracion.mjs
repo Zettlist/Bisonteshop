@@ -141,11 +141,18 @@ try {
 }
 
 // Limpieza: con root, que es quien puede borrar de esta tabla.
+//
+// Se comprueba que se fueron LAS FILAS DE ESTA PRUEBA, no que la tabla quede
+// vacia: el simulador de envios deja eventos a proposito para poder mirar la
+// pantalla, y una prueba que exige una tabla vacia esta exigiendo que nadie
+// mas use la base.
 const root = await conectar('root', claveDe('root'));
 await q(root, 'DELETE FROM shipment_events WHERE tracking_number = ?', ['PRUEBA-MIGRACION']);
-const quedan = await q(tienda, 'SELECT COUNT(*) n FROM shipment_events');
-prueba('la tabla queda limpia despues de la prueba',
-    quedan[0].n === 0, `${quedan[0].n} filas`);
+const mias = await q(tienda, 'SELECT COUNT(*) n FROM shipment_events WHERE tracking_number = ?', ['PRUEBA-MIGRACION']);
+const total = await q(tienda, "SELECT COUNT(*) n, SUM(origen = 'simulador') sim FROM shipment_events");
+prueba('esta prueba no deja rastro',
+    mias[0].n === 0,
+    `quedan ${total[0].n} evento(s) en la tabla, ${total[0].sim || 0} del simulador — ninguno de esta prueba`);
 
 await Promise.all([tienda.end(), pos.end(), root.end()]);
 console.log(`\n  \x1b[1m${ok} pasan, ${mal} fallan\x1b[0m\n`);

@@ -383,7 +383,12 @@ CREATE TABLE IF NOT EXISTS sales (
     discount        DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     surcharge       DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     total           DECIMAL(10,2) NOT NULL,
-    payment_method  ENUM('cash','card') NOT NULL,
+    -- En el mostrador solo hay dos formas de pagar. En la web hay tres, y la
+    -- tercera no es ninguna de las dos: el saldo de la tienda no es efectivo
+    -- (no entra dinero al cajon) ni es tarjeta (no pasa por Stripe). Es dinero
+    -- que el cliente pago antes y ahora gasta. 'mixto' es parte saldo, parte
+    -- tarjeta; sin ese valor habria que elegir con cual de los dos mentir.
+    payment_method  ENUM('cash','card','saldo','mixto') NOT NULL,
     cash_session_id INT NULL,
     created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_sales_empresa FOREIGN KEY (empresa_id)      REFERENCES empresas(id) ON DELETE CASCADE,
@@ -724,6 +729,30 @@ CREATE TABLE IF NOT EXISTS bisonte_orders (
     payment_intent_id     VARCHAR(255) NOT NULL,
     pago_estado           ENUM('autorizado','capturado','cancelado','reembolsado')
                               NOT NULL DEFAULT 'autorizado',
+
+    -- Como se pago, en una palabra. Se calcula al confirmar, con los importes
+    -- que fijo el servidor. Antes esto no existia y `sales.payment_method`
+    -- decia 'card' siempre, escrito a mano en el INSERT: 23 pedidos pagados
+    -- enteros con saldo se sumaban en el renglon de tarjeta del panel del POS.
+    pago_tipo             ENUM('tarjeta','saldo','mixto') NULL,
+
+    -- Que tarjeta fue. Cuando alguien llama por un cargo, "tarjeta" no contesta
+    -- nada; "Visa terminada en 4242, credito, a 6 meses" contesta todo, y es lo
+    -- que el cliente ve en su estado de cuenta. Nada de esto es sensible: el
+    -- numero completo vive en Stripe y ahi se queda.
+    tarjeta_marca         VARCHAR(20) NULL,
+    tarjeta_ultimos4      CHAR(4) NULL,
+    -- Lo que Stripe llama `funding`. Importa en un reclamo: si fue debito el
+    -- dinero ya salio de la cuenta del cliente, y devolverlo tarda distinto.
+    tarjeta_tipo          ENUM('credito','debito','prepago','desconocido') NULL,
+    -- Meses sin intereses; 0 es una sola exhibicion. Hoy siempre 0: el
+    -- PaymentIntent no pide `installments`, asi que la tienda no los ofrece.
+    tarjeta_meses         TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    -- El cargo completo que devolvio Stripe, por lo mismo que shipment_events
+    -- guarda `crudo`: las columnas de arriba son las preguntas de hoy. El
+    -- codigo de autorizacion o si el CVC dio bien son las de una disputa.
+    pago_detalle          JSON NULL,
+
     refund_id             VARCHAR(255) NULL,
 
     -- Saldo de tienda que este pedido se comio, en MXN. Se descuenta de
