@@ -247,9 +247,20 @@ export async function POST(request) {
     // mexicanas de consumo, y las de debito o corporativas no los ven. Nosotros
     // solo decimos que si. Comprobado contra la API que acepta meses junto con
     // capture_method 'manual', que es como cobra esta tienda.
+    // El corte va sobre el SUBTOTAL de la mercancia -- el carrito completo --
+    // y no sobre lo que acaba pasando por la tarjeta. Son cosas distintas en
+    // cuanto hay saldo de tienda o un cupon de por medio: un carrito de $3,200
+    // con $500 de saldo cobra $2,700, y medir ahi dejaria sin meses a un pedido
+    // que si llega al minimo. La regla es del carrito, asi que se mide el
+    // carrito.
+    //
+    // Y `subtotal` esta siempre en pesos. `amountInCents`, que es lo que se
+    // miraba antes, va en la moneda del cargo: con la tienda en USD comparaba
+    // centavos de dolar contra un minimo en pesos, asi que los meses no salian
+    // nunca. No se noto porque son de tarjetas mexicanas, que pagan en MXN.
     const msiActivo = process.env.MSI_ACTIVO === '1';
-    const msiMinimo = Number(process.env.MSI_MONTO_MINIMO || 2000);
-    const conMeses = msiActivo && (amountInCents / 100) >= msiMinimo;
+    const msiMinimo = Number(process.env.MSI_MONTO_MINIMO || 3000);
+    const conMeses = msiActivo && subtotal >= msiMinimo;
 
     const fingerprint = JSON.stringify({
       v: 2,
