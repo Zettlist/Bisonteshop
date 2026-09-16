@@ -8,7 +8,7 @@
 import { test, sql, assertEqual, assert, seed } from './harness.mjs';
 // .mjs por lo mismo que lib/reserva.mjs: el package.json de la tienda no
 // declara "type": "module".
-import { medidasDelCarrito, armarPaquete, medidasDe, EMPAQUE, SIN_DATOS } from '../../lib/paquete.mjs';
+import { medidasDelCarrito, armarPaquete, medidasDe, elegirEmpaque, EMPAQUE, SIN_DATOS } from '../../lib/paquete.mjs';
 
 const G = 'PAQUETE DE ENVIO';
 const conexion = { query: (...a) => sql(...a) };
@@ -63,8 +63,8 @@ test(G, 'cuatro revistas se apilan: suma el grosor y el peso, no el largo', asyn
 
     const pkg = await cotizar([{ id, quantity: 4 }]);
     assertEqual(pkg.weight, 2.59, '4 x 622 g mas una sola caja');
-    assertEqual(pkg.height, 12, 'cuatro grosores de 2.5 cm mas la holgura');
-    assertEqual(pkg.length, 28, 'el largo es el de UNA revista, no el de cuatro');
+    assertEqual(pkg.contenido.height, 12, 'cuatro grosores de 2.5 cm mas la holgura');
+    assertEqual(pkg.contenido.length, 28, 'el largo es el de UNA revista, no el de cuatro');
 });
 
 test(G, 'el grosor es el lado mas corto, este en la columna que este', async () => {
@@ -79,7 +79,7 @@ test(G, 'el grosor es el lado mas corto, este en la columna que este', async () 
     const pa = await cotizar([{ id: a, quantity: 3 }]);
     const pb = await cotizar([{ id: b, quantity: 3 }]);
     assertEqual(JSON.stringify(pa), JSON.stringify(pb), 'la misma revista da la misma caja');
-    assertEqual(pa.height, 9.5, 'tres grosores de 2.5 cm, no tres alturas de 26');
+    assertEqual(pa.contenido.height, 9.5, 'tres grosores de 2.5 cm, no tres alturas de 26');
 });
 
 test(G, 'un carrito mixto toma el articulo mas grande y suma el resto', async () => {
@@ -92,9 +92,71 @@ test(G, 'un carrito mixto toma el articulo mas grande y suma el resto', async ()
     await sql('UPDATE products SET format_id = ? WHERE id = ?', [fmt.insertId, tomo]);
 
     const pkg = await cotizar([{ id: revista, quantity: 1 }, { id: tomo, quantity: 2 }]);
-    assertEqual(pkg.length, 28, 'el largo de la revista, que es la mas grande');
-    assertEqual(pkg.height, 6.5, '2.5 de la revista + 2x1 de los tomos + holgura');
+    assertEqual(pkg.contenido.length, 28, 'el largo de la revista, que es la mas grande');
+    assertEqual(pkg.contenido.height, 6.5, '2.5 de la revista + 2x1 de los tomos + holgura');
     assertEqual(pkg.weight, 1.00, '622 + 2x141 + 100 de la caja');
+});
+
+// ── El empaque ──────────────────────────────────────────────────────────────
+const TANKOBON = { largo: 12, ancho: 1, alto: 18, pesoG: 141 };
+const REVISTA = { largo: 18, ancho: 2.5, alto: 26, pesoG: 622 };
+const DOUJINSHI = { largo: 18.2, ancho: 0.3, alto: 25.7, pesoG: 105 };
+
+async function formatoSuelto(f, m) {
+    const id = await otroProducto(f);
+    const [fmt] = await sql(
+        `INSERT INTO product_formats (empresa_id, name, length_cm, width_cm, height_cm, weight_g)
+         VALUES (?,?,?,?,?,?)`, [f.empresaId, `Formato ${++n}`, m.largo, m.ancho, m.alto, m.pesoG]);
+    await sql('UPDATE products SET format_id = ? WHERE id = ?', [fmt.insertId, id]);
+    return id;
+}
+
+test(G, 'un manga solo va en sobre', async () => {
+    const f = await seed();
+    const pkg = await cotizar([{ id: await formatoSuelto(f, TANKOBON), quantity: 1 }]);
+    assertEqual(pkg.empaque, 'Sobre', 'un tankobon');
+    assertEqual([pkg.height, pkg.width, pkg.length].join('x'), '4x24x32',
+        'a Envia van las medidas del sobre, no las del manga');
+});
+
+test(G, 'dos revistas y dos doujinshi: caja plana, con TODOS los pesos sumados', async () => {
+    const f = await seed();
+    const revista = await formatoSuelto(f, REVISTA);
+    const doujin = await formatoSuelto(f, DOUJINSHI);
+    const pkg = await cotizar([{ id: revista, quantity: 2 }, { id: doujin, quantity: 2 }]);
+    assertEqual(pkg.empaque, 'Caja plana', '2x2.5 + 2x0.3 + holgura = 7.6 cm de alto, 28 de largo');
+    assertEqual(pkg.weight, 1.55, '2x622 + 2x105 + 100 del empaque = 1,554 g');
+});
+
+test(G, 'tres tankobon ya no caben en el sobre: caja chica', async () => {
+    const f = await seed();
+    const pkg = await cotizar([{ id: await formatoSuelto(f, TANKOBON), quantity: 3 }]);
+    assertEqual(pkg.empaque, 'Caja chica', '3 cm + holgura = 5, mas que los 4 del sobre');
+    assertEqual(pkg.weight, 0.52, '3x141 + 100');
+});
+
+test(G, 'una revista sola no cabe en el sobre por grosor, y va en la plana', async () => {
+    const f = await seed();
+    const pkg = await cotizar([{ id: await formatoSuelto(f, REVISTA), quantity: 1 }]);
+    assertEqual(pkg.empaque, 'Caja plana', '2.5 + 2 de holgura = 4.5 cm; y es muy larga para la chica');
+    const tres = await cotizar([{ id: await formatoSuelto(f, REVISTA), quantity: 3 }]);
+    assertEqual(tres.empaque, 'Caja mediana', 'tres ya son 9.5 cm, mas que los 8 de la plana');
+});
+
+test(G, 'se elige el MAS CHICO donde cabe, no el primero de la lista', async () => {
+    assertEqual(elegirEmpaque([2, 15, 20]).nombre, 'Sobre', 'cabe en todos; gana el sobre');
+    assertEqual(elegirEmpaque([20, 15, 2]).nombre, 'Sobre', 'el orden de los lados no importa');
+    assertEqual(elegirEmpaque([9, 15, 21]).nombre, 'Caja chica');
+    assertEqual(elegirEmpaque([16, 25, 35]).nombre, 'Caja grande');
+});
+
+test(G, 'lo que no cabe en ninguna caja se cotiza con su tamaño y lo dice', async () => {
+    const f = await seed();
+    const pkg = await cotizar([{ id: await formatoSuelto(f, REVISTA), quantity: 20 }]);
+    assertEqual(pkg.empaque, 'Caja a la medida', '20 revistas son 52 cm de alto');
+    assertEqual(pkg.height, 20, 'el lado mas corto de la pila');
+    assertEqual(pkg.length, 52, '20x2.5 + 2 de holgura, redondeado hacia arriba');
+    assertEqual(pkg.weight, 12.54, '20x622 + 100');
 });
 
 // ── Las otras fuentes ───────────────────────────────────────────────────────
