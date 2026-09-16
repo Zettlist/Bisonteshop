@@ -15,6 +15,7 @@ await import('./preventas.mjs');
 await import('./preventas-cotizacion.mjs');
 await import('./reserva-web.mjs');
 await import('./paquete.mjs');
+await import('./venta-mostrador.mjs');
 
 const fallos = await runAll();
 await teardown();
