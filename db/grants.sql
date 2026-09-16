@@ -56,6 +56,12 @@ GRANT SELECT, UPDATE                  ON torlan_pos.coupons            TO 'bison
 GRANT SELECT ON torlan_pos.products   TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.categories TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.publishers TO 'bisonte_app'@'%';
+-- Lo que pesa y mide cada formato de envio. Sin esto la cotizacion no podia
+-- usar las medidas reales aunque quisiera: calculaba el paquete con una tabla
+-- fija por numero de articulos (una pieza = 250 g, fuera lo que fuera) y un
+-- Monthly Comic Alive de 1,067 g se cotizaba como si pesara la cuarta parte.
+-- Solo lectura: los formatos los da de alta el POS.
+GRANT SELECT ON torlan_pos.product_formats TO 'bisonte_app'@'%';
 
 -- Unica excepcion, a nivel de columna: la tienda reserva al confirmar el
 -- checkout, porque ahi es donde se compromete la mercancia. Puede tocar

@@ -3,6 +3,8 @@ import { priceCart, huellaCarrito } from '@/lib/pricing';
 import { firmarEnvio, huellaDestino } from '@/lib/envioFirmado';
 import { rateLimit } from '@/lib/rateLimit';
 import { ipCliente } from '@/lib/ipCliente';
+import pool from '@/lib/db';
+import { medidasDelCarrito, armarPaquete } from '@/lib/paquete';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +56,9 @@ function getStateCode(estado) {
   return s.length <= 3 ? s : 'CX'; // if already a short code, use it; else default
 }
 
+// La tabla fija de antes. Ya no es como se cotiza (ver lib/paquete.mjs): queda
+// solo como red, si la base no contesta. Con ella se cotiza mal, pero se
+// cotiza -- y sin cotizacion nadie puede terminar una compra.
 function getPackaging(items) {
   const total = items.reduce((s, i) => s + (i.quantity || 1), 0);
   if (total <= 1) return { length: 23, width: 32, height: 1, weight: 0.25 };
@@ -130,7 +135,17 @@ export async function POST(request) {
     }
 
     const stateCode = getStateCode(destination.estado);
-    const pkg = getPackaging(items);
+    // El paquete con lo que pesa y mide de verdad cada articulo. Si la base
+    // falla (un permiso que se pierde, la conexion caida) se cae a la tabla
+    // fija en vez de tumbar el checkout entero: cotizar mal cuesta margen,
+    // no cotizar cuesta la venta. Queda en el log para que no pase en silencio.
+    let pkg;
+    try {
+      pkg = armarPaquete(await medidasDelCarrito(pool, items));
+    } catch (err) {
+      console.error('[ShippingQuote] Sin medidas reales, se cotiza con la tabla fija:', err?.message || err);
+      pkg = getPackaging(items);
+    }
 
     const origin = ORIGIN;
 
