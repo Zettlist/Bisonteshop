@@ -80,6 +80,18 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Datos incompletos' }, { status: 400 });
     }
 
+    // Sin telefono la paqueteria no puede avisar, y sin paqueteria el pedido
+    // llega al POS sin saber con quien se genera la guia. El checkout ya los
+    // pide; esto es para que un pedido que no pase por el formulario tampoco
+    // entre sin ellos. Va antes de tocar el pago: no hay nada que deshacer.
+    const telefono = String(shipping_address?.telefono || '').replace(/\D/g, '');
+    if (telefono.length < 10) {
+      return NextResponse.json({ success: false, error: 'Falta un teléfono de contacto de 10 dígitos.' }, { status: 400 });
+    }
+    if (!envia_quote_data?.carrier) {
+      return NextResponse.json({ success: false, envioInvalido: true, error: 'Elige una paquetería para el envío.' }, { status: 400 });
+    }
+
     // 1. Comprobar que el pago existe y esta en regla.
     //
     //    Hay dos formas de llegar aqui con un pedido pagado, y las dos acaban
