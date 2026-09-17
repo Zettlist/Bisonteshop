@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { loadStripe } from '@stripe/stripe-js';
+import { stripeDelNavegador } from '@/lib/stripeNavegador';
 import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useCartStore } from '@/store/cartStore';
 import LoginModal from '@/components/LoginModal';
@@ -14,11 +14,10 @@ import styles from './checkout.module.css';
 import { iniciarCheckout, compra } from '@/lib/analytics';
 
 // Ensure you replace this with your actual Stripe publishable key
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock');
 
 export default function CheckoutPage() {
     return (
-        <Elements stripe={stripePromise} options={{ wallets: { link: 'never' } }}>
+        <Elements stripe={stripeDelNavegador()} options={{ wallets: { link: 'never' } }}>
             <CheckoutFlow />
         </Elements>
     );

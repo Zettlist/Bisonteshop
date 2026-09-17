@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { loadStripe } from '@stripe/stripe-js';
+import { stripeDelNavegador } from '@/lib/stripeNavegador';
 import {
     Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements,
 } from '@stripe/react-stripe-js';
@@ -22,7 +22,6 @@ import styles from './ComprarSaldoDialogo.module.css';
 // vale es el que acota el servidor — lo de esta pantalla es solo la propuesta.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock');
 
 // Los mismos limites que /api/credit/topup. Repetirlos aqui no los hace verdad
 // (la verdad esta alli); sirven para no mandar al cobro un monto que el
@@ -49,7 +48,7 @@ export default function ComprarSaldoDialogo({ onCerrar, onRecarga }) {
     if (typeof document === 'undefined') return null;
 
     return createPortal(
-        <Elements stripe={stripePromise} options={{ wallets: { link: 'never' } }}>
+        <Elements stripe={stripeDelNavegador()} options={{ wallets: { link: 'never' } }}>
             <Dialogo onCerrar={onCerrar} onRecarga={onRecarga} />
         </Elements>,
         document.body

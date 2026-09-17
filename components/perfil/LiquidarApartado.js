@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { loadStripe } from '@stripe/stripe-js';
+import { stripeDelNavegador } from '@/lib/stripeNavegador';
 import {
     Elements,
     CardNumberElement,
@@ -14,7 +14,6 @@ import {
 import { Wallet, X, ShieldCheck } from 'lucide-react';
 import a from '@/app/perfil/apartados/Apartados.module.css';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock');
 
 const dinero = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -180,7 +179,7 @@ export default function LiquidarApartado({ apartado, onPagado }) {
             </button>
 
             {abierto && typeof document !== 'undefined' && createPortal(
-                <Elements stripe={stripePromise} options={{ wallets: { link: 'never' } }}>
+                <Elements stripe={stripeDelNavegador()} options={{ wallets: { link: 'never' } }}>
                     <Formulario apartado={apartado} onListo={listo} onCerrar={() => setAbierto(false)} />
                 </Elements>,
                 document.body
