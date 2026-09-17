@@ -168,6 +168,169 @@
     opacity: 0.8;
 }
 
+/* La fecha limite y el boton de pago comparten renglon: el plazo es el motivo
+   de que el boton este ahi, y separarlos deja la fecha como un aviso suelto. */
+.acciones {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.pagarBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.3rem;
+    background: #ffd60a;
+    color: #000;
+    border: 2px solid #000;
+    box-shadow: 3px 3px 0 #000;
+    border-radius: 4px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.pagarBtn:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 #000;
+}
+
+.pagarBtn:active:not(:disabled) {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 #000;
+}
+
+.pagarBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Dialogo de cobro ── */
+
+.modalFondo {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(3px);
+}
+
+.modal {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: #12100e;
+    border: 2px solid #000;
+    box-shadow: 6px 6px 0 #000;
+    border-radius: 6px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modalCabecera {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.modalTitulo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 1px;
+    color: #fff;
+    margin: 0;
+    line-height: 1.1;
+}
+
+.modalMeta {
+    margin: 0.2rem 0 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.modalMeta strong {
+    color: #ffd60a;
+}
+
+.cerrar {
+    display: flex;
+    padding: 0.35rem;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.55);
+    cursor: pointer;
+}
+
+.cerrar:hover:not(:disabled) {
+    color: #fff;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+}
+
+.campo > span {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.campoFila {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* El iframe de Stripe trae su propia tipografia y no hereda del modulo: el
+   marco lo pone la tienda y solo el texto de dentro lo pinta Stripe (ver
+   `campoStripe` en LiquidarApartado.js). */
+.campoStripe {
+    padding: 0.75rem 0.85rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+.campoStripe:focus-within {
+    border-color: #ffd60a;
+}
+
+.errorPago {
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    background: rgba(231, 76, 60, 0.12);
+    border-left: 3px solid #e74c3c;
+    font-size: 0.88rem;
+    color: #f5b7b1;
+    line-height: 1.4;
+}
+
+.seguro {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.45);
+}
+
 @media (max-width: 520px) {
     .cuentas {
         gap: 1.1rem;
@@ -175,5 +338,16 @@
 
     .cuentas dd {
         font-size: 1.25rem;
+    }
+
+    /* El boton pasa a ocupar el ancho entero: en un movil, compartir renglon con
+       la fecha lo deja demasiado estrecho para el pulgar. */
+    .acciones {
+        align-items: stretch;
+    }
+
+    .pagarBtn {
+        width: 100%;
+        justify-content: center;
     }
 }

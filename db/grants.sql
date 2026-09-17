@@ -91,10 +91,30 @@ GRANT SELECT ON torlan_pos.empresas          TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.tags              TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.product_tags      TO 'bisonte_app'@'%';
 
--- Apartados: la tienda los muestra en «Mis apartados» y nada mas. Se crean
--- y se cobran en el mostrador, asi que aqui no hay INSERT ni UPDATE.
+-- Apartados: el apartado lo CREA el mostrador y lo LIQUIDA la web.
+--
+-- El reparto no es caprichoso. Crear un apartado separa mercancia y toca
+-- `products.stock_reservado`; entregarlo consuma esa reserva y registra la
+-- venta. Las dos son operaciones de tienda y siguen siendo del POS. Cobrar el
+-- saldo, en cambio, ya no ocurre en el mostrador: el dueno lo movio a la web y
+-- el POS quito sus botones de cobro.
+--
+-- De ahi que la tienda pueda sumar dinero al apartado y nada mas.
 GRANT SELECT ON torlan_pos.anticipos         TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.anticipo_items    TO 'bisonte_app'@'%';
+
+-- Cuarta excepcion por columna. `paid_amount` es lo unico que la tienda puede
+-- cambiar de un apartado: ni el total, ni el plazo, ni el vencimiento, ni el
+-- estado. En particular NO puede darlo por liquidado — `status` pasa a
+-- 'completed' cuando alguien entrega la mercancia en el mostrador, y eso es del
+-- POS. Un bug en la web puede, como mucho, apuntar un abono de mas; no puede
+-- sacar un articulo de la tienda.
+GRANT UPDATE (paid_amount) ON torlan_pos.anticipos TO 'bisonte_app'@'%';
+
+-- El renglon de cada abono. INSERT y SELECT, sin UPDATE ni DELETE: un abono
+-- cobrado es un hecho contable y no se reescribe. Si hay que devolverlo, se
+-- devuelve en Stripe y se apunta el movimiento, no se borra la fila.
+GRANT SELECT, INSERT ON torlan_pos.anticipo_payments TO 'bisonte_app'@'%';
 
 -- Tercera excepcion por columna, y la mas incomoda. La venta web se registra a
 -- nombre de un usuario del POS, y el checkout lo busca asi:

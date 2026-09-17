@@ -596,7 +596,15 @@ CREATE TABLE IF NOT EXISTS anticipo_payments (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     anticipo_id INT NOT NULL,
     amount      DECIMAL(10,2) NOT NULL,
-    payment_method ENUM('cash','card') NOT NULL DEFAULT 'cash',
+    -- `web` es el saldo liquidado en la tienda web. Va aparte de `card` porque
+    -- `card` significa «esto tiene que estar en la terminal del mostrador», y el
+    -- cobro por Stripe no paso por esa terminal ni por el cajon.
+    payment_method ENUM('cash','card','web') NOT NULL DEFAULT 'cash',
+    -- El PaymentIntent del cobro web, y la llave que hace inofensivo el
+    -- reintento: un doble clic o un F5 en la pantalla de pago choca contra el
+    -- UNIQUE en vez de sumar el importe por segunda vez. Queda NULL en los
+    -- abonos del mostrador, y MySQL admite tantos NULL como haga falta.
+    payment_intent_id VARCHAR(64) NULL,
     -- Turno de caja en el que entro el dinero. No suma al corte, que cuenta
     -- ventas y un abono no lo es; pero sin esto el dinero del cajon no se
     -- puede atribuir a nadie ni salir en el reporte que lo cuadra.
@@ -608,6 +616,7 @@ CREATE TABLE IF NOT EXISTS anticipo_payments (
     CONSTRAINT fk_ap_user     FOREIGN KEY (created_by)  REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_ap_sesion   FOREIGN KEY (cash_session_id) REFERENCES cash_sessions(id) ON DELETE SET NULL,
     CONSTRAINT chk_ap_amount  CHECK (amount > 0),
+    UNIQUE KEY uk_ap_payment_intent (payment_intent_id),
     INDEX idx_anticipo (anticipo_id, created_at),
     INDEX idx_sesion   (cash_session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

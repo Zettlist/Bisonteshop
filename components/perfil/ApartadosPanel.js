@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { CalendarClock, Wallet, PackageCheck, PackageX } from 'lucide-react';
+import { CalendarClock, PackageCheck, PackageX, PackageOpen } from 'lucide-react';
 import styles from '@/app/perfil/CommonProfile.module.css';
 import a from '@/app/perfil/apartados/Apartados.module.css';
 import { rutaDeProducto } from '@/lib/slug';
+import LiquidarApartado from './LiquidarApartado';
 
 const dinero = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -20,6 +21,12 @@ function situacion(ap) {
     if (ap.status === 'completed') return { texto: 'Liquidado y entregado', tono: 'ok', Icono: PackageCheck };
     if (ap.status === 'expired') return { texto: 'Venció y volvió al catálogo', tono: 'mal', Icono: PackageX };
     if (ap.status === 'cancelled') return { texto: 'Cancelado', tono: 'neutro', Icono: PackageX };
+
+    // Pagado pero todavia `pending`: el apartado se cierra cuando la tienda
+    // entrega la mercancia, no cuando entra el dinero. Para quien mira la
+    // pantalla lo unico que importa es que ya no debe nada y le toca recogerlo,
+    // asi que la cuenta atras deja de ser lo primero que se ve.
+    if (ap.saldo <= 0) return { texto: 'Pagado · pasa a recogerlo', tono: 'ok', Icono: PackageOpen };
 
     const d = ap.dias_restantes;
     if (d < 0) return { texto: `Se pasó la fecha hace ${Math.abs(d)} día${Math.abs(d) === 1 ? '' : 's'}`, tono: 'mal', Icono: CalendarClock };
@@ -46,6 +53,15 @@ export default function ApartadosPanel() {
             .finally(() => { if (vivo) setApartados((p) => p ?? []); });
         return () => { vivo = false; };
     }, []);
+
+    // Tras cobrar no se vuelve a pedir la lista entera: el saldo nuevo lo
+    // devuelve /confirm, que es quien acaba de escribirlo. Recargar aqui seria
+    // una consulta mas para enterarse de algo que ya se sabe.
+    const registrarPago = (id, saldo) => {
+        setApartados((prev) => prev.map((ap) => (
+            ap.id === id ? { ...ap, saldo, pagado: Number((ap.total - saldo).toFixed(2)) } : ap
+        )));
+    };
 
     if (apartados === null && !error) {
         return <div className={styles.card}><div className={styles.emptyState}>Cargando…</div></div>;
@@ -128,13 +144,21 @@ export default function ApartadosPanel() {
                             </div>
                         </dl>
 
-                        {ap.status === 'pending' && (
+                        {ap.status === 'pending' && (ap.saldo > 0 ? (
+                            <div className={a.acciones}>
+                                <p className={a.limite}>
+                                    <CalendarClock size={15} />
+                                    Liquídalo antes del <strong>{fecha(ap.expires_at)}</strong>.
+                                    Después de esa fecha vuelve al catálogo y el anticipo se pierde.
+                                </p>
+                                <LiquidarApartado apartado={ap} onPagado={registrarPago} />
+                            </div>
+                        ) : (
                             <p className={a.limite}>
-                                <Wallet size={15} />
-                                Pasa a liquidarlo antes del <strong>{fecha(ap.expires_at)}</strong>.
-                                Después de esa fecha vuelve al catálogo.
+                                <PackageOpen size={15} />
+                                Ya está pagado. Pasa por la tienda a recogerlo cuando quieras.
                             </p>
-                        )}
+                        ))}
                     </article>
                 );
             })}

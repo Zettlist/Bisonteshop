@@ -11,6 +11,7 @@ await import('./fixes-17-18.mjs');
 await import('./fixes-19-22.mjs');
 await import('./credito.mjs');
 await import('./apartados.mjs');
+await import('./apartado-pago-web.mjs');
 await import('./preventas.mjs');
 await import('./preventas-cotizacion.mjs');
 await import('./reserva-web.mjs');
