@@ -91,17 +91,24 @@ GRANT SELECT ON torlan_pos.empresas          TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.tags              TO 'bisonte_app'@'%';
 GRANT SELECT ON torlan_pos.product_tags      TO 'bisonte_app'@'%';
 
--- Apartados: el apartado lo CREA el mostrador y lo LIQUIDA la web.
+-- Apartados: los crea y los cobra la web; la ENTREGA sigue siendo del POS.
 --
--- El reparto no es caprichoso. Crear un apartado separa mercancia y toca
--- `products.stock_reservado`; entregarlo consuma esa reserva y registra la
--- venta. Las dos son operaciones de tienda y siguen siendo del POS. Cobrar el
--- saldo, en cambio, ya no ocurre en el mostrador: el dueno lo movio a la web y
--- el POS quito sus botones de cobro.
+-- El reparto no es caprichoso. Crear un apartado separa mercancia con
+-- `products.stock_reservado`, que la tienda ya podia tocar por la linea de
+-- arriba, y cobra un anticipo: las dos cosas pasan en la web desde que se
+-- puede apartar desde la ficha del producto. Entregarlo consuma la reserva,
+-- baja el stock fisico y registra la venta -- eso ocurre con la mercancia
+-- delante y sigue siendo del mostrador.
 --
--- De ahi que la tienda pueda sumar dinero al apartado y nada mas.
-GRANT SELECT ON torlan_pos.anticipos         TO 'bisonte_app'@'%';
-GRANT SELECT ON torlan_pos.anticipo_items    TO 'bisonte_app'@'%';
+-- De ahi el reparto: la tienda puede crear apartados y sumarles dinero, y no
+-- puede cerrarlos ni borrarlos.
+GRANT SELECT, INSERT ON torlan_pos.anticipos      TO 'bisonte_app'@'%';
+GRANT SELECT, INSERT ON torlan_pos.anticipo_items TO 'bisonte_app'@'%';
+
+-- El contador de folios (AP-000123). Es un INSERT ... ON DUPLICATE KEY UPDATE
+-- sobre una fila por empresa, asi que hacen falta los dos permisos. Sin DELETE:
+-- borrar esa fila reiniciaria la numeracion y repetiria folios ya entregados.
+GRANT SELECT, INSERT, UPDATE ON torlan_pos.apartado_sequences TO 'bisonte_app'@'%';
 
 -- Cuarta excepcion por columna. `paid_amount` es lo unico que la tienda puede
 -- cambiar de un apartado: ni el total, ni el plazo, ni el vencimiento, ni el

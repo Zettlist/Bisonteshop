@@ -29,6 +29,10 @@
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     box-shadow: var(--glass-shadow);
+    /* Con el formulario de tarjeta dentro, la tarjeta pasa de alto en un
+       telefono: se deja rodar en vez de cortar el boton de pagar. */
+    max-height: 92vh;
+    overflow-y: auto;
 }
 
 .cerrar {
@@ -161,4 +165,177 @@
     line-height: 1.5;
     color: var(--muted);
     text-align: center;
+}
+
+/* ── Cuánto paga hoy ───────────────────────────────────────────────────── */
+.pregunta {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--foreground);
+    margin-bottom: 0.7rem;
+}
+
+.opciones {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 0.9rem;
+}
+
+.opcion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.6rem 0.4rem;
+    border-radius: var(--glass-radius-sm);
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: border-color var(--transition), background var(--transition), color var(--transition);
+}
+
+.opcion strong {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--foreground);
+}
+
+.opcion:hover:not(:disabled) {
+    background: var(--glass-bg-hover);
+}
+
+/* La elegida se marca con el color de la tienda: en un dialogo de vidrio, un
+   borde mas claro no se distingue. */
+.opcionActiva {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 16%, transparent);
+    color: var(--foreground);
+}
+
+.opcion:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.barra {
+    width: 100%;
+    margin: 0 0 1.1rem;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+/* ── La regla que hay que leer ─────────────────────────────────────────── */
+.reglaDura,
+.reglaSuave {
+    display: grid;
+    grid-template-columns: 1.1rem minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: start;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 1.1rem;
+    border-radius: var(--glass-radius-sm);
+    font-size: 0.8rem;
+    line-height: 1.55;
+}
+
+.reglaDura {
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+}
+
+.reglaDura strong {
+    color: #fecaca;
+}
+
+.reglaSuave {
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--muted);
+}
+
+.reglaDura svg,
+.reglaSuave svg {
+    margin-top: 2px;
+}
+
+/* ── Tarjeta ───────────────────────────────────────────────────────────── */
+.campo {
+    display: block;
+    margin-bottom: 0.7rem;
+}
+
+.campo > span {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 0.3rem;
+}
+
+.campoStripe {
+    padding: 0.75rem 0.8rem;
+    border-radius: var(--glass-radius-sm);
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.campoFila {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+}
+
+.error {
+    margin: 0.2rem 0 0.8rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: #fca5a5;
+}
+
+/* ── Ya está apartado ──────────────────────────────────────────────────── */
+.exito {
+    text-align: center;
+}
+
+.palomita {
+    width: 54px;
+    height: 54px;
+    margin: 0.4rem auto 0.9rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.16);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #10b981;
+}
+
+.folio {
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    margin-bottom: 0.8rem;
+}
+
+.exitoTexto {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--muted);
+    margin-bottom: 0.8rem;
+}
+
+.exitoTexto strong {
+    color: var(--foreground);
+}
+
+/* El boton de arriba es un enlace: sin esto se subraya y se pinta del color
+   de los enlaces. */
+.exito a.confirmar {
+    text-decoration: none;
+    margin-top: 0.3rem;
 }

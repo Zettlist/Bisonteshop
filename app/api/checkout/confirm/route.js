@@ -8,6 +8,7 @@ import { gastarCredito } from '@/lib/credito';
 import { leerPedidoSaldo } from '@/lib/pedidoSaldo';
 import { huellaDestino } from '@/lib/envioFirmado';
 import { reservarStock } from '@/lib/reserva';
+import { usuarioWeb } from '@/lib/usuarioWeb';
 
 export const dynamic = 'force-dynamic';
 
@@ -212,15 +213,7 @@ export async function POST(request) {
       await conn.beginTransaction();
 
       // 3. user_id válido de PosTorlan
-      let resolvedUserId = process.env.WEB_USER_ID ? Number(process.env.WEB_USER_ID) : null;
-      if (!resolvedUserId) {
-        const [usersRows] = await conn.query(
-          'SELECT id FROM users WHERE empresa_id = ? ORDER BY id ASC LIMIT 1',
-          [EMPRESA_ID]
-        );
-        if (!usersRows.length) throw new Error(`No hay usuarios para empresa_id ${EMPRESA_ID}`);
-        resolvedUserId = usersRows[0].id;
-      }
+      const resolvedUserId = await usuarioWeb(conn, EMPRESA_ID);
 
       // 4. Insertar en sales. Esta tabla es la venta contable y nada mas: el
       //    cliente web, el estado del pedido y los datos de envio se guardaban
