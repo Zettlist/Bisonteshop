@@ -78,7 +78,7 @@ export async function POST(request, { params }) {
         const saldo = Number((Number(apartado.total_amount) - Number(apartado.paid_amount)).toFixed(2));
         if (saldo <= 0) {
             return NextResponse.json(
-                { success: false, error: 'Este apartado ya está pagado. Pasa a recogerlo.' },
+                { success: false, error: 'Este apartado ya está pagado.' },
                 { status: 409 }
             );
         }

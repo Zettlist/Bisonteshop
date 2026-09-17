@@ -24,9 +24,9 @@ function situacion(ap) {
 
     // Pagado pero todavia `pending`: el apartado se cierra cuando la tienda
     // entrega la mercancia, no cuando entra el dinero. Para quien mira la
-    // pantalla lo unico que importa es que ya no debe nada y le toca recogerlo,
+    // pantalla lo unico que importa es que ya no debe nada y le toca recibirlo,
     // asi que la cuenta atras deja de ser lo primero que se ve.
-    if (ap.saldo <= 0) return { texto: 'Pagado · pasa a recogerlo', tono: 'ok', Icono: PackageOpen };
+    if (ap.saldo <= 0) return { texto: 'Pagado · te escribimos', tono: 'ok', Icono: PackageOpen };
 
     const d = ap.dias_restantes;
     if (d < 0) return { texto: `Se pasó la fecha hace ${Math.abs(d)} día${Math.abs(d) === 1 ? '' : 's'}`, tono: 'mal', Icono: CalendarClock };
@@ -156,7 +156,7 @@ export default function ApartadosPanel() {
                         ) : (
                             <p className={a.limite}>
                                 <PackageOpen size={15} />
-                                Ya está pagado. Pasa por la tienda a recogerlo cuando quieras.
+                                Ya está pagado. Te escribimos para coordinar la entrega.
                             </p>
                         ))}
                     </article>

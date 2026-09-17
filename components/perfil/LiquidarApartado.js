@@ -149,7 +149,7 @@ function Formulario({ apartado, onListo, onCerrar }) {
 
                 <p className={a.seguro}>
                     <ShieldCheck size={14} />
-                    Cobro seguro con Stripe. Recoges tu apartado en la tienda.
+                    Cobro seguro con Stripe. Te escribimos para coordinar la entrega.
                 </p>
             </div>
         </div>
