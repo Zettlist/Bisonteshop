@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
+import { sendApartadoPagadoAlert } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
 
@@ -134,10 +135,37 @@ export async function POST(request, { params }) {
             await conn.commit();
 
             const [[estado]] = await conn.query(
-                'SELECT total_amount, paid_amount FROM anticipos WHERE id = ? LIMIT 1',
+                `SELECT a.total_amount, a.paid_amount, a.folio,
+                        COALESCE(NULLIF(TRIM(CONCAT_WS(' ', c.nombre, c.apellido)), ''), a.customer_name, 'Cliente') AS cliente,
+                        COALESCE(c.email, a.customer_email, '') AS email
+                   FROM anticipos a
+                   LEFT JOIN clientes c ON c.id = a.cliente_id
+                  WHERE a.id = ? LIMIT 1`,
                 [apartadoId]
             );
             const saldo = Number((Number(estado.total_amount) - Number(estado.paid_amount)).toFixed(2));
+
+            // La tienda no tiene mostrador: si nadie avisa, este apartado
+            // queda pagado y esperando dentro del panel sin que nadie lo sepa.
+            // Va despues del commit y sin `await`: el cobro ya esta cerrado y
+            // un fallo de correo no puede cambiar la respuesta al cliente.
+            const [articulos] = await conn.query(
+                `SELECT ai.quantity, p.name AS title
+                   FROM anticipo_items ai
+                   JOIN products p ON p.id = ai.product_id
+                  WHERE ai.anticipo_id = ?`,
+                [apartadoId]
+            );
+            sendApartadoPagadoAlert({
+                folio: estado.folio || md.folio,
+                apartadoId,
+                cliente: estado.cliente,
+                email: estado.email,
+                items: articulos,
+                total: Number(estado.total_amount),
+                pagado: monto,
+                saldo,
+            }).catch((err) => console.error('[Mailer] aviso de apartado:', err.message));
 
             console.log(`[Apartado/confirm] Apartado ${apartadoId} abonado ${monto} MXN. PI ${paymentIntentId}. Saldo ${saldo}`);
             return NextResponse.json({ success: true, pagado: monto, saldo });
