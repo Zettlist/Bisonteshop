@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, Menu, X, User, LogOut, Settings, Package, ChevronDown, Search } from 'lucide-react';
+import { ShoppingCart, Menu, X, User, LogOut, Settings, Package, ChevronDown, Search, Wallet } from 'lucide-react';
 import styles from './Navbar.module.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import CurrencySelector from './CurrencySelector';
@@ -12,6 +12,7 @@ import { busqueda } from '@/lib/analytics';
 import CartPopover from './CartPopover';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { useCredito, formatearCredito } from '@/lib/useCredito';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 // ── Logo tipo "shuffle" ──────────────────────────────────────────────────────
@@ -66,6 +67,7 @@ export default function Navbar() {
     const pathname = usePathname();
     const router = useRouter();
     const [menuOpen, setMenuOpen] = useState(false);
+    const credito = useCredito();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [showAgeGate, setShowAgeGate] = useState(false);
     const [isAdultosMode, setIsAdultosMode] = useState(false);
@@ -356,6 +358,24 @@ export default function Navbar() {
                         </button>
                     )}
                 </form>
+                {/* El saldo, a la vista y no escondido en el perfil: quien tiene
+                    credito de tienda casi nunca se acuerda de que lo tiene, y
+                    enterarse al pagar es tarde para decidir que comprar.
+
+                    `credito !== null` y no `credito > 0`: null es «todavia no se
+                    sabe», y un cero mientras carga le diria a alguien con saldo
+                    que no tiene. Con saldo cero tambien se enseña -- es la unica
+                    forma de que quien nunca lo ha usado sepa que existe. */}
+                {_hydrated && isAuthenticated && credito !== null && (
+                    <Link
+                        href="/perfil/credito"
+                        className={`${styles.creditoPill} ${styles.desktopOnly}`}
+                        title="Tu saldo de tienda"
+                    >
+                        <Wallet size={14} />
+                        <span>{formatearCredito(credito)}</span>
+                    </Link>
+                )}
                 <span className={styles.desktopOnly}><CurrencySelector /></span>
                 {_hydrated && isAuthenticated && user ? (
                     <div ref={menuRef} className={styles.userMenuWrap}>
@@ -394,6 +414,15 @@ export default function Navbar() {
                                     </Link>
                                     <Link href="/perfil/mis-pedidos" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
                                         <Package size={15} /> Mis pedidos
+                                    </Link>
+                                    {/* La misma entrada tambien aqui: en movil la
+                                        pildora no se ve, y este menu es el unico
+                                        sitio donde el saldo queda a mano. */}
+                                    <Link href="/perfil/credito" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
+                                        <Wallet size={15} /> Mi crédito
+                                        {credito !== null && (
+                                            <span className={styles.dropdownSaldo}>{formatearCredito(credito)}</span>
+                                        )}
                                     </Link>
                                     <Link href="/perfil/ajustes" className={styles.dropdownItem} onClick={() => setMenuOpen(false)}>
                                         <Settings size={15} /> Configuración
@@ -526,6 +555,12 @@ export default function Navbar() {
                                     <div className={styles.drawerDivider} />
                                     <Link href="/perfil/mis-pedidos" className={styles.drawerLink} onClick={() => setMobileOpen(false)}>
                                         <Package size={15} /> Mis pedidos
+                                    </Link>
+                                    <Link href="/perfil/credito" className={styles.drawerLink} onClick={() => setMobileOpen(false)}>
+                                        <Wallet size={15} /> Mi crédito
+                                        {credito !== null && (
+                                            <span className={styles.dropdownSaldo}>{formatearCredito(credito)}</span>
+                                        )}
                                     </Link>
                                     <Link href="/perfil" className={styles.drawerLink} onClick={() => setMobileOpen(false)}>
                                         <Settings size={15} /> Mi cuenta

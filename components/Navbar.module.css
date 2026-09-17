@@ -650,6 +650,43 @@
     margin: 0;
 }
 
+/* -- Credito de tienda -- */
+
+/* Mismas medidas que el selector de moneda: van pegados en la barra y dos
+   pastillas de distinto alto al lado se ven como un error de montaje. */
+.creditoPill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.6rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--foreground);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all var(--transition);
+}
+
+.creditoPill:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.creditoPill svg {
+    color: var(--primary);
+}
+
+/* El saldo se va al extremo derecho del renglón del menú, alineado con el resto
+   de las cifras que ve el cliente. */
+.dropdownSaldo {
+    margin-left: auto;
+    font-weight: 700;
+    color: var(--primary);
+}
+
 .dropdownItem {
     display: flex;
     align-items: center;
