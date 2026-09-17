@@ -358,13 +358,34 @@ const ESCENARIOS = [
       } },
 ];
 
-// La cuenta de prueba tenia $31,990 de saldo inventado a base de recargas de
-// prueba. Se deja en $150: lo que le sobra despues de pagar con saldo los dos
-// pedidos de abajo. Una cuenta con saldo, pero no con miles.
+// La cuenta de prueba acumulaba saldo inventado a base de recargas de prueba.
+// Se deja en $150: lo que le sobra despues de pagar con saldo los dos pedidos
+// de abajo. Una cuenta con saldo, pero no con miles.
+//
+// Y se le borra el historial entero, no solo el saldo.
+//
+// Escribir el saldo a mano y dejar los movimientos viejos deja la cuenta
+// descuadrada: el historial decia haber recibido cientos de miles de pesos y el
+// saldo decia $150. Eso no es un peso perdido -- es dinero que nunca existio --
+// pero rompe el reporte que compara saldo contra movimientos, que es la alarma
+// que avisaria de una recarga acreditada dos veces. Una alarma que vive en rojo
+// por el ruido de las pruebas no avisa de nada.
+//
+// Se borran las dos tablas a la vez: si se fueran los movimientos y quedaran
+// las recargas cobradas, el mismo reporte se quejaria por el otro lado.
 {
     const [[c]] = await db.query('SELECT store_credit FROM clientes WHERE id = ?', [CLIENTE.id]);
+    await db.beginTransaction();
+    await db.query('DELETE FROM credit_history WHERE cliente_id = ?', [CLIENTE.id]);
+    await db.query('DELETE FROM credit_topups WHERE cliente_id = ?', [CLIENTE.id]);
     await db.query('UPDATE clientes SET store_credit = 150 WHERE id = ?', [CLIENTE.id]);
-    console.log(`3. Saldo de la cuenta de prueba: $${Number(c.store_credit).toFixed(2)} -> $150.00`);
+    // Un solo movimiento, del importe exacto del saldo, para que el reporte
+    // cuadre igual que cuadraria una cuenta de verdad.
+    await db.query(
+        `INSERT INTO credit_history (cliente_id, amount, description)
+         VALUES (?, 150, 'Saldo inicial de la cuenta de prueba')`, [CLIENTE.id]);
+    await db.commit();
+    console.log(`3. Saldo de la cuenta de prueba: $${Number(c.store_credit).toFixed(2)} -> $150.00 (historial reiniciado)`);
 }
 
 console.log('\n4. Creando pedidos');
