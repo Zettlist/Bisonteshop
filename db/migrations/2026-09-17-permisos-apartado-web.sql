@@ -32,4 +32,13 @@ GRANT INSERT ON torlan_pos.anticipo_items TO 'bisonte_app'@'%';
 -- fila reiniciaria la numeracion y repetiria folios ya entregados.
 GRANT SELECT, INSERT, UPDATE ON torlan_pos.apartado_sequences TO 'bisonte_app'@'%';
 
+-- Los dos de cobrar. Estan en db/grants.sql desde que la web liquida
+-- apartados, pero al aplicar esta migracion el 18/09 se vio que nunca llegaron a
+-- la base: la cuenta de la tienda no podia apuntar un abono ni sumar lo pagado.
+-- Pagar el saldo desde el perfil fallaba siempre (sin cobrar nada: la
+-- autorizacion se quedaba retenida hasta caducar), y apartar tambien fallaria,
+-- porque el anticipo es un abono mas.
+GRANT UPDATE (paid_amount) ON torlan_pos.anticipos   TO 'bisonte_app'@'%';
+GRANT SELECT, INSERT ON torlan_pos.anticipo_payments TO 'bisonte_app'@'%';
+
 FLUSH PRIVILEGES;
