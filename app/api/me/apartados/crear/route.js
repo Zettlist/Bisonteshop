@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 import { usuarioWeb } from '@/lib/usuarioWeb';
-import { reservarFolio, vencimiento } from '@/lib/apartadoServidor';
+import { reservarFolio, vencimiento, MAX_ABIERTOS } from '@/lib/apartadoServidor';
 import { DIAS_APARTADO } from '@/lib/apartado';
 import { sendApartadoCreado, sendNuevoApartadoAlert } from '@/lib/mailer';
 
@@ -83,6 +83,38 @@ export async function POST(request) {
         const conn = await pool.getConnection();
         try {
             await conn.beginTransaction();
+
+            // El tope de apartados abiertos, otra vez y aqui.
+            //
+            // /preparar ya lo comprueba, pero alli no se escribe nada: se puede
+            // pedir diez autorizaciones seguidas viendo cero apartados abiertos
+            // en las diez, y crearlos despues. El tope existe para que una
+            // cuenta no separe medio catalogo con anticipos del 30%, asi que
+            // tiene que medirse donde la fila nace.
+            //
+            // Queda una carrera fina —dos creaciones en el mismo instante leen
+            // el mismo numero— que no se cierra con un candado a proposito:
+            // bloquear todos los apartados del cliente para contarlos cuesta
+            // mas de lo que vale pasarse por uno.
+            const [[abiertos]] = await conn.query(
+                "SELECT COUNT(*) AS n FROM anticipos WHERE cliente_id = ? AND status = 'pending'",
+                [clienteId]
+            );
+            if (Number(abiertos.n) >= MAX_ABIERTOS) {
+                await conn.rollback();
+                if (!yaCobrado) {
+                    await stripe.paymentIntents.cancel(paymentIntentId).catch((e) => {
+                        console.error('[Apartado/crear] No se pudo cancelar la autorización', paymentIntentId, e.message);
+                    });
+                }
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: `Ya tienes ${MAX_ABIERTOS} apartados abiertos y no te cobramos nada. Liquida alguno para apartar otra cosa.`,
+                    },
+                    { status: 409 }
+                );
+            }
 
             // Separar la pieza. Sube lo comprometido; el stock fisico no se
             // toca porque el articulo no ha salido a ninguna parte.

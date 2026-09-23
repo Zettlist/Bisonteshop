@@ -6,18 +6,9 @@ import { getClienteId } from '@/lib/auth';
 import { rateLimit } from '@/lib/rateLimit';
 import { priceCart } from '@/lib/pricing';
 import { calcularApartado, DIAS_APARTADO } from '@/lib/apartado';
-import { vencimiento } from '@/lib/apartadoServidor';
+import { vencimiento, MAX_ABIERTOS } from '@/lib/apartadoServidor';
 
 export const dynamic = 'force-dynamic';
-
-/**
- * Cuantos apartados abiertos puede tener una persona a la vez.
- *
- * Sin tope, una cuenta puede separar medio catalogo con anticipos del 30% y
- * dejar la tienda sin nada que vender durante quince dias. Tres es lo que se
- * acordo para empezar; se sube cambiando este numero.
- */
-const MAX_ABIERTOS = 3;
 
 /**
  * Prepara el cobro de un apartado nuevo hecho desde la tienda.
