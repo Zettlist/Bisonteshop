@@ -8,6 +8,7 @@ import { gastarCredito } from '@/lib/credito';
 import { leerPedidoSaldo } from '@/lib/pedidoSaldo';
 import { huellaDestino } from '@/lib/envioFirmado';
 import { reservarStock } from '@/lib/reserva';
+import { medidasDelCarrito, armarPaquete } from '@/lib/paquete';
 import { usuarioWeb } from '@/lib/usuarioWeb';
 
 export const dynamic = 'force-dynamic';
@@ -208,6 +209,38 @@ export async function POST(request) {
       console.warn(`[Confirm] Pago ${referencia} sin destino en el metadata (anterior a la comprobacion).`);
     }
 
+    // ── La caja que se le declara a la paqueteria ────────────────────────
+    // `envia_quote_data` llega en el cuerpo y el POS saca de ahi la paqueteria,
+    // el servicio y las medidas con las que genera la guia. Guardarlo tal cual
+    // deja dos cosas en manos del navegador: con que paqueteria se manda -- se
+    // podia pagar el terrestre y pedir el expres -- y que tamaño se declara,
+    // que es lo que decide el ajuste por sobrepeso. Las dos las paga la tienda.
+    //
+    // Lo que cuesta dinero se reescribe aqui: la paqueteria y el servicio salen
+    // del metadata que firmo /api/checkout, el precio tambien, y el paquete se
+    // vuelve a armar con lo que pesa y mide de verdad cada articulo. Del objeto
+    // del cliente sobrevive lo que no cuesta nada: el nombre para pintarlo y
+    // `raw`, de donde el POS saca la sucursal de recoleccion.
+    //
+    // Un metadata sin paqueteria es un pago anterior a esta comprobacion: se
+    // deja pasar con la del cuerpo y queda en el log, porque esos clientes ya
+    // tienen la tarjeta autorizada y no tienen la culpa del despliegue.
+    let paquete = null;
+    try {
+      paquete = armarPaquete(await medidasDelCarrito(pool, lines.map(l => ({ id: l.id, quantity: l.quantity }))));
+    } catch (err) {
+      console.error('[Confirm] Sin medidas reales para la guia:', err.message);
+    }
+    if (!md.envioCarrier) {
+      console.warn(`[Confirm] Pago ${referencia} sin paqueteria en el metadata (anterior a la comprobacion).`);
+    }
+    const cotizacionFirme = {
+      ...(envia_quote_data || {}),
+      ...(md.envioCarrier && { carrier: md.envioCarrier, service: md.envioService || '' }),
+      price: shipping,
+      ...(paquete && { pkg: paquete }),
+    };
+
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -356,7 +389,7 @@ export async function POST(request) {
           creditoAplicado,
           shippingMethod || 'envia',
           shipping_address ? JSON.stringify(shipping_address) : null,
-          envia_quote_data ? JSON.stringify(envia_quote_data) : null,
+          JSON.stringify(cotizacionFirme),
           pagoTipo,
           tarjeta?.marca || null,
           tarjeta?.ultimos4 || null,

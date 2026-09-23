@@ -7,6 +7,7 @@ import { priceCart, priceCoupon, round2, huellaCarrito } from '@/lib/pricing';
 import { getUsdRate } from '@/lib/fx';
 import { firmarPedidoSaldo } from '@/lib/pedidoSaldo';
 import { leerEnvio } from '@/lib/envioFirmado';
+import { rateLimit } from '@/lib/rateLimit';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,20 @@ export async function POST(request) {
   const userId = await getClienteId();
   if (!userId) {
     return NextResponse.json({ success: false, error: 'Debes iniciar sesión para comprar.' }, { status: 401 });
+  }
+
+  // Cada llamada crea un PaymentIntent en Stripe y pide el tipo de cambio.
+  // Nadie paga diez veces por minuto, y sin freno una sesion en bucle -- un bug
+  // del checkout, o alguien probando -- llena la cuenta de Stripe de intentos
+  // muertos y nos acerca a sus limites justo cuando alguien quiere pagar de
+  // verdad. Va por cuenta, que es lo que autoriza el gasto: es el mismo freno
+  // que ya tenian la recarga de saldo y el apartado.
+  const { allowed, retryAfter } = rateLimit(`checkout:${userId}`, 15, 60_000);
+  if (!allowed) {
+    return NextResponse.json(
+      { success: false, error: `Demasiados intentos seguidos. Espera ${retryAfter} segundos.` },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+    );
   }
 
   // Perfil completo — la tienda es 18+ y las cuentas creadas con Google entran
@@ -263,7 +278,7 @@ export async function POST(request) {
     const conMeses = msiActivo && subtotal >= msiMinimo;
 
     const fingerprint = JSON.stringify({
-      v: 2,
+      v: 3,
       u: userId,
       items: lines.map(l => [l.id, l.quantity, l.unitPrice]).sort(),
       cupon: coupon?.code || '',
@@ -297,6 +312,12 @@ export async function POST(request) {
         // Y el destino al que se cotizo, por lo mismo: el precio del envio
         // depende de a donde va, y /confirm es quien recibe la direccion.
         envioDestino: cotizacion.destino,
+        // La paqueteria y el servicio que se cotizaron. Van aqui porque el
+        // objeto de la cotizacion llega a /confirm en el cuerpo, y de el saca
+        // el POS con quien genera la guia: sin fijarlos, se puede pagar el
+        // terrestre y pedir el expres, que la tienda paga igual.
+        envioCarrier: cotizacion.carrier || '',
+        envioService: cotizacion.service || '',
         // Totales MXN autoritativos (para el registro del pedido en la confirmación)
         subtotalMXN: subtotal.toFixed(2),
         shippingMXN: shippingCost.toFixed(2),
