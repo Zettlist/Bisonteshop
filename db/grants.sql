@@ -110,13 +110,22 @@ GRANT SELECT, INSERT ON torlan_pos.anticipo_items TO 'bisonte_app'@'%';
 -- borrar esa fila reiniciaria la numeracion y repetiria folios ya entregados.
 GRANT SELECT, INSERT, UPDATE ON torlan_pos.apartado_sequences TO 'bisonte_app'@'%';
 
--- Cuarta excepcion por columna. `paid_amount` es lo unico que la tienda puede
--- cambiar de un apartado: ni el total, ni el plazo, ni el vencimiento, ni el
--- estado. En particular NO puede darlo por liquidado — `status` pasa a
--- 'completed' cuando alguien entrega la mercancia en el mostrador, y eso es del
--- POS. Un bug en la web puede, como mucho, apuntar un abono de mas; no puede
--- sacar un articulo de la tienda.
-GRANT UPDATE (paid_amount) ON torlan_pos.anticipos TO 'bisonte_app'@'%';
+-- Cuarta excepcion por columna, y son cuatro columnas contadas: ni el total, ni
+-- el plazo, ni el vencimiento, ni el cliente.
+--
+--   paid_amount    cada abono cobrado por la web.
+--   status         cerrarlo al mandarlo. La tienda no tiene mostrador: un
+--   sale_id        apartado liquidado no se recoge, se envia, y ese envio es un
+--   completed_at   pedido web con su venta. `sale_id` es ademas el candado que
+--                  impide cobrar dos envios por la misma mercancia.
+--
+-- Lo que sigue sin poder hacer es lo que de verdad importa: SACAR MERCANCIA.
+-- Cerrar el apartado no toca `products.stock` -- la pieza sigue separada en
+-- `stock_reservado` y el stock fisico lo baja el POS al confirmar el pedido,
+-- con la misma sentencia que usa para cualquier pedido web. Y el UPDATE de la
+-- ruta exige `paid_amount >= total_amount`: un apartado con saldo no entra a
+-- un envio.
+GRANT UPDATE (paid_amount, status, sale_id, completed_at) ON torlan_pos.anticipos TO 'bisonte_app'@'%';
 
 -- El renglon de cada abono. INSERT y SELECT, sin UPDATE ni DELETE: un abono
 -- cobrado es un hecho contable y no se reescribe. Si hay que devolverlo, se

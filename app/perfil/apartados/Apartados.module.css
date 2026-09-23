@@ -351,3 +351,283 @@
         justify-content: center;
     }
 }
+
+/* ===========================
+   Preparar envío — el apartado pagado que hay que mandar
+=========================== */
+
+/* Lo que explica el dialogo antes de pedir nada: que la mercancia ya se pago y
+   que lo unico que se cobra es el envio. Sin esta linea, pedir la tarjeta otra
+   vez parece un segundo cobro por lo mismo. */
+.nota {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.nota strong {
+    color: #ffd60a;
+}
+
+.input {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.95rem;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #ffd60a;
+}
+
+/* Las direcciones que ya tiene guardadas. Escribirla de nuevo en el telefono es
+   donde se abandona un envio. */
+.guardadas {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.guardada {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.75);
+    font-family: inherit;
+    font-size: 0.82rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.guardada span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.guardadaActiva {
+    border-color: #ffd60a;
+    color: #fff;
+}
+
+/* Las opciones de paqueteria. Una por renglon: el precio y la promesa de
+   entrega son lo que se compara, y en dos columnas no se leen. */
+.opciones {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.opcion {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 0.85rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.opcionActiva {
+    border-color: #ffd60a;
+    background: rgba(255, 214, 10, 0.08);
+    color: #fff;
+}
+
+.opcionNombre {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.opcionNombre small {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.opcionNombre em {
+    font-size: 0.75rem;
+    font-style: normal;
+    color: #2ecc71;
+}
+
+.opcion strong {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.35rem;
+    letter-spacing: 1px;
+    color: #ffd60a;
+}
+
+.volver {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: inherit;
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+}
+
+.volver:hover {
+    color: #fff;
+}
+
+/* ── Ya quedó ── */
+.exito {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+}
+
+.palomita {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(46, 204, 113, 0.16);
+    border: 2px solid #2ecc71;
+    color: #2ecc71;
+}
+
+.exitoTexto {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.exitoTexto strong {
+    color: #fff;
+}
+
+/* ── Los dos botones de la lista ── */
+
+/* El envio multiple necesita elegir cuales van en la misma caja, y para eso la
+   tarjeta del apartado se vuelve seleccionable. Solo las liquidadas: mandar una
+   que aun debe dinero es justo lo que no puede pasar. */
+.seleccionable {
+    cursor: pointer;
+}
+
+.marcada {
+    border-color: #ffd60a;
+    box-shadow: 0 0 0 2px rgba(255, 214, 10, 0.35);
+}
+
+.casilla {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.75);
+    cursor: pointer;
+}
+
+.casilla input {
+    width: 18px;
+    height: 18px;
+    accent-color: #ffd60a;
+    cursor: pointer;
+}
+
+/* La barra que aparece al juntar apartados en una sola caja. Fija abajo: la
+   lista puede ser larga y el boton tiene que seguir a la vista. */
+.barraMultiple {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    padding: 0.9rem 1.1rem;
+    background: #12100e;
+    border: 2px solid #000;
+    box-shadow: 0 -4px 0 rgba(0, 0, 0, 0.45);
+    border-radius: 6px;
+}
+
+.barraMultipleTexto {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.barraMultipleTexto strong {
+    color: #ffd60a;
+}
+
+.botonera {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+/* El boton de la accion que no es la principal: mismo tamaño, sin el amarillo,
+   para que "Envío múltiple" no compita con "Preparar envío". */
+.secundario {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1.3rem;
+    background: transparent;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-radius: 4px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.15rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.secundario:hover:not(:disabled) {
+    border-color: #ffd60a;
+    color: #ffd60a;
+}
+
+.secundario:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+    .campoFila {
+        flex-direction: column;
+    }
+
+    .botonera {
+        width: 100%;
+    }
+
+    .botonera > * {
+        flex: 1;
+        justify-content: center;
+    }
+}

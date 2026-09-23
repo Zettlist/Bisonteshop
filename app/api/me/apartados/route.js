@@ -22,12 +22,18 @@ export async function GET() {
         return NextResponse.json({ success: false, error: 'No has iniciado sesión.' }, { status: 401 });
     }
 
+    // El LEFT JOIN es para el apartado que ya se mando: `sale_id` dice que hay
+    // un pedido detras y `bo.estado` en que va. Sin esto, la pantalla no puede
+    // distinguir un apartado entregado en un evento de uno que va en camino, y
+    // los dos se ven igual de cerrados.
     const [apartados] = await pool.query(`
         SELECT a.id, a.folio, a.status, a.created_at, a.expires_at,
-               a.total_amount, a.paid_amount,
+               a.total_amount, a.paid_amount, a.sale_id,
                (a.total_amount - a.paid_amount) AS saldo,
-               DATEDIFF(DATE(a.expires_at), CURDATE()) AS dias_restantes
+               DATEDIFF(DATE(a.expires_at), CURDATE()) AS dias_restantes,
+               bo.estado AS pedido_estado, bo.tracking_number
           FROM anticipos a
+          LEFT JOIN bisonte_orders bo ON bo.sale_id = a.sale_id
          WHERE a.cliente_id = ?
          ORDER BY (a.status = 'pending') DESC, a.expires_at ASC, a.id DESC
          LIMIT 50
@@ -71,6 +77,14 @@ export async function GET() {
             pagado: Number(a.paid_amount),
             saldo: Number(a.saldo),
             dias_restantes: a.status === 'pending' ? Number(a.dias_restantes) : null,
+            // Quien decide si el boton de enviar se puede pulsar es el servidor,
+            // con las mismas tres condiciones que la ruta del envio vuelve a
+            // comprobar: liquidado, vivo y sin pedido detras. La pantalla solo
+            // las pinta.
+            enviable: a.status === 'pending' && Number(a.saldo) <= 0 && !a.sale_id,
+            pedido: a.sale_id && a.pedido_estado
+                ? { id: a.sale_id, estado: a.pedido_estado, guia: a.tracking_number || null }
+                : null,
             items: porApartado.get(a.id) ?? [],
         })),
     });
