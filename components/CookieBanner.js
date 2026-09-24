@@ -40,8 +40,11 @@ export default function CookieBanner() {
                 <div className={s.content}>
                     <p className={s.title}>Usamos cookies</p>
                     <p className={s.desc}>
-                        Bisonte Manga usa cookies para mejorar tu experiencia, recordar tu sesión y analizar el tráfico.
-                        Al continuar, aceptas su uso.{' '}
+                        {/* Decia "al continuar, aceptas su uso", y no es lo que pasa: las
+                            estadisticas solo se cargan si se pulsa Aceptar (ver
+                            components/Analytics.js). El texto tiene que decir eso. */}
+                        Usamos cookies para recordar tu sesión y tu carrito. Las de estadísticas
+                        solo se activan si las aceptas.{' '}
                         <a href="/privacidad" className={s.link}>Más información</a>
                     </p>
                 </div>
