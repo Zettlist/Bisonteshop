@@ -1,6 +1,6 @@
 import styles from '../CommonProfile.module.css';
 
-export const metadata = { title: 'Series que Sigo | Bisonte Manga' };
+export const metadata = { title: 'Series que Sigo' };
 
 export default function Series() {
     return (

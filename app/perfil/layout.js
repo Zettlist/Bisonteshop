@@ -2,7 +2,7 @@ import Sidebar from '@/components/perfil/Sidebar';
 import styles from './Layout.module.css';
 
 export const metadata = {
-    title: 'Mi Perfil | Bisonte Manga',
+    title: 'Mi Perfil',
     description: 'Gestiona tu cuenta, pedidos, anticipos y configuración en Bisonte Manga.',
 };
 

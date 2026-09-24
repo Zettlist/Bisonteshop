@@ -1,7 +1,7 @@
 import styles from '../CommonProfile.module.css';
 import ApartadosPanel from '@/components/perfil/ApartadosPanel';
 
-export const metadata = { title: 'Mis apartados | Bisonte Manga' };
+export const metadata = { title: 'Mis apartados' };
 
 export default function Apartados() {
     return (

@@ -16,9 +16,23 @@ import { SplashProvider } from '@/context/SplashContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
+// La base de todas las paginas. Antes cada pagina se llamaba "Bisonte Manga"
+// a secas: en Google y en las pestañas del navegador eran indistinguibles, y al
+// compartir un enlace en WhatsApp no salia imagen. Cada pagina pone ahora su
+// propio titulo y la plantilla le agrega la marca.
 export const metadata = {
-    title: 'Bisonte Manga',
-    description: 'Tu tienda premium de mangas y coleccionables',
+    metadataBase: new URL('https://bisontemanga.com'),
+    title: {
+        default: 'Bisonte Manga — manga japonés, revistas y figuras originales',
+        template: '%s | Bisonte Manga',
+    },
+    description: 'Tienda en línea de manga japonés, revistas y figuras originales, directo de Japón. Envíos a todo México.',
+    openGraph: {
+        siteName: 'Bisonte Manga',
+        locale: 'es_MX',
+        type: 'website',
+    },
+    twitter: { card: 'summary_large_image' },
     icons: {
         icon: '/logo.png',
         apple: '/logo.png',

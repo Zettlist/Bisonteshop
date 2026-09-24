@@ -17,14 +17,14 @@ async function cargar(slug) {
 export async function generateMetadata({ params }) {
     const { slug } = await params;
     const producto = await cargar(slug);
-    if (!producto) return { title: 'Producto no encontrado | Bisonte Manga' };
+    if (!producto) return { title: 'Producto no encontrado' };
 
     // El +18 no se indexa: el buscador no pasa por la puerta de edad, asi que
     // una miniatura del catalogo adulto acabaria en resultados sin aviso.
     const robots = producto.is_adult ? { index: false, follow: false } : undefined;
 
     return {
-        title: `${producto.title} | Bisonte Manga`,
+        title: producto.title,
         description: producto.sinopsis?.slice(0, 155) || `${producto.title} en Bisonte Manga.`,
         robots,
         openGraph: {
