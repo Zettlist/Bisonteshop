@@ -245,5 +245,13 @@ export const config = {
     // Corre en todo salvo estáticos de Next, para poder mostrar la página de
     // mantenimiento y bloquear /api. (El favicon/icon quedan fuera para que la
     // pestaña muestre ícono aún en mantenimiento.)
-    matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.png).*)'],
+    //
+    // Las imágenes de /public también quedan fuera, y no por comodidad. El
+    // optimizador de <Image> (/_next/image) va a buscar el archivo original con
+    // una petición interna que NO lleva las cookies del visitante: sin pase, en
+    // mantenimiento, recibía la página de "en construcción" en vez del PNG y
+    // contestaba 400. El logo de la portada salía roto hasta para quien sí
+    // tenía pase. Son archivos públicos de todas formas: no hay nada que
+    // proteger detrás del gate.
+    matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.png|.*\\.(?:png|jpe?g|gif|webp|avif|svg|ico)$).*)'],
 };

@@ -222,14 +222,21 @@
     background-clip: text;
 }
 
+/* Los links van EN EL FLUJO, entre el logo y los botones, y se centran en el
+   hueco que queda (margin auto). Antes flotaban encima, clavados al centro de
+   la barra con position: absolute, y nada les reservaba sitio: con la sesion
+   iniciada los botones de la derecha (saldo, moneda, avatar, carrito) miden
+   unos 320px y, al encogerse la barra con el scroll, se metian debajo de
+   "Mangas" y "Figuras". En el flujo no pueden pisarse: el navegador reparte
+   el ancho entre los tres. */
 .navLinks {
     display: flex;
     gap: 1.25rem;
     list-style: none;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
     align-items: center;
+    margin: 0 auto;
+    padding: 0;
+    flex-shrink: 0;
 }
 
 .navLink {
@@ -1267,10 +1274,13 @@
     color: var(--foreground);
 }
 
-/* Con el buscador abierto los links estorban: se apagan sin mover el layout. */
+/* Con el buscador abierto los links estorban: se apagan y salen del flujo,
+   para que el campo de busqueda pueda crecer hacia la izquierda sobre su hueco
+   sin empujar nada. */
 .navbar:has(.buscadorAbierto) .navLinks {
     opacity: 0;
     pointer-events: none;
+    position: absolute;
 }
 
 .navLinks {
