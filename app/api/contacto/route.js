@@ -9,6 +9,7 @@ import { isValidEmail } from '@/lib/validate';
 const DESTINOS = {
     devoluciones: { email: 'soporte@bisontemanga.com', etiqueta: 'Devoluciones' },
     contacto: { email: 'contacto@bisontemanga.com', etiqueta: 'Contacto general' },
+    quejas: { email: 'soporte@bisontemanga.com', etiqueta: 'QUEJA' },
 };
 
 export async function POST(req) {
@@ -73,7 +74,9 @@ export async function POST(req) {
         // Confirmación automática al cliente (no bloquea: si falla, su mensaje ya llegó)
         // Diseño zine de la landing en versión email-safe (inline styles, fuentes con fallback)
         // Siempre dominio público: en local NEXT_PUBLIC_BASE_URL es localhost y Gmail no puede cargar el logo
-        const BASE = 'https://bisontemanga.xyz';
+        // Era bisontemanga.xyz, un dominio viejo que ya no responde: el logo
+        // del correo salia roto y el boton del catalogo no llevaba a ningun lado.
+        const BASE = 'https://bisontemanga.com';
         const tituloFont = "'Arial Black', Impact, Arial, sans-serif";
         const { error: confirmError } = await resend.emails.send(
             {

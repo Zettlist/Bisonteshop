@@ -34,6 +34,7 @@ export default function Footer() {
                     <ul>
                         <li><Link href="/contacto?tema=devoluciones">Devoluciones</Link></li>
                         <li><Link href="/contacto?tema=contacto">Contacto</Link></li>
+                        <li><Link href="/contacto?tema=quejas">Quejas</Link></li>
                         <li><Link href="/faq">Preguntas Frecuentes</Link></li>
                     </ul>
                 </div>
@@ -54,6 +55,11 @@ export default function Footer() {
                     &copy; {new Date().getFullYear()} Bisonte Manga. Todos los derechos reservados.
                     {' · '}
                     <Link href="/privacidad" className={styles.privacyLink}>Aviso de Privacidad</Link>
+                    {/* Tambien aqui abajo, junto al aviso: es donde se busca el
+                        renglon "legal" de una tienda, y una queja tiene que
+                        encontrarse sin tener que adivinar que va en Contacto. */}
+                    {' · '}
+                    <Link href="/contacto?tema=quejas" className={styles.privacyLink}>¿Algo salió mal? Presenta una queja</Link>
                 </span>
             </div>
         </footer>

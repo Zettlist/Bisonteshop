@@ -8,6 +8,11 @@ import styles from './contacto.module.css';
 const TEMAS = {
     devoluciones: { etiqueta: '🔄 DEVOLUCIONES', titulo: 'DEVOLUCIONES', sub: 'si algo llegó mal, lo arreglamos 🤝' },
     contacto: { etiqueta: '✉️ CONTACTO', titulo: 'CONTACTO', sub: 'escríbenos lo que sea, leemos todo ✌️' },
+    // Quejas va aparte de Contacto a proposito: la ley de proteccion al
+    // consumidor pide que la tienda tenga un medio visible para recibirlas, y
+    // una queja no se puede perder entre los "¿tienen el tomo 5?". Llega con su
+    // etiqueta en el asunto y al buzon de soporte.
+    quejas: { etiqueta: '📣 QUEJAS', titulo: 'QUEJAS', sub: 'si algo no estuvo bien, queremos saberlo y arreglarlo' },
 };
 
 function FormularioContacto() {
@@ -116,7 +121,7 @@ function FormularioContacto() {
                                     </div>
                                 </div>
 
-                                {tema === 'devoluciones' && (
+                                {(tema === 'devoluciones' || tema === 'quejas') && (
                                     <div className={styles.field}>
                                         <label className={styles.label} htmlFor="ct-pedido"># de pedido (opcional)</label>
                                         <input id="ct-pedido" name="pedido" type="text" className={styles.input}
