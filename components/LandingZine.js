@@ -90,6 +90,12 @@ function VideoCarousel() {
     );
 }
 
+// Las cifras de la portada, apagadas por ahora. "500+ títulos en stock" y
+// "1000+ clientes felices" no cuadraban con un catálogo de 39 artículos y una
+// tienda que todavía no abre: un cliente que las compara deja de creer el resto
+// de la página. Se vuelven a encender cambiando esto a true, con números reales.
+const MOSTRAR_CIFRAS = false;
+
 const stats = [
     { value: '500+', label: 'títulos en stock', note: 'y contando…' },
     { value: '3', label: 'años en esto', note: 'empezó como hobby' },
@@ -264,7 +270,7 @@ export default function LandingZine() {
             </section>
 
             {/* STATS estilo graffiti */}
-            <section className={styles.statsRow}>
+            {MOSTRAR_CIFRAS && <section className={styles.statsRow}>
                 {stats.map((s, i) => (
                     <motion.div
                         key={i}
@@ -280,7 +286,7 @@ export default function LandingZine() {
                         <span className={styles.statNote}>{s.note}</span>
                     </motion.div>
                 ))}
-            </section>
+            </section>}
 
             {/* NOVEDADES */}
             <div className={styles.seeThrough}>

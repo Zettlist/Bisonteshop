@@ -5,17 +5,18 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from './TipsOverlay.module.css';
 
+// Solo consejos que la tienda cumple hoy. Se quitaron cinco que prometían cosas
+// que no existen: preventas, envío gratis arriba de $500, lista de deseos, 10%
+// de descuento por registrarse y una sección de Novedades que da error. Las dos
+// de dinero eran las graves -- una oferta publicada obliga a quien la publica, y
+// el primer cliente que pidiera su envío gratis tendría razón. Cuando alguna
+// exista de verdad, se vuelve a poner aquí.
 const TIPS = [
-    '💡 Revisa las Preventas para conseguir ediciones exclusivas antes de que se agoten.',
-    '📦 Los pedidos de más de $500 MXN tienen envío gratis a toda la república.',
     '🔔 Activa las notificaciones y sé el primero en saber de nuevos mangas.',
-    '⭐ Guarda tus favoritos en tu lista de deseos y nunca pierdas nada.',
-    '🎁 Regístrate hoy y obtén un 10% de descuento en tu primera compra.',
     '📚 Los box sets suelen tener mejor precio que comprar los tomos por separado.',
     '🔞 La sección Adultos requiere verificación de edad al momento de comprar.',
     '🖊️ Las ediciones especiales en tapa dura aumentan su valor con el tiempo.',
     '🛒 Puedes combinar varios artículos en un mismo pedido para ahorrar en envío.',
-    '🔄 Revisa la sección Novedades cada semana — se actualiza cada lunes.',
 ];
 
 export default function TipsOverlay() {
