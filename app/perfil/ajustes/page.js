@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import commonStyles from '../CommonProfile.module.css';
 import styles from './Ajustes.module.css';
+import { ESTADOS_MX } from '@/lib/estadosMx';
 
 // ── Avatar categories ──────────────────────────────────
 const AVATAR_CATEGORIES = [
@@ -39,13 +40,9 @@ const AVATAR_CATEGORIES = [
     },
 ];
 
-const ESTADOS_MX = [
-    'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche', 'Chiapas', 'Chihuahua',
-    'Ciudad de México', 'Coahuila', 'Colima', 'Durango', 'Guanajuato', 'Guerrero', 'Hidalgo', 'Jalisco',
-    'México', 'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca', 'Puebla', 'Querétaro',
-    'Quintana Roo', 'San Luis Potosí', 'Sinaloa', 'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala',
-    'Veracruz', 'Yucatán', 'Zacatecas',
-];
+// La lista de estados vive en lib/estadosMx.js. La que habia aqui decia
+// "México" donde la cotizacion espera "Estado de México", y esas direcciones se
+// cotizaban como CDMX.
 
 // ── Accordion section ──────────────────────────────────
 function Section({ icon: Icon, title, defaultOpen = false, children }) {

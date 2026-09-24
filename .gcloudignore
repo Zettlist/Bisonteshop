@@ -30,3 +30,8 @@ Bisonteshop/
 # con TODAS las contrasenas al bucket del constructor, donde queda guardado.
 db/.credenciales-*.txt
 *.credenciales*
+
+# Carpetas de trabajo de Claude Code: una copia entera del repo en
+# worktrees/ (208 MB). No se usa en el build y duplicaba lo que sube cada
+# `gcloud run deploy --source .`.
+.claude/

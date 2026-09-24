@@ -70,7 +70,10 @@ export async function POST(request) {
         }
 
         const items = elegibles.items.map((i) => ({ id: i.productId, quantity: i.quantity }));
-        const { carriers } = await cotizarEnvio({ items, destination: direccion });
+        const { carriers, estadoInvalido } = await cotizarEnvio({ items, destination: direccion });
+        if (estadoInvalido) {
+            return NextResponse.json({ success: false, error: 'Elige el estado de la lista.' }, { status: 400 });
+        }
 
         if (!carriers.length) {
             return NextResponse.json({

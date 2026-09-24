@@ -116,6 +116,15 @@ export async function POST(req) {
         });
 
     } catch (error) {
+        // Dos altas con el mismo correo al mismo tiempo pasan las dos la
+        // revision de arriba; la llave unica de la base para a la segunda, y eso
+        // es un "ya registrado", no un error del servidor.
+        if (error.code === 'ER_DUP_ENTRY') {
+            return NextResponse.json(
+                { success: false, error: 'Este correo electrónico ya está registrado.' },
+                { status: 409 }
+            );
+        }
         console.error('Error en registro:', error);
         return NextResponse.json(
             { success: false, error: 'Error del servidor. Intenta de nuevo más tarde.' },

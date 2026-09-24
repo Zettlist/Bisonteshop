@@ -119,7 +119,14 @@ export default function MiCuenta() {
         setDeleteError('');
         try {
             const res = await fetch('/api/me', { method: 'DELETE' });
-            if (!res.ok) throw new Error('Error al eliminar cuenta');
+            if (!res.ok) {
+                // El servidor dice por que no (saldo, un apartado, un pedido en
+                // camino): eso es lo que el cliente necesita leer.
+                const data = await res.json().catch(() => ({}));
+                setDeleteError(data.error || 'No se pudo eliminar la cuenta. Intenta de nuevo.');
+                setDeleting(false);
+                return;
+            }
             clearUser();
             router.replace('/');
         } catch (e) {

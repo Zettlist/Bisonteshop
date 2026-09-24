@@ -7,6 +7,7 @@ import { getClienteId } from '@/lib/auth';
 import { gastarCredito } from '@/lib/credito';
 import { leerPedidoSaldo } from '@/lib/pedidoSaldo';
 import { huellaDestino } from '@/lib/envioFirmado';
+import { estadoCanonico } from '@/lib/estadosMx';
 import { reservarStock } from '@/lib/reserva';
 import { medidasDelCarrito, armarPaquete } from '@/lib/paquete';
 import { usuarioWeb } from '@/lib/usuarioWeb';
@@ -418,7 +419,11 @@ export async function POST(request) {
           referencia,
           creditoAplicado,
           shippingMethod || 'envia',
-          shipping_address ? JSON.stringify(shipping_address) : null,
+          // El estado con el nombre de la lista: de aqui lo lee el POS para la
+          // guia, y un "México" o un "Nuevo Leon" sin acento lo mandaba a CDMX.
+          shipping_address
+            ? JSON.stringify({ ...shipping_address, estado: estadoCanonico(shipping_address.estado) || shipping_address.estado })
+            : null,
           JSON.stringify(cotizacionFirme),
           pagoTipo,
           tarjeta?.marca || null,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 import { isValidText, isValidOptionalText, firstError } from '@/lib/validate';
+import { estadoCanonico } from '@/lib/estadosMx';
 
 // Aqui vivia un ensureTable() que en CADA peticion creaba `user_addresses` y le
 // anadia once columnas con ALTER TABLE. Se ha quitado: la tabla esta en
@@ -66,18 +67,31 @@ export async function POST(request) {
     ]);
     if (err) return NextResponse.json({ success: false, error: err }, { status: 400 });
 
+    // El estado se guarda con el nombre de la lista (lib/estadosMx.js). Con
+    // otro nombre la cotizacion no lo reconoce, y antes lo cotizaba como CDMX.
+    const estadoLista = estado ? estadoCanonico(estado) : null;
+    if (estado && !estadoLista) {
+        return NextResponse.json({ success: false, error: 'Elige el estado de la lista.' }, { status: 400 });
+    }
+
     // Check if user has any address — first one becomes principal
     const [existing] = await pool.query(
         'SELECT COUNT(*) as cnt FROM user_addresses WHERE cliente_id = ?',
         [clienteId]
     );
+    // Un tope, como el del carrito: sin el, una peticion en bucle escribe
+    // miles de direcciones en la tabla de clientes. Nadie manda a veinte
+    // lugares distintos.
+    if (existing[0].cnt >= 20) {
+        return NextResponse.json({ success: false, error: 'Tienes 20 direcciones guardadas. Borra alguna para agregar otra.' }, { status: 400 });
+    }
     const isFirst = existing[0].cnt === 0;
 
     const [result] = await pool.query(
         `INSERT INTO user_addresses (cliente_id, nombre_recibe, calle, numero_ext, numero_int, colonia, municipio, estado, cp, referencias, is_default)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [clienteId, nombre_recibe || null, calle, numero_ext || null, numero_int || null,
-         colonia || null, municipio || null, estado || null, cp || null, referencias || null, isFirst ? 1 : 0]
+         colonia || null, municipio || null, estadoLista, cp || null, referencias || null, isFirst ? 1 : 0]
     );
 
     const [rows] = await pool.query('SELECT * FROM user_addresses WHERE id = ?', [result.insertId]);
@@ -108,6 +122,14 @@ export async function DELETE(request) {
     if (!id) return NextResponse.json({ success: false, error: 'ID requerido' }, { status: 400 });
 
     await pool.query('DELETE FROM user_addresses WHERE id = ? AND cliente_id = ?', [id, clienteId]);
+
+    // Solo se nombra una principal nueva si ya no queda ninguna. Antes se hacia
+    // siempre: borrar una direccion vieja cualquiera cambiaba la principal del
+    // cliente por la mas reciente, sin que lo pidiera.
+    const [principal] = await pool.query(
+        'SELECT id FROM user_addresses WHERE cliente_id = ? AND is_default = 1 LIMIT 1', [clienteId]
+    );
+    if (principal.length) return NextResponse.json({ success: true });
 
     // If deleted address was default, set most recent as default
     const [remaining] = await pool.query(

@@ -4,6 +4,7 @@ import { Resend } from 'resend';
 import { rateLimit } from '@/lib/rateLimit';
 import { ipCliente } from '@/lib/ipCliente';
 import { isValidEmail } from '@/lib/validate';
+import { esCorreoDePrueba } from '@/lib/mailer';
 
 // ─── Destinatario por tema ───────────────────────────────────────────
 const DESTINOS = {
@@ -37,6 +38,13 @@ export async function POST(req) {
         }
         if (mensaje.length > 4000) {
             return NextResponse.json({ success: false, error: 'Mensaje demasiado largo.' }, { status: 400 });
+        }
+
+        // Una direccion de prueba (.test, .invalid) no recibe nada y gastaria la
+        // cuota diaria de correo. Se contesta como si hubiera salido: lo que se
+        // prueba es el formulario, no el servicio de correo.
+        if (esCorreoDePrueba(email)) {
+            return NextResponse.json({ success: true, prueba: true });
         }
 
         if (!process.env.RESEND_API_KEY) {

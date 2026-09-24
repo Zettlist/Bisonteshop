@@ -32,7 +32,10 @@ export async function POST(request) {
             return NextResponse.json({ success: false, error: 'Datos insuficientes' }, { status: 400 });
         }
 
-        const { carriers } = await cotizarEnvio({ items, destination });
+        const { carriers, estadoInvalido } = await cotizarEnvio({ items, destination });
+        if (estadoInvalido) {
+            return NextResponse.json({ success: false, error: 'Elige el estado de la lista.' }, { status: 400 });
+        }
 
         if (!carriers.length) {
             return NextResponse.json({ success: false, error: 'No hay opciones de paquetería disponibles para este destino.' }, { status: 200 });

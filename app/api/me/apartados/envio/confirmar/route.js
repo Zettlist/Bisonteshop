@@ -4,6 +4,7 @@ import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 import { priceCart, huellaCarrito, round2 } from '@/lib/pricing';
 import { huellaDestino } from '@/lib/envioFirmado';
+import { estadoCanonico } from '@/lib/estadosMx';
 import { medidasDelCarrito, armarPaquete } from '@/lib/paquete';
 import { usuarioWeb } from '@/lib/usuarioWeb';
 import { apartadosParaEnviar, cerrarApartadosPorEnvio } from '@/lib/apartadoEnvio';
@@ -330,7 +331,8 @@ export async function POST(request) {
                     saleId,
                     clienteId,
                     paymentIntentId,
-                    JSON.stringify(direccion),
+                    // El estado con el nombre de la lista: de aqui lo lee el POS.
+                    JSON.stringify({ ...direccion, estado: estadoCanonico(direccion.estado) || direccion.estado }),
                     JSON.stringify(cotizacionFirme),
                     tarjeta?.marca || null,
                     tarjeta?.ultimos4 || null,

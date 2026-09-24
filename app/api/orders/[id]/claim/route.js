@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
+import { esCorreoDePrueba } from '@/lib/mailer';
 
 // POST /api/orders/[id]/claim
 export async function POST(req, { params }) {
@@ -79,7 +80,7 @@ const esc = (s) => String(s ?? '').replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': 
 
 async function sendClaimEmail(cliente, orderId, notes) {
     const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey || !cliente.email) return;
+    if (!apiKey || !cliente.email || esCorreoDePrueba(cliente.email)) return;
 
     const html = `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#f4f4f5;padding:32px 16px">

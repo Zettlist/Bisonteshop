@@ -12,6 +12,7 @@ import { CheckCircle, ChevronDown, ShieldCheck, Truck, CreditCard, ShoppingBag, 
 import { useRouter } from 'next/navigation';
 import styles from './checkout.module.css';
 import { iniciarCheckout, compra } from '@/lib/analytics';
+import { ESTADOS_MX } from '@/lib/estadosMx';
 
 // Ensure you replace this with your actual Stripe publishable key
 
@@ -777,7 +778,7 @@ function CheckoutFlow() {
                                     <label className={styles.label}>Estado *</label>
                                     <select className={styles.input} name="estado" value={shippingForm.estado} onChange={handleInputChange} required>
                                         <option value="">Selecciona un estado</option>
-                                        {['Aguascalientes','Baja California','Baja California Sur','Campeche','Chiapas','Chihuahua','Ciudad de México','Coahuila','Colima','Durango','Guanajuato','Guerrero','Hidalgo','Jalisco','Estado de México','Michoacán','Morelos','Nayarit','Nuevo León','Oaxaca','Puebla','Querétaro','Quintana Roo','San Luis Potosí','Sinaloa','Sonora','Tabasco','Tamaulipas','Tlaxcala','Veracruz','Yucatán','Zacatecas'].map(e => (
+                                        {ESTADOS_MX.map(e => (
                                             <option key={e} value={e}>{e}</option>
                                         ))}
                                     </select>

@@ -13,6 +13,7 @@ import {
 } from '@stripe/react-stripe-js';
 import { Truck, X, ShieldCheck, Check, MapPin, PackageCheck } from 'lucide-react';
 import a from '@/app/perfil/apartados/Apartados.module.css';
+import { ESTADOS_MX, estadoCanonico } from '@/lib/estadosMx';
 
 const dinero = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -92,7 +93,7 @@ function Formulario({ apartados, onListo, onCerrar }) {
             colonia: d.colonia || '',
             cp: d.cp || '',
             municipio: d.municipio || '',
-            estado: d.estado || '',
+            estado: estadoCanonico(d.estado) || '',
             referencias: d.referencias || '',
         });
         // Cambiar de direccion invalida lo cotizado: el precio depende de a
@@ -285,7 +286,12 @@ function Formulario({ apartados, onListo, onCerrar }) {
                             </label>
                             <label className={a.campo}>
                                 <span>Estado</span>
-                                <input className={a.input} name="estado" value={direccion.estado} onChange={escribir} maxLength={100} />
+                                {/* De la lista, no a mano: la cotizacion solo reconoce los
+                                    nombres de lib/estadosMx.js. */}
+                                <select className={a.input} name="estado" value={direccion.estado} onChange={escribir}>
+                                    <option value="">Elige…</option>
+                                    {ESTADOS_MX.map((e) => <option key={e} value={e}>{e}</option>)}
+                                </select>
                             </label>
                         </div>
 
