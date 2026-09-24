@@ -115,13 +115,27 @@ export async function POST(request) {
     // Suelta la autorizacion cuando el envio no se llega a registrar. Dejarla
     // colgada tendria el dinero retenido en la tarjeta hasta que Stripe la
     // caduque sola, por un paquete que no existe.
+    //
+    // Con una regla que no se salta: NUNCA se suelta un cobro que ya tiene
+    // pedido. Dos clics al mismo tiempo pasan los dos la revision de arriba; el
+    // primero registra el envio y el segundo choca con la puerta de los
+    // apartados ("ya enviado"). Si ese segundo soltara el cobro, soltaria el del
+    // primero. Asi que antes de cancelar se mira de quien es, y si ya tiene
+    // pedido se devuelve ese pedido para contestar como un reintento.
     const soltarCargo = async (motivo) => {
         try {
+            const [dueno] = await pool.query(
+                'SELECT sale_id FROM bisonte_orders WHERE payment_intent_id = ? LIMIT 1',
+                [paymentIntentId]
+            );
+            if (dueno.length) return dueno[0].sale_id;
             await stripe.paymentIntents.cancel(paymentIntentId);
         } catch (err) {
             console.error(`[Apartado/envio] No se pudo liberar el cargo ${paymentIntentId} (${motivo}): ${err.message}`);
         }
+        return null;
     };
+    const comoReintento = (saleId) => NextResponse.json({ success: true, saleId, repetido: true });
 
     try {
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge'] });
@@ -135,6 +149,20 @@ export async function POST(request) {
         }
         if (!md.apartadoIds) {
             return NextResponse.json({ success: false, error: 'Este pago no corresponde a un envío de apartados.' }, { status: 400 });
+        }
+
+        // ¿Este cobro ya tiene su pedido? Tiene que ser lo primero, antes de la
+        // puerta de los apartados. Un reintento del mismo envio (doble clic, se
+        // corto la red) llegaba a esa puerta, veia los apartados "ya enviados"
+        // -- por el propio pedido que acababa de nacer -- y SOLTABA EL COBRO de
+        // ese pedido: el paquete salia y el envio no se cobraba nunca. Lo
+        // encontro scripts/prueba-cobros.mjs confirmando dos veces.
+        const [yaRegistrado] = await pool.query(
+            'SELECT sale_id FROM bisonte_orders WHERE payment_intent_id = ? AND cliente_id = ? LIMIT 1',
+            [paymentIntentId, clienteId]
+        );
+        if (yaRegistrado.length) {
+            return NextResponse.json({ success: true, saleId: yaRegistrado[0].sale_id, repetido: true });
         }
         if (paymentIntent.status !== 'requires_capture' && paymentIntent.status !== 'succeeded') {
             return NextResponse.json(
@@ -188,7 +216,8 @@ export async function POST(request) {
             });
             if (elegibles.error) {
                 await conn.rollback();
-                await soltarCargo(elegibles.codigo);
+                const dueno = await soltarCargo(elegibles.codigo);
+                if (dueno) return comoReintento(dueno);
                 console.warn('[Apartado/envio/confirmar] rechazado:', elegibles.codigo, { clienteId, idsPagados });
                 return NextResponse.json(
                     { success: false, error: `${elegibles.error} No te cobramos el envío.`, codigo: elegibles.codigo },
@@ -202,7 +231,8 @@ export async function POST(request) {
             const { lines } = await priceCart(items);
             if (md.itemsHash !== huellaCarrito(lines)) {
                 await conn.rollback();
-                await soltarCargo('mercancia_distinta');
+                const dueno = await soltarCargo('mercancia_distinta');
+                if (dueno) return comoReintento(dueno);
                 console.error('[Apartado/envio/confirmar] La mercancia cambio', { clienteId, paymentIntentId });
                 return NextResponse.json(
                     { success: false, error: 'Cambió lo que ibas a enviar. No te cobramos el envío; vuelve a cotizar.' },
@@ -279,7 +309,8 @@ export async function POST(request) {
             });
             if (cerrados !== elegibles.ids.length) {
                 await conn.rollback();
-                await soltarCargo('carrera');
+                const dueno = await soltarCargo('carrera');
+                if (dueno) return comoReintento(dueno);
                 console.warn('[Apartado/envio/confirmar] carrera al cerrar apartados', { clienteId, ids: elegibles.ids, cerrados });
                 return NextResponse.json(
                     { success: false, error: 'Alguien ya pidió el envío de ese apartado. No te cobramos nada.' },
@@ -372,7 +403,8 @@ export async function POST(request) {
         // para no dejarlo retenido, y queda en el log lo necesario para
         // entenderlo: cliente, cobro y motivo.
         console.error('[Apartado/envio/confirmar]', { clienteId, paymentIntentId }, error);
-        await soltarCargo('error');
+        const dueno = await soltarCargo('error');
+        if (dueno) return comoReintento(dueno);
         return NextResponse.json(
             { success: false, error: 'No pudimos registrar el envío y no te cobramos nada. Intenta de nuevo o escríbenos.' },
             { status: 500 }

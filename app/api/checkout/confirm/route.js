@@ -150,6 +150,24 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Este pago no es tuyo.' }, { status: 403 });
     }
 
+    // ¿Este pago ya tiene su pedido? Se mira antes de tocar nada.
+    //
+    // El UNIQUE de payment_intent_id ya paraba el duplicado, pero al final de
+    // la transaccion: antes pasaban la reserva de piezas y el descuento del
+    // saldo. Si el reintento (doble clic, se corto la red) llegaba cuando la
+    // pieza ya no alcanzaba -- porque la tenia apartada el propio pedido --
+    // la reserva fallaba y la ruta SOLTABA EL COBRO del pedido que si existia.
+    // Y en el pedido pagado con saldo, contestaba "tu saldo cambio" a quien ya
+    // habia comprado. Lo encontro scripts/prueba-cobros.mjs.
+    const [yaRegistrado] = await pool.query(
+      'SELECT sale_id FROM bisonte_orders WHERE payment_intent_id = ? AND cliente_id = ? LIMIT 1',
+      [referencia, clienteId]
+    );
+    if (yaRegistrado.length) {
+      console.log(`[Confirm] pago ${referencia} ya estaba registrado como pedido #${yaRegistrado[0].sale_id}`);
+      return NextResponse.json({ success: true, saleId: yaRegistrado[0].sale_id, repetido: true });
+    }
+
     // Precios reales por línea desde la BD (para sale_items)
     const { lines } = await priceCart(items);
     const lineById = new Map(lines.map(l => [l.id, l]));
@@ -306,6 +324,18 @@ export async function POST(request) {
         //   Si falla, el pedido NO se registra igual: se prefiere una
         //   autorizacion huerfana (que caduca) a mercancia vendida dos veces
         //   (que no caduca). Queda en el log para el reembolso a mano.
+        //
+        //   Pero nunca si el cobro ya tiene pedido. Dos confirmaciones al mismo
+        //   tiempo (doble clic) pasan las dos la revision del principio; la
+        //   primera se lleva la ultima pieza y la segunda llega aqui por falta
+        //   de existencias. Soltar el cobro seria soltar el de la primera, que
+        //   si es un pedido. Se mira de quien es antes de cancelar.
+        const [dueno] = await pool.query(
+          'SELECT sale_id FROM bisonte_orders WHERE payment_intent_id = ? LIMIT 1', [referencia]
+        );
+        if (dueno.length) {
+          return NextResponse.json({ success: true, saleId: dueno[0].sale_id, repetido: true });
+        }
         if (paymentIntentId) {
           try {
             await stripe.paymentIntents.cancel(paymentIntentId);

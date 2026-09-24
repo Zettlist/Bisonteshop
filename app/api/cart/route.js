@@ -88,6 +88,20 @@ export async function POST(request) {
       renglones.push([null, id, qty, tipo, anticipo]);
     }
 
+    // Solo productos que existen. Un carrito guardado en el telefono puede
+    // traer uno que se dio de baja despues, y la llave foranea de cart_items lo
+    // rechazaba con un error que tumbaba el guardado ENTERO: el cliente ya no
+    // podia guardar nada del carrito. Lo que no existe simplemente no se guarda.
+    if (renglones.length) {
+      const [existentes] = await pool.query(
+        'SELECT id FROM products WHERE id IN (?)', [[...new Set(renglones.map(r => r[1]))]]
+      );
+      const validos = new Set(existentes.map(e => e.id));
+      for (let i = renglones.length - 1; i >= 0; i--) {
+        if (!validos.has(renglones[i][1])) renglones.splice(i, 1);
+      }
+    }
+
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();

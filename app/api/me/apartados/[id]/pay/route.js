@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 import { rateLimit } from '@/lib/rateLimit';
+import { crearIntento } from '@/lib/intentoFresco';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,7 +93,8 @@ export async function POST(request, { params }) {
         const huella = JSON.stringify({ c: clienteId, a: apartadoId, s: saldo });
         const idempotencyKey = `apartado:${crypto.createHash('sha256').update(huella).digest('hex').slice(0, 48)}`;
 
-        const paymentIntent = await stripe.paymentIntents.create({
+        // crearIntento y no .create a secas: ver lib/intentoFresco.js.
+        const paymentIntent = await crearIntento(stripe, {
             amount: Math.round(saldo * 100),
             currency: 'mxn',
             capture_method: 'manual',
@@ -107,7 +109,7 @@ export async function POST(request, { params }) {
                 folio: apartado.folio,
                 saldoMXN: saldo.toFixed(2),
             },
-        }, { idempotencyKey });
+        }, idempotencyKey);
 
         return NextResponse.json({
             success: true,

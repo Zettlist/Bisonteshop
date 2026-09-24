@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 import { rateLimit } from '@/lib/rateLimit';
+import { crearIntento } from '@/lib/intentoFresco';
 import { priceCart, huellaCarrito, round2 } from '@/lib/pricing';
 import { leerEnvio, huellaDestino } from '@/lib/envioFirmado';
 import { apartadosParaEnviar } from '@/lib/apartadoEnvio';
@@ -130,7 +131,8 @@ export async function POST(request) {
 
         const folios = elegibles.apartados.map((a) => a.folio).join(', ');
 
-        const paymentIntent = await stripe.paymentIntents.create({
+        // crearIntento y no .create a secas: ver lib/intentoFresco.js.
+        const paymentIntent = await crearIntento(stripe, {
             amount: Math.round(envio * 100),
             currency: 'mxn',
             capture_method: 'manual',
@@ -150,7 +152,7 @@ export async function POST(request) {
                 carrier: cotizacion.carrier || '',
                 service: cotizacion.service || '',
             },
-        }, { idempotencyKey });
+        }, idempotencyKey);
 
         return NextResponse.json({
             success: true,

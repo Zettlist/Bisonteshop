@@ -135,7 +135,21 @@ export async function POST(request) {
       // El pedido pagado con saldo no tiene autorizacion que liberar; toda su
       // reversion es la devolucion del saldo, que ocurre abajo igual que en
       // cualquier otra cancelacion.
-      if (!sinCargo) await stripe.paymentIntents.cancel(paymentIntentId);
+      //
+      // Si Stripe ya lo tenia cancelado, se sigue adelante. Pasa solo: una
+      // autorizacion que nadie captura caduca a los 7 dias y Stripe la suelta
+      // por su cuenta. Antes ese caso tumbaba la ruta con un 500, el pedido se
+      // quedaba "autorizado" para siempre y la bandeja del POS lo reintentaba
+      // sin fin. Lo que se queria (que no quede dinero retenido) ya ocurrio.
+      if (!sinCargo) {
+        try {
+          await stripe.paymentIntents.cancel(paymentIntentId);
+        } catch (e) {
+          const intento = await stripe.paymentIntents.retrieve(paymentIntentId).catch(() => null);
+          if (intento?.status !== 'canceled') throw e;
+          console.log(`[Capture] Pedido #${saleId}: el cobro ya estaba soltado en Stripe; se cierra en la base.`);
+        }
+      }
 
       // Aqui si se mueven los dos ejes: una autorizacion liberada no deja
       // pedido que entregar, y `cancelled_at` es lo que fecha la cancelacion.

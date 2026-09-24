@@ -57,6 +57,33 @@ export async function POST(request) {
             return NextResponse.json({ success: false, error: 'Este pago no es tuyo.' }, { status: 403 });
         }
 
+        // ¿Este cobro ya tiene su apartado? Es lo PRIMERO que se mira, antes
+        // del tope de apartados y de separar la pieza. Un reintento (doble
+        // clic, se corto la red) de un apartado que si se creo llegaba hasta el
+        // tope, veia su propio apartado contado como abierto y contestaba "ya
+        // tienes 3 apartados": un error sobre dinero que si se cobro y un
+        // apartado que si existe.
+        const [[previo]] = await pool.query(
+            `SELECT a.id, a.folio, a.total_amount, a.paid_amount, a.expires_at
+               FROM anticipo_payments ap
+               JOIN anticipos a ON a.id = ap.anticipo_id
+              WHERE ap.payment_intent_id = ? AND a.cliente_id = ?
+              LIMIT 1`,
+            [paymentIntentId, clienteId]
+        );
+        if (previo) {
+            return NextResponse.json({
+                success: true,
+                repetido: true,
+                id: previo.id,
+                folio: previo.folio,
+                total: Number(previo.total_amount),
+                pagado: Number(previo.paid_amount),
+                saldo: Number((Number(previo.total_amount) - Number(previo.paid_amount)).toFixed(2)),
+                vence: previo.expires_at,
+            });
+        }
+
         // `succeeded` es el reintento de un cobro que si llego a Stripe pero
         // cuyo registro no se pudo cerrar: hay que apuntarlo, no cobrarlo otra
         // vez.
@@ -80,6 +107,19 @@ export async function POST(request) {
             return NextResponse.json({ success: false, error: 'No pudimos registrar el apartado.' }, { status: 500 });
         }
 
+        // Si una creacion no sale, antes de soltar el cobro se mira si otro
+        // clic simultaneo ya creo el apartado con ESTE mismo cobro: en ese caso
+        // la respuesta es la de un reintento, no un error sobre un apartado que
+        // si existe.
+        const apartadoDelCobro = async () => {
+            const [[ya]] = await pool.query(
+                `SELECT a.id, a.folio FROM anticipo_payments ap JOIN anticipos a ON a.id = ap.anticipo_id
+                  WHERE ap.payment_intent_id = ? AND a.cliente_id = ? LIMIT 1`,
+                [paymentIntentId, clienteId]
+            );
+            return ya ? NextResponse.json({ success: true, repetido: true, id: ya.id, folio: ya.folio }) : null;
+        };
+
         const conn = await pool.getConnection();
         try {
             await conn.beginTransaction();
@@ -102,6 +142,8 @@ export async function POST(request) {
             );
             if (Number(abiertos.n) >= MAX_ABIERTOS) {
                 await conn.rollback();
+                const reintento = await apartadoDelCobro();
+                if (reintento) return reintento;
                 if (!yaCobrado) {
                     await stripe.paymentIntents.cancel(paymentIntentId).catch((e) => {
                         console.error('[Apartado/crear] No se pudo cancelar la autorización', paymentIntentId, e.message);
@@ -128,6 +170,8 @@ export async function POST(request) {
 
             if (reserva.affectedRows !== 1) {
                 await conn.rollback();
+                const reintento = await apartadoDelCobro();
+                if (reintento) return reintento;
                 if (!yaCobrado) {
                     await stripe.paymentIntents.cancel(paymentIntentId).catch((e) => {
                         console.error('[Apartado/crear] No se pudo cancelar la autorización', paymentIntentId, e.message);

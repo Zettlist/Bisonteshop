@@ -8,6 +8,7 @@ import { getUsdRate } from '@/lib/fx';
 import { firmarPedidoSaldo } from '@/lib/pedidoSaldo';
 import { leerEnvio } from '@/lib/envioFirmado';
 import { rateLimit } from '@/lib/rateLimit';
+import { crearIntento } from '@/lib/intentoFresco';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,10 +165,20 @@ export async function POST(request) {
     //
     // El del medio le deja al cliente unos pesos de saldo sin gastar, que es
     // preferible a cobrarle de más o a no dejarle comprar.
+    //
+    // Y solo si el cliente lo pidio. La pantalla de pago tiene un interruptor
+    // de "Saldo de tienda", apagado de entrada, y el servidor lo ignoraba: el
+    // saldo se aplicaba siempre. Quien no lo queria usar veia "Total a pagar
+    // hoy: $530" y se le cobraban $380, gastandole el saldo sin permiso -- y si
+    // el saldo cubria todo, la compra se pagaba sola aunque hubiera elegido
+    // tarjeta. El navegador ya manda `appliedCredit` (0 con el interruptor
+    // apagado, el saldo con el encendido): se lee solo como un si o un no. La
+    // CANTIDAD la sigue decidiendo esta ruta con el saldo de la base.
+    const quiereSaldo = Number(body.appliedCredit) > 0;
     let appliedCreditFinal = 0;
     const [creditRows] = await pool.query(`SELECT store_credit FROM clientes WHERE id = ?`, [userId]);
     const saldo = parseFloat(creditRows[0]?.store_credit) || 0;
-    if (saldo > 0) {
+    if (saldo > 0 && quiereSaldo) {
       if (saldo >= totalCharge) {
         appliedCreditFinal = totalCharge;
       } else {
@@ -293,7 +304,8 @@ export async function POST(request) {
     });
     const idempotencyKey = `checkout:${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 48)}`;
 
-    const paymentIntent = await stripe.paymentIntents.create({
+    // crearIntento y no .create a secas: ver lib/intentoFresco.js.
+    const paymentIntent = await crearIntento(stripe, {
       amount: amountInCents,
       currency: stripeCurrency,
       capture_method: 'manual',
@@ -323,7 +335,7 @@ export async function POST(request) {
         shippingMXN: shippingCost.toFixed(2),
         totalMXN: totalCharge.toFixed(2),
       },
-    }, { idempotencyKey });
+    }, idempotencyKey);
 
     return NextResponse.json({
       success: true,

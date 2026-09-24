@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import pool from '@/lib/db';
 import { getClienteId } from '@/lib/auth';
 import { rateLimit } from '@/lib/rateLimit';
+import { crearIntento } from '@/lib/intentoFresco';
 import { priceCart } from '@/lib/pricing';
 import { calcularApartado, DIAS_APARTADO } from '@/lib/apartado';
 import { vencimiento, MAX_ABIERTOS } from '@/lib/apartadoServidor';
@@ -118,7 +119,8 @@ export async function POST(request) {
         const huella = JSON.stringify({ c: clienteId, p: productoId, m: pedido, v: ventana });
         const idempotencyKey = `apartado-nuevo:${crypto.createHash('sha256').update(huella).digest('hex').slice(0, 48)}`;
 
-        const paymentIntent = await stripe.paymentIntents.create({
+        // crearIntento y no .create a secas: ver lib/intentoFresco.js.
+        const paymentIntent = await crearIntento(stripe, {
             amount: Math.round(pedido * 100),
             currency: 'mxn',
             capture_method: 'manual',
@@ -134,7 +136,7 @@ export async function POST(request) {
                 totalMXN: total.toFixed(2),
                 anticipoMXN: pedido.toFixed(2),
             },
-        }, { idempotencyKey });
+        }, idempotencyKey);
 
         return NextResponse.json({
             success: true,
